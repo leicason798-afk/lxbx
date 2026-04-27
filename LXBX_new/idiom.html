@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- 防缓存:确保用户总是拿到最新版本 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>成语知识大冒险 — 灵犀伴学</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{ocean:{50:'#eef6ff',100:'#d9ecff',200:'#bcdeff',300:'#8ec9ff',400:'#59a9ff',500:'#3385ff',600:'#1a65f5',700:'#1450e1',800:'#1741b6',900:'#19398f',950:'#142557'},mint:{50:'#edfcf5',100:'#d3f8e6',200:'#aaf0d1',300:'#73e2b5',400:'#3acd95',500:'#18b47d'},warm:{50:'#fff8ed',100:'#fff0d4',200:'#ffdda8',300:'#ffc371',400:'#ff9f38',500:'#ff8211',600:'#f06807',700:'#c74e08'}},fontFamily:{display:['"Noto Serif SC"','serif'],body:['"Noto Sans SC"','sans-serif']}}}};
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- AI小人 -->
+  <script src="supabase-sync.js"></script>
+<script>
+/* ── Navbar 头像同步 ── */
+(function _syncNav(){
+  try {
+    var u = JSON.parse(localStorage.getItem('zhibanUser') || '{}');
+    var av = document.getElementById('navAvatar');
+    var nm = document.getElementById('navUserName');
+    if (!av) return;
+    if (u.customAvatar) {
+      av.innerHTML = '<img src="' + u.customAvatar + '" style="width:36px;height:36px;object-fit:cover;border-radius:50%">';
+    } else {
+      var colors = ['#fff7ed','#fce7f3','#fef3c7','#e0e7ff','#ecfdf5','#dbeafe'];
+      var animals = [
+        '<circle cx="32" cy="36" r="20" fill="#fb923c"/><circle cx="32" cy="38" r="14" fill="#fff"/><polygon points="16,22 12,6 24,18" fill="#fb923c"/><polygon points="48,22 52,6 40,18" fill="#fb923c"/><circle cx="25" cy="34" r="2.8" fill="#1e293b"/><circle cx="39" cy="34" r="2.8" fill="#1e293b"/><ellipse cx="32" cy="39" rx="2.5" ry="2" fill="#1e293b"/>',
+        '<circle cx="32" cy="40" r="18" fill="#fef9c3"/><ellipse cx="25" cy="14" rx="5" ry="14" fill="#fef9c3" stroke="#fde047" stroke-width=".5"/><ellipse cx="39" cy="14" rx="5" ry="14" fill="#fef9c3" stroke="#fde047" stroke-width=".5"/><circle cx="26" cy="37" r="2.5" fill="#1e293b"/><circle cx="38" cy="37" r="2.5" fill="#1e293b"/><ellipse cx="32" cy="42" rx="2" ry="1.5" fill="#fda4af"/>',
+        '<circle cx="32" cy="36" r="20" fill="#d4a574"/><circle cx="20" cy="20" r="7" fill="#d4a574"/><circle cx="44" cy="20" r="7" fill="#d4a574"/><circle cx="20" cy="20" r="4" fill="#f5deb3"/><circle cx="44" cy="20" r="4" fill="#f5deb3"/><circle cx="32" cy="40" r="10" fill="#f5deb3"/><circle cx="26" cy="34" r="2.8" fill="#1e293b"/><circle cx="38" cy="34" r="2.8" fill="#1e293b"/>',
+        '<ellipse cx="32" cy="36" rx="18" ry="22" fill="#334155"/><ellipse cx="32" cy="40" rx="12" ry="14" fill="#fff"/><circle cx="25" cy="30" r="3.5" fill="#fff"/><circle cx="39" cy="30" r="3.5" fill="#fff"/><circle cx="25" cy="30" r="1.8" fill="#1e293b"/><circle cx="39" cy="30" r="1.8" fill="#1e293b"/><polygon points="32,35 28,39 36,39" fill="#fbbf24"/>',
+        '<circle cx="32" cy="38" r="19" fill="#86efac"/><circle cx="22" cy="22" r="9" fill="#86efac"/><circle cx="42" cy="22" r="9" fill="#86efac"/><circle cx="22" cy="22" r="5" fill="#fff"/><circle cx="42" cy="22" r="5" fill="#fff"/><circle cx="22" cy="22" r="2.5" fill="#1e293b"/><circle cx="42" cy="22" r="2.5" fill="#1e293b"/>',
+        '<circle cx="32" cy="38" r="19" fill="#94a3b8"/><circle cx="32" cy="40" r="13" fill="#e2e8f0"/><polygon points="16,24 12,6 24,22" fill="#94a3b8"/><polygon points="48,24 52,6 40,22" fill="#94a3b8"/><circle cx="25" cy="35" r="2.5" fill="#1e293b"/><circle cx="39" cy="35" r="2.5" fill="#1e293b"/><ellipse cx="32" cy="40" rx="2" ry="1.5" fill="#fda4af"/>'
+      ];
+      var idx = u.avatarIndex || 0;
+      var bg = colors[idx % colors.length];
+      var body = animals[idx % animals.length];
+      av.innerHTML = '<svg viewBox="0 0 64 64" width="36" height="36" xmlns="http://www.w3.org/2000/svg" style="border-radius:50%"><rect width="64" height="64" rx="32" fill="' + bg + '"/>' + body + '</svg>';
+    }
+    if (nm && u.userName) nm.textContent = u.userName;
+  } catch(e) {}
+})();
+</script>
+<script src="ai-character.js"></script>
+<style>
+:root{--nav-h:64px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans SC',sans-serif;color:#1e293b;background:#f8faff;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse 80% 50% at 20% 10%,rgba(51,133,255,.06) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 80%,rgba(255,159,56,.05) 0%,transparent 60%)}
+#navbar{background:rgba(255,255,255,.82);backdrop-filter:blur(16px) saturate(1.4);box-shadow:0 1px 24px rgba(20,37,87,.07)}
+#mobileMenu{transition:max-height .35s ease,opacity .3s;max-height:0;opacity:0;overflow:hidden}
+#mobileMenu.open{max-height:400px;opacity:1}
+.btn-primary{display:inline-flex;align-items:center;gap:6px;padding:10px 28px;background:linear-gradient(135deg,#3385ff,#1450e1);color:#fff;border-radius:12px;font-weight:600;font-size:.95rem;transition:transform .25s,box-shadow .25s;border:none;cursor:pointer}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(51,133,255,.35)}
+.card{background:#fff;border-radius:18px;box-shadow:0 8px 32px rgba(20,37,87,.08)}
+.avatar-svg{border-radius:50%}
+/* Idiom grid */
+.idiom-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:320px;margin:0 auto}
+.idiom-char{width:100%;aspect-ratio:1;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;border:2px solid #bcdeff;background:#fff;transition:all .3s;font-family:'Noto Serif SC',serif}
+.idiom-char.filled{background:#eef6ff;border-color:#3385ff;color:#1450e1}
+.idiom-char.blank{background:#fff8ed;border-color:#ffc371;color:#f06807;cursor:pointer;animation:pulse 1.5s infinite}
+.idiom-char.correct-reveal{background:#edfcf5;border-color:#18b47d;color:#0e7453;animation:popIn .4s ease}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,159,56,.3)}50%{box-shadow:0 0 0 8px rgba(255,159,56,0)}}
+@keyframes popIn{0%{transform:scale(.8)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+/* Choice buttons */
+.choice-btn{padding:12px 8px;background:#fff;border:2px solid #bcdeff;border-radius:12px;font-size:1.4rem;font-weight:700;cursor:pointer;transition:all .2s;font-family:'Noto Serif SC',serif;text-align:center}
+.choice-btn:hover{border-color:#3385ff;background:#eef6ff;transform:translateY(-2px)}
+.choice-btn.selected{border-color:#3385ff;background:#3385ff;color:#fff}
+.choice-btn.correct{border-color:#18b47d;background:#edfcf5;color:#0e7453}
+.choice-btn.wrong{border-color:#ef4444;background:#fef2f2;color:#dc2626}
+.choice-btn:disabled{cursor:default;opacity:.7}
+/* Progress bar */
+.progress-track{height:8px;background:#eef6ff;border-radius:4px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#3385ff,#18b47d);border-radius:4px;transition:width .4s ease}
+/* Score popup */
+.score-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);background:#fff;border-radius:24px;padding:48px 40px;text-align:center;box-shadow:0 24px 64px rgba(20,37,87,.18);z-index:100;transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
+.score-popup.active{transform:translate(-50%,-50%) scale(1)}
+.score-overlay{position:fixed;inset:0;background:rgba(20,37,87,.3);backdrop-filter:blur(6px);z-index:99;opacity:0;pointer-events:none;transition:opacity .3s}
+.score-overlay.active{opacity:1;pointer-events:auto}
+/* Meaning tooltip */
+.meaning-box{background:#f0f5ff;border:1px solid #bcdeff;border-radius:12px;padding:12px 16px;margin-top:12px;font-size:.85rem;color:#1741b6;line-height:1.6;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ═══ Unified Navbar ═══ */
+#navbar{background:rgba(255,255,255,.82);backdrop-filter:blur(16px) saturate(1.4);box-shadow:0 1px 24px rgba(20,37,87,.07);transition:background .35s,box-shadow .35s}
+.avatar-svg{border-radius:50%}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<!-- ══════════ UNIFIED NAVBAR ══════════ -->
+<nav id="navbar" class="fixed top-0 left-0 w-full z-50" style="height:var(--nav-h)">
+  <div class="max-w-7xl mx-auto flex items-center justify-between px-5 md:px-8 h-full">
+    <a href="home.html" class="flex items-center gap-2 text-ocean-700 font-bold text-lg select-none">
+      <svg class="w-8 h-8" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="18" stroke="#3385ff" stroke-width="2.5"/><circle cx="14" cy="17" r="4" fill="#3385ff" opacity=".7"/><circle cx="26" cy="17" r="4" fill="#18b47d" opacity=".7"/><circle cx="20" cy="27" r="4" fill="#ff9f38" opacity=".7"/><line x1="14" y1="17" x2="26" y2="17" stroke="#3385ff" stroke-width="1.5" opacity=".4"/><line x1="14" y1="17" x2="20" y2="27" stroke="#18b47d" stroke-width="1.5" opacity=".4"/><line x1="26" y1="17" x2="20" y2="27" stroke="#ff9f38" stroke-width="1.5" opacity=".4"/></svg>
+      <span class="hidden sm:inline" style="font-family:'Noto Serif SC',serif">灵犀伴学</span>
+    </a>
+    <ul class="hidden md:flex items-center gap-1 text-sm font-medium">
+      <li><a href="home.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">首页</a></li>
+      <li><a href="home.html#plan" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习计划</a></li>
+      <li><a href="home.html#about" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">关于我们</a></li>
+      <li><a href="home.html#footer" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">联系我们</a></li>
+      <li><a href="user.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">用户中心</a></li>
+    
+      <li><a href="profile.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习画像</a></li>
+      <li><a href="goals.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习目标</a></li>
+    </ul>
+    <div class="flex items-center gap-3">
+      <a href="user.html" id="navUserInfo" class="flex items-center gap-2 hover:opacity-80 transition">
+        <div id="navAvatar" class="w-9 h-9 rounded-full bg-ocean-100 flex items-center justify-center overflow-hidden"></div>
+        <span id="navUserName" class="hidden sm:inline text-sm font-medium text-ocean-700"></span>
+      </a>
+      <button onclick="document.getElementById('mobileMenu').classList.toggle('open')" class="md:hidden w-9 h-9 rounded-lg flex items-center justify-center hover:bg-ocean-50 transition">
+        <svg class="w-5 h-5 text-ocean-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="mobileMenu" class="md:hidden bg-white/95 backdrop-blur-md border-t border-ocean-100" style="max-height:0;opacity:0;overflow:hidden;transition:max-height .35s ease,opacity .3s">
+    <ul class="flex flex-col py-2 px-5 text-sm font-medium">
+      <li><a href="home.html" class="block py-3 text-ocean-800">首页</a></li>
+      <li><a href="home.html#plan" class="block py-3 text-ocean-800">学习计划</a></li>
+      <li><a href="home.html#about" class="block py-3 text-ocean-800">关于我们</a></li>
+      <li><a href="home.html#footer" class="block py-3 text-ocean-800">联系我们</a></li>
+      <li><a href="user.html" class="block py-3 text-ocean-600 font-semibold">用户中心</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- GAME -->
+<main class="pt-24 pb-16 px-4 max-w-xl mx-auto">
+
+  <!-- Start -->
+  <div id="startScreen" class="card p-8 md:p-12 text-center">
+    <div class="text-5xl mb-4">📜</div>
+    <h1 class="text-2xl md:text-3xl font-bold font-display text-ocean-900 mb-3">成语知识大冒险</h1>
+    <p class="text-ocean-500 mb-8 text-sm md:text-base">填入缺失的字，完成成语<br>边玩边积累，轻松掌握成语知识！</p>
+    <button onclick="startGame()" class="btn-primary text-lg px-10 py-3" style="background:linear-gradient(135deg,#ff9f38,#f06807)">
+      开始冒险
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+    </button>
+  </div>
+
+  <!-- Game -->
+  <div id="gameScreen" class="hidden">
+    <!-- Progress -->
+    <div class="flex items-center justify-between mb-2 text-sm">
+      <span class="text-ocean-500">第 <strong id="qNum" class="text-ocean-800">1</strong> / <span id="qTotal">10</span> 题</span>
+      <span class="text-ocean-500">得分：<strong id="scoreText" class="text-warm-600">0</strong></span>
+    </div>
+    <div class="progress-track mb-6"><div class="progress-fill" id="progressBar" style="width:0%"></div></div>
+
+    <!-- Idiom display -->
+    <div class="card p-6 md:p-8 mb-6">
+      <p class="text-center text-ocean-400 text-xs mb-4 font-medium">选出正确的字完成成语</p>
+      <div class="idiom-grid" id="idiomGrid"></div>
+      <div id="meaningBox"></div>
+    </div>
+
+    <!-- Choices -->
+    <div class="grid grid-cols-4 gap-3" id="choicesGrid"></div>
+
+    <!-- Next button -->
+    <div class="text-center mt-6">
+      <button id="nextBtn" onclick="nextQuestion()" class="btn-primary hidden px-8" style="background:linear-gradient(135deg,#ff9f38,#f06807)">
+        下一题 →
+      </button>
+    </div>
+  </div>
+</main>
+
+<!-- Score Popup -->
+<div class="score-overlay" id="scoreOverlay" onclick="closeScore()"></div>
+<div class="score-popup" id="scorePopup">
+  <div class="text-5xl mb-4" id="resultEmoji">📖</div>
+  <h2 class="text-2xl font-bold font-display text-ocean-900 mb-2">冒险结束！</h2>
+  <p class="text-ocean-500 text-sm mb-6" id="resultMsg">成语小达人</p>
+  <div class="grid grid-cols-3 gap-3 mb-6 text-center">
+    <div class="bg-ocean-50 rounded-xl p-3"><p class="text-2xl font-bold text-ocean-700" id="fScore">0</p><p class="text-xs text-ocean-400">总得分</p></div>
+    <div class="bg-mint-50 rounded-xl p-3"><p class="text-2xl font-bold text-mint-600" id="fCorrect">0</p><p class="text-xs text-mint-500">答对</p></div>
+    <div class="bg-warm-50 rounded-xl p-3"><p class="text-2xl font-bold text-warm-600" id="earnedPts">+0</p><p class="text-xs text-warm-400">获得积分</p></div>
+  </div>
+  <div class="flex gap-3 justify-center">
+    <button onclick="closeScore();showStart()" class="btn-primary text-sm px-6" style="background:#64748b">返回</button>
+    <button onclick="closeScore();startGame()" class="btn-primary text-sm px-6" style="background:linear-gradient(135deg,#ff9f38,#f06807)">再来一局</button>
+  </div>
+</div>
+
+<script>
+
+/* === IDIOM DATA === */
+const IDIOMS = [
+  {chars:['一','心','一','意'],blank:2,meaning:'形容心思、意念专一',distractors:['二','三','百','千']},
+  {chars:['画','龙','点','睛'],blank:3,meaning:'比喻在关键处点明要旨，使内容生动传神',distractors:['眼','目','星','精']},
+  {chars:['守','株','待','兔'],blank:0,meaning:'比喻不主动努力，存有侥幸心理',distractors:['看','望','坐','等']},
+  {chars:['亡','羊','补','牢'],blank:2,meaning:'出了问题后及时补救，防止继续受损失',distractors:['建','修','做','搭']},
+  {chars:['刻','舟','求','剑'],blank:1,meaning:'比喻拘泥成规，不知变通',distractors:['船','木','板','桥']},
+  {chars:['对','牛','弹','琴'],blank:3,meaning:'比喻对不懂道理的人讲道理',distractors:['筝','鼓','笛','曲']},
+  {chars:['叶','公','好','龙'],blank:2,meaning:'比喻表面爱好而实际并不真正喜欢',distractors:['爱','看','赏','养']},
+  {chars:['掩','耳','盗','铃'],blank:0,meaning:'比喻自己欺骗自己',distractors:['捂','遮','堵','闭']},
+  {chars:['揠','苗','助','长'],blank:3,meaning:'比喻违反事物发展规律，急于求成',distractors:['大','高','壮','快']},
+  {chars:['胸','有','成','竹'],blank:2,meaning:'比喻做事之前已有充分的准备和把握',distractors:['大','老','全','满']},
+  {chars:['画','蛇','添','足'],blank:3,meaning:'比喻做多余的事，反而不恰当',distractors:['手','尾','腿','翼']},
+  {chars:['半','途','而','废'],blank:3,meaning:'做事没有完成就停止了',distractors:['弃','退','逃','返']},
+  {chars:['自','相','矛','盾'],blank:2,meaning:'比喻言行自相抵触',distractors:['刀','枪','剑','戟']},
+  {chars:['井','底','之','蛙'],blank:3,meaning:'比喻见识狭窄的人',distractors:['鱼','龟','虾','蛇']},
+  {chars:['狐','假','虎','威'],blank:0,meaning:'比喻借别人的势力来欺压人',distractors:['猫','狼','犬','鼠']},
+  {chars:['四','面','楚','歌'],blank:2,meaning:'形容四面受敌，处于孤立无援的境地',distractors:['悲','战','凯','情']},
+  {chars:['杯','弓','蛇','影'],blank:1,meaning:'比喻疑神疑鬼，自相惊扰',distractors:['箭','刀','剑','矛']},
+  {chars:['鹬','蚌','相','争'],blank:3,meaning:'比喻双方争执不下，两败俱伤',distractors:['斗','打','吵','拼']},
+  {chars:['愚','公','移','山'],blank:2,meaning:'比喻坚持不懈地改造自然和坚定不移地进行斗争',distractors:['搬','推','挖','翻']},
+  {chars:['悬','梁','刺','股'],blank:0,meaning:'形容刻苦学习',distractors:['挂','吊','绑','系']},
+];
+
+let questions=[], current=0, score=0, correctCount=0, answered=false;
+
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+function showStart(){
+  document.getElementById('startScreen').classList.remove('hidden');
+  document.getElementById('gameScreen').classList.add('hidden');
+}
+
+function startGame(){
+  questions=shuffle(IDIOMS).slice(0,10);
+  current=0;score=0;correctCount=0;
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('gameScreen').classList.remove('hidden');
+  document.getElementById('qTotal').textContent=questions.length;
+  loadQuestion();
+}
+
+function loadQuestion(){
+  answered=false;
+  const q=questions[current];
+  document.getElementById('qNum').textContent=current+1;
+  document.getElementById('scoreText').textContent=score;
+  document.getElementById('progressBar').style.width=`${(current/questions.length)*100}%`;
+  document.getElementById('nextBtn').classList.add('hidden');
+  document.getElementById('meaningBox').innerHTML='';
+
+  // Build grid
+  const grid=document.getElementById('idiomGrid');
+  grid.innerHTML='';
+  q.chars.forEach((ch,i)=>{
+    const div=document.createElement('div');
+    if(i===q.blank){
+      div.className='idiom-char blank';
+      div.id='blankCell';
+      div.textContent='?';
+    }else{
+      div.className='idiom-char filled';
+      div.textContent=ch;
+    }
+    grid.appendChild(div);
+  });
+
+  // Build choices (correct + 3 distractors)
+  const correct=q.chars[q.blank];
+  const wrongs=shuffle(q.distractors).slice(0,3);
+  const choices=shuffle([correct,...wrongs]);
+
+  const cGrid=document.getElementById('choicesGrid');
+  cGrid.innerHTML='';
+  choices.forEach(ch=>{
+    const btn=document.createElement('button');
+    btn.className='choice-btn';
+    btn.textContent=ch;
+    btn.onclick=()=>checkAnswer(btn,ch,correct,q);
+    cGrid.appendChild(btn);
+  });
+}
+
+function checkAnswer(btn,val,ans,q){
+  if(answered)return;
+  answered=true;
+  const blank=document.getElementById('blankCell');
+  document.querySelectorAll('.choice-btn').forEach(b=>b.disabled=true);
+
+  if(val===ans){
+    btn.classList.add('correct');
+    blank.textContent=ans;
+    blank.className='idiom-char correct-reveal';
+    score+=10;
+    correctCount++;
+  }else{
+    btn.classList.add('wrong');
+    blank.textContent=ans;
+    blank.className='idiom-char correct-reveal';
+    document.querySelectorAll('.choice-btn').forEach(b=>{if(b.textContent===ans)b.classList.add('correct')});
+    // Save to error book
+    (function(){
+      var eb=[];try{eb=JSON.parse(localStorage.getItem('zhibanErrorBook')||'[]')}catch(e){}
+      var fullIdiom=q.chars.join('');
+      var qText='成语填空：'+fullIdiom+'（第'+(q.blank+1)+'字）';
+      if(window._lastSavedIQ!==qText && !eb.find(function(x){return x.question===qText})){
+        var allC=[ans];document.querySelectorAll('.choice-btn').forEach(function(b){if(allC.indexOf(b.textContent)<0)allC.push(b.textContent)});
+        window._lastSavedIQ=qText;
+        eb.unshift({id:'err_'+Date.now(),subject:'语文',question:qText,options:allC,correctIdx:0,userIdx:allC.indexOf(val)>=0?allC.indexOf(val):1,source:'成语冒险',date:new Date().toLocaleDateString(),mastered:false,reviewCount:0});
+        localStorage.setItem('zhibanErrorBook',JSON.stringify(eb));
+        if(window.sbErrorBook&&eb.length){var _si=eb[0];if(_si&&_si.id)sbErrorBook.add(_si).catch(function(){});}
+      }
+    })();
+  }
+
+  document.getElementById('scoreText').textContent=score;
+
+  // Show meaning
+  document.getElementById('meaningBox').innerHTML=`<div class="meaning-box">💡 <strong>${q.chars.join('')}</strong>：${q.meaning}</div>`;
+
+  if(current<questions.length-1){
+    document.getElementById('nextBtn').classList.remove('hidden');
+  }else{
+    setTimeout(endGame,1200);
+  }
+}
+
+function nextQuestion(){
+  current++;
+  loadQuestion();
+}
+
+function endGame(){
+  setTimeout(function(){
+    var eb=[];try{eb=JSON.parse(localStorage.getItem('zhibanErrorBook')||'[]')}catch(e){}
+    var recent=eb.filter(function(e){return e.source==='成语冒险'&&!e.mastered});
+    if(recent.length>0){
+      var tip=document.createElement('div');
+      tip.style.cssText='text-align:center;margin-top:12px;padding:10px;border-radius:12px;background:#eef6ff;border:1px solid #bcdeff;font-size:13px;color:#1450e1';
+      tip.innerHTML='📝 '+recent.length+'道错题已收入错题本，<a href="error-book.html" style="font-weight:700;text-decoration:underline">去复习 →</a>';
+      var panel=document.getElementById('endScreen');
+      if(panel)panel.appendChild(tip);
+    }
+  },500);
+  document.getElementById('progressBar').style.width='100%';
+  const pct=correctCount/questions.length;
+  document.getElementById('fScore').textContent=score;
+  document.getElementById('fCorrect').textContent=`${correctCount}/${questions.length}`;
+  document.getElementById('resultEmoji').textContent=pct>=.9?'🏅':pct>=.7?'📖':pct>=.5?'✏️':'📝';
+  document.getElementById('resultMsg').textContent=pct>=.9?'博学多才！成语小状元！':pct>=.7?'表现出色，继续积累！':pct>=.5?'还不错，多读多记！':'加油，积少成多！';
+  document.getElementById('scoreOverlay').classList.add('active');
+  document.getElementById('scorePopup').classList.add('active');
+  const earned=score;_addPoints(earned);document.getElementById('earnedPts').textContent='+'+earned;
+}
+function closeScore(){
+  document.getElementById('scoreOverlay').classList.remove('active');
+  document.getElementById('scorePopup').classList.remove('active');
+}
+
+
+/* ═══ UNIFIED USER SYNC (共享) ═══ */
+const _avatarColors=[{bg:'#dbeafe',face:'#3b82f6',hair:'#1e40af',acc:'#60a5fa'},{bg:'#d1fae5',face:'#10b981',hair:'#065f46',acc:'#6ee7b7'},{bg:'#fef3c7',face:'#f59e0b',hair:'#92400e',acc:'#fcd34d'},{bg:'#fce7f3',face:'#ec4899',hair:'#9d174d',acc:'#f9a8d4'},{bg:'#e0e7ff',face:'#6366f1',hair:'#3730a3',acc:'#a5b4fc'},{bg:'#ffedd5',face:'#f97316',hair:'#9a3412',acc:'#fdba74'}];
+function _genAvatar(idx,size){const c=_avatarColors[idx%6];const st=[`<circle cx="32" cy="34" r="18" fill="${c.face}"/><ellipse cx="32" cy="20" rx="16" ry="12" fill="${c.hair}"/><circle cx="26" cy="33" r="2" fill="#fff"/><circle cx="38" cy="33" r="2" fill="#fff"/><path d="M28 40 Q32 44 36 40" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>`,`<rect x="16" y="24" width="32" height="28" rx="10" fill="${c.face}"/><rect x="14" y="18" width="36" height="14" rx="7" fill="${c.hair}"/><rect x="18" y="14" width="28" height="8" rx="4" fill="${c.acc}"/><circle cx="26" cy="36" r="2" fill="#fff"/><circle cx="38" cy="36" r="2" fill="#fff"/>`,`<ellipse cx="32" cy="36" rx="16" ry="18" fill="${c.face}"/><ellipse cx="32" cy="22" rx="14" ry="10" fill="${c.hair}"/><circle cx="26" cy="35" r="5" stroke="#fff" stroke-width="1.5" fill="none"/><circle cx="38" cy="35" r="5" stroke="#fff" stroke-width="1.5" fill="none"/><circle cx="26" cy="35" r="1.5" fill="#fff"/><circle cx="38" cy="35" r="1.5" fill="#fff"/>`,`<circle cx="32" cy="36" r="16" fill="${c.face}"/><polygon points="18,24 14,10 26,20" fill="${c.hair}"/><polygon points="46,24 50,10 38,20" fill="${c.hair}"/><circle cx="26" cy="34" r="2" fill="#fff"/><circle cx="38" cy="34" r="2" fill="#fff"/>`,`<circle cx="32" cy="36" r="17" fill="${c.face}"/><ellipse cx="32" cy="22" rx="15" ry="10" fill="${c.hair}"/><polygon points="26,33 24,31 22,33 24,35" fill="#fff"/><polygon points="38,33 36,31 40,31 42,33 40,35 36,35" fill="#fff"/>`,`<rect x="16" y="22" width="32" height="30" rx="6" fill="${c.face}"/><rect x="20" y="16" width="24" height="10" rx="3" fill="${c.hair}"/><rect x="22" y="32" width="8" height="5" rx="2" fill="#fff"/><rect x="34" y="32" width="8" height="5" rx="2" fill="#fff"/>`];return`<svg viewBox="0 0 64 64" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" class="avatar-svg"><rect width="64" height="64" rx="32" fill="${c.bg}"/>${st[idx%6]}</svg>`}
+
+/* ═══ 10 PREMIUM AVATARS ═══ */
+const PREMIUM_AVATARS = [
+  {id:'p0',name:'星际探险家',price:100,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#0f172a"/><circle cx="32" cy="32" r="28" fill="#1e293b"/><circle cx="20" cy="18" r="2" fill="#fbbf24" opacity=".6"/><circle cx="50" cy="12" r="1.5" fill="#fbbf24" opacity=".4"/><circle cx="45" cy="45" r="1" fill="#fbbf24" opacity=".5"/><circle cx="12" cy="40" r="1.5" fill="#fbbf24" opacity=".3"/><circle cx="32" cy="35" r="14" fill="#3b82f6"/><rect x="20" y="20" width="24" height="12" rx="6" fill="#60a5fa"/><rect x="22" y="22" width="20" height="8" rx="4" fill="#0f172a" opacity=".6"/><circle cx="28" cy="26" r="2" fill="#22d3ee"/><circle cx="36" cy="26" r="2" fill="#22d3ee"/><path d="M27 40 Q32 44 37 40" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`}},
+  {id:'p1',name:'樱花少女',price:120,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#fce7f3"/><circle cx="32" cy="36" r="16" fill="#fda4af"/><ellipse cx="32" cy="22" rx="18" ry="13" fill="#831843"/><ellipse cx="20" cy="26" rx="4" ry="8" fill="#831843"/><ellipse cx="44" cy="26" rx="4" ry="8" fill="#831843"/><circle cx="27" cy="34" r="2.5" fill="#1e293b"/><circle cx="37" cy="34" r="2.5" fill="#1e293b"/><circle cx="27.5" cy="33" r="1" fill="#fff"/><circle cx="37.5" cy="33" r="1" fill="#fff"/><ellipse cx="22" cy="39" rx="4" ry="2.5" fill="#fb7185" opacity=".4"/><ellipse cx="42" cy="39" rx="4" ry="2.5" fill="#fb7185" opacity=".4"/><path d="M29 41 Q32 44 35 41" stroke="#e11d48" stroke-width="1.2" fill="none" stroke-linecap="round"/><circle cx="16" cy="10" r="3" fill="#fb7185" opacity=".5"/><circle cx="48" cy="8" r="2.5" fill="#fb7185" opacity=".4"/><circle cx="10" cy="50" r="2" fill="#fb7185" opacity=".3"/></svg>`}},
+  {id:'p2',name:'像素勇士',price:80,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#065f46"/><rect x="20" y="8" width="24" height="8" rx="0" fill="#6b7280"/><rect x="18" y="16" width="28" height="6" rx="0" fill="#6b7280"/><rect x="16" y="22" width="32" height="24" rx="0" fill="#fbbf24"/><rect x="22" y="28" width="6" height="6" fill="#1e293b"/><rect x="36" y="28" width="6" height="6" fill="#1e293b"/><rect x="24" y="30" width="2" height="2" fill="#fff"/><rect x="38" y="30" width="2" height="2" fill="#fff"/><rect x="28" y="38" width="8" height="4" rx="0" fill="#dc2626"/><rect x="14" y="46" width="10" height="12" rx="0" fill="#fbbf24"/><rect x="40" y="46" width="10" height="12" rx="0" fill="#fbbf24"/><rect x="10" y="30" width="6" height="4" rx="0" fill="#9ca3af"/><rect x="8" y="28" width="4" height="8" rx="0" fill="#9ca3af"/></svg>`}},
+  {id:'p3',name:'彩虹独角兽',price:150,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#ede9fe"/><circle cx="32" cy="38" r="18" fill="#fff"/><ellipse cx="32" cy="38" rx="16" ry="17" fill="#f0abfc"/><polygon points="32,2 28,18 36,18" fill="#fbbf24"/><circle cx="32" cy="6" r="2" fill="#f59e0b"/><ellipse cx="22" cy="20" rx="8" ry="4" fill="#c084fc"/><ellipse cx="42" cy="20" rx="8" ry="4" fill="#60a5fa"/><ellipse cx="32" cy="18" rx="6" ry="3" fill="#fb7185"/><circle cx="26" cy="35" r="3" fill="#1e293b"/><circle cx="38" cy="35" r="3" fill="#1e293b"/><circle cx="27" cy="34" r="1.2" fill="#fff"/><circle cx="39" cy="34" r="1.2" fill="#fff"/><path d="M28 44 Q32 48 36 44" stroke="#ec4899" stroke-width="1.5" fill="none" stroke-linecap="round"/><ellipse cx="21" cy="40" rx="4" ry="2.5" fill="#fda4af" opacity=".4"/><ellipse cx="43" cy="40" rx="4" ry="2.5" fill="#fda4af" opacity=".4"/></svg>`}},
+  {id:'p4',name:'忍者大师',price:100,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#1e1b4b"/><circle cx="32" cy="34" r="17" fill="#fde68a"/><rect x="12" y="28" width="40" height="10" rx="3" fill="#1e293b"/><rect x="12" y="30" width="40" height="6" rx="2" fill="#dc2626"/><circle cx="26" cy="33" r="3.5" fill="#fff"/><circle cx="38" cy="33" r="3.5" fill="#fff"/><circle cx="26" cy="33" r="2" fill="#1e293b"/><circle cx="38" cy="33" r="2" fill="#1e293b"/><rect x="48" y="30" width="12" height="3" rx="1" fill="#dc2626" transform="rotate(15 48 31)"/><rect x="48" y="33" width="10" height="3" rx="1" fill="#dc2626" transform="rotate(-10 48 34)"/><path d="M14 22 L20 18 L32 14 L44 18 L50 22" stroke="#1e293b" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`}},
+  {id:'p5',name:'海洋精灵',price:130,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#0c4a6e"/><circle cx="20" cy="50" r="6" fill="#22d3ee" opacity=".15"/><circle cx="48" cy="46" r="4" fill="#22d3ee" opacity=".1"/><circle cx="32" cy="36" r="16" fill="#67e8f9"/><ellipse cx="32" cy="22" rx="14" ry="10" fill="#06b6d4"/><circle cx="26" cy="34" r="3" fill="#0f172a"/><circle cx="38" cy="34" r="3" fill="#0f172a"/><circle cx="27" cy="33" r="1.2" fill="#fff"/><circle cx="39" cy="33" r="1.2" fill="#fff"/><path d="M28 42 Q32 46 36 42" stroke="#0e7490" stroke-width="1.5" fill="none" stroke-linecap="round"/><ellipse cx="15" cy="30" rx="6" ry="3" fill="#67e8f9" opacity=".6" transform="rotate(-30 15 30)"/><ellipse cx="49" cy="30" rx="6" ry="3" fill="#67e8f9" opacity=".6" transform="rotate(30 49 30)"/><circle cx="32" cy="12" r="3" fill="#fbbf24"/></svg>`}},
+  {id:'p6',name:'火焰凤凰',price:200,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#431407"/><path d="M32 4 Q40 16 36 24 Q44 14 42 26 Q48 18 44 28 L40 34 L24 34 L20 28 Q16 18 22 26 Q20 14 28 24 Q24 16 32 4Z" fill="#f97316"/><path d="M32 8 Q38 18 35 24 L34 30 L30 30 L29 24 Q26 18 32 8Z" fill="#fbbf24"/><circle cx="32" cy="40" r="14" fill="#f97316"/><circle cx="32" cy="40" r="11" fill="#fb923c"/><circle cx="27" cy="38" r="2.5" fill="#1e293b"/><circle cx="37" cy="38" r="2.5" fill="#1e293b"/><circle cx="27.8" cy="37.2" r="1" fill="#fef3c7"/><circle cx="37.8" cy="37.2" r="1" fill="#fef3c7"/><path d="M29 46 Q32 49 35 46" stroke="#7c2d12" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`}},
+  {id:'p7',name:'熊猫宝宝',price:90,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#bbf7d0"/><circle cx="20" cy="16" r="8" fill="#1e293b"/><circle cx="44" cy="16" r="8" fill="#1e293b"/><circle cx="32" cy="34" r="20" fill="#fff"/><ellipse cx="24" cy="30" rx="7" ry="6" fill="#1e293b"/><ellipse cx="40" cy="30" rx="7" ry="6" fill="#1e293b"/><circle cx="24" cy="30" r="3" fill="#fff"/><circle cx="40" cy="30" r="3" fill="#fff"/><circle cx="24.5" cy="29.5" r="1.5" fill="#1e293b"/><circle cx="40.5" cy="29.5" r="1.5" fill="#1e293b"/><ellipse cx="32" cy="38" rx="4" ry="3" fill="#1e293b"/><path d="M29 43 Q32 46 35 43" stroke="#1e293b" stroke-width="1.2" fill="none" stroke-linecap="round"/></svg>`}},
+  {id:'p8',name:'银河战神',price:180,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#1e1b4b"/><circle cx="12" cy="12" r="1" fill="#e2e8f0" opacity=".5"/><circle cx="52" cy="8" r="1.5" fill="#e2e8f0" opacity=".4"/><circle cx="8" cy="48" r="1" fill="#e2e8f0" opacity=".3"/><circle cx="56" cy="52" r="1" fill="#e2e8f0" opacity=".4"/><circle cx="32" cy="34" r="16" fill="#a78bfa"/><path d="M16 20 L22 24 L32 16 L42 24 L48 20 L46 30 L40 28 L32 22 L24 28 L18 30Z" fill="#7c3aed"/><rect x="20" y="28" width="24" height="6" rx="3" fill="#c4b5fd"/><circle cx="27" cy="36" r="2.5" fill="#1e293b"/><circle cx="37" cy="36" r="2.5" fill="#1e293b"/><circle cx="27.8" cy="35.2" r="1" fill="#e0e7ff"/><circle cx="37.8" cy="35.2" r="1" fill="#e0e7ff"/><path d="M29 44 Q32 47 35 44" stroke="#5b21b6" stroke-width="1.5" fill="none" stroke-linecap="round"/><rect x="24" y="48" width="16" height="4" rx="2" fill="#7c3aed" opacity=".5"/></svg>`}},
+  {id:'p9',name:'金色传说',price:250,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#451a03"/><circle cx="32" cy="34" r="18" fill="#fbbf24"/><circle cx="32" cy="34" r="15" fill="#fde68a"/><path d="M20 14 L26 22 L32 10 L38 22 L44 14" stroke="#f59e0b" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="32" cy="8" r="4" fill="#f59e0b"/><circle cx="32" cy="8" r="2.5" fill="#fbbf24"/><circle cx="26" cy="32" r="3" fill="#92400e"/><circle cx="38" cy="32" r="3" fill="#92400e"/><circle cx="26.8" cy="31.2" r="1.2" fill="#fef3c7"/><circle cx="38.8" cy="31.2" r="1.2" fill="#fef3c7"/><path d="M28 41 Q32 45 36 41" stroke="#92400e" stroke-width="1.5" fill="none" stroke-linecap="round"/><ellipse cx="22" cy="37" rx="3.5" ry="2" fill="#f59e0b" opacity=".3"/><ellipse cx="42" cy="37" rx="3.5" ry="2" fill="#f59e0b" opacity=".3"/></svg>`}},
+];
+function _renderPremiumAvatar(id,size){const a=PREMIUM_AVATARS.find(x=>x.id===id);return a?a.svg(size):''}
+
+/* ═══ POINTS SYSTEM HELPERS ═══ */
+function _getUser(){try{return JSON.parse(localStorage.getItem('zhibanUser')||'{}')}catch(e){return{}}}
+function _saveUser(u){try{localStorage.setItem('zhibanUser',JSON.stringify(u))}catch(e){}}
+function _addPoints(pts){const u=_getUser();u.points=(u.points||0)+pts;_saveUser(u);
+        if(window.sbUsers&&u.points!==undefined) sbUsers.update({points:u.points}).catch(function(){});return u.points}
+function _getPoints(){return _getUser().points||0}
+
+/* ── Navbar 头像同步（通用版，支持全部三种头像类型） ── */
+(function syncNav(){
+  try {
+    var u = JSON.parse(localStorage.getItem('zhibanUser') || '{}');
+    var av = document.getElementById('navAvatar');
+    var nm = document.getElementById('navUserName');
+    if (!av) return;
+    if (u.customAvatar) {
+      av.innerHTML = '<img src="' + u.customAvatar + '" style="width:36px;height:36px;object-fit:cover;border-radius:50%">';
+    } else if (u.premiumAvatar && window.PREMIUM_AVATARS) {
+      var pa = window.PREMIUM_AVATARS.find(function(a){return a.id===u.premiumAvatar;});
+      if (pa) av.innerHTML = pa.svg(36);
+    } else {
+      var colors = ['#fff7ed','#fce7f3','#fef3c7','#e0e7ff','#ecfdf5','#dbeafe'];
+      var animalPaths = [
+        '<circle cx="32" cy="36" r="20" fill="#fb923c"/><circle cx="32" cy="38" r="14" fill="#fff"/><polygon points="16,22 12,6 24,18" fill="#fb923c"/><polygon points="48,22 52,6 40,18" fill="#fb923c"/><circle cx="25" cy="34" r="2.8" fill="#1e293b"/><circle cx="39" cy="34" r="2.8" fill="#1e293b"/><ellipse cx="32" cy="39" rx="2.5" ry="2" fill="#1e293b"/>',
+        '<circle cx="32" cy="40" r="18" fill="#fef9c3"/><ellipse cx="25" cy="14" rx="5" ry="14" fill="#fef9c3"/><ellipse cx="39" cy="14" rx="5" ry="14" fill="#fef9c3"/><circle cx="26" cy="37" r="2.5" fill="#1e293b"/><circle cx="38" cy="37" r="2.5" fill="#1e293b"/><ellipse cx="32" cy="42" rx="2" ry="1.5" fill="#fda4af"/>',
+        '<circle cx="32" cy="36" r="20" fill="#d4a574"/><circle cx="20" cy="20" r="7" fill="#d4a574"/><circle cx="44" cy="20" r="7" fill="#d4a574"/><circle cx="20" cy="20" r="4" fill="#f5deb3"/><circle cx="44" cy="20" r="4" fill="#f5deb3"/><circle cx="26" cy="34" r="2.8" fill="#1e293b"/><circle cx="38" cy="34" r="2.8" fill="#1e293b"/>',
+        '<ellipse cx="32" cy="36" rx="18" ry="22" fill="#334155"/><ellipse cx="32" cy="40" rx="12" ry="14" fill="#fff"/><circle cx="25" cy="30" r="1.8" fill="#1e293b"/><circle cx="39" cy="30" r="1.8" fill="#1e293b"/><polygon points="32,35 28,39 36,39" fill="#fbbf24"/>',
+        '<circle cx="32" cy="38" r="19" fill="#86efac"/><circle cx="22" cy="22" r="9" fill="#86efac"/><circle cx="42" cy="22" r="9" fill="#86efac"/><circle cx="22" cy="22" r="5" fill="#fff"/><circle cx="42" cy="22" r="5" fill="#fff"/><circle cx="22" cy="22" r="2.5" fill="#1e293b"/><circle cx="42" cy="22" r="2.5" fill="#1e293b"/>',
+        '<circle cx="32" cy="38" r="19" fill="#94a3b8"/><circle cx="32" cy="40" r="13" fill="#e2e8f0"/><polygon points="16,24 12,6 24,22" fill="#94a3b8"/><polygon points="48,24 52,6 40,22" fill="#94a3b8"/><circle cx="25" cy="35" r="2.5" fill="#1e293b"/><circle cx="39" cy="35" r="2.5" fill="#1e293b"/>'
+      ];
+      var idx = (u.avatarIndex || 0) % colors.length;
+      av.innerHTML = '<svg viewBox="0 0 64 64" width="36" height="36" xmlns="http://www.w3.org/2000/svg" style="border-radius:50%"><rect width="64" height="64" rx="32" fill="' + colors[idx] + '"/>' + animalPaths[idx] + '</svg>';
+    }
+    if (nm && u.userName) nm.textContent = u.userName;
+  } catch(e) {}
+})();
+// 监听页面切换和storage变化，实时同步
+window.addEventListener('focus', function(){ try{ document.querySelector('[data-nav-sync]') && document.querySelector('[data-nav-sync]').dispatchEvent(new Event('sync')); } catch(e){} });
+window.addEventListener('pageshow', function(){
+  try {
+    var u = JSON.parse(localStorage.getItem('zhibanUser') || '{}');
+    var av = document.getElementById('navAvatar');
+    if (!av || !u.customAvatar) return;
+    av.innerHTML = '<img src="' + u.customAvatar + '" style="width:36px;height:36px;object-fit:cover;border-radius:50%">';
+  } catch(e) {}
+});
+window.addEventListener('storage', function(e){
+  if (e.key === 'zhibanUser') {
+    try {
+      var u = JSON.parse(e.newValue || '{}');
+      var av = document.getElementById('navAvatar');
+      var nm = document.getElementById('navUserName');
+      if (!av) return;
+      if (u.customAvatar) {
+        av.innerHTML = '<img src="' + u.customAvatar + '" style="width:36px;height:36px;object-fit:cover;border-radius:50%">';
+      }
+      if (nm && u.userName) nm.textContent = u.userName;
+    } catch(e) {}
+  }
+});
+</script>
+</body>
+</html>

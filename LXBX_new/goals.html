@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- 防缓存:确保用户总是拿到最新版本 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学习目标 — 灵犀伴学</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{ocean:{50:'#eef6ff',100:'#d9ecff',200:'#bcdeff',400:'#59a9ff',500:'#3385ff',600:'#1a65f5',700:'#1450e1',800:'#1741b6',900:'#19398f',950:'#142557'},mint:{50:'#edfcf5',400:'#3acd95',500:'#18b47d',600:'#0f9165',700:'#0e7453'},warm:{50:'#fff8ed',400:'#ff9f38',500:'#ff8211',600:'#f06807',700:'#c74e08'}},fontFamily:{display:['"Noto Serif SC"','serif']}}}};</script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--nav-h:64px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans SC',sans-serif;color:#1e293b;background:#f8faff;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse 80% 50% at 20% 10%,rgba(51,133,255,.06) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 80%,rgba(24,180,125,.05) 0%,transparent 60%)}
+#navbar{background:rgba(255,255,255,.82);backdrop-filter:blur(16px) saturate(1.4);box-shadow:0 1px 24px rgba(20,37,87,.07)}
+.avatar-svg{border-radius:50%}
+.card{background:#fff;border-radius:18px;box-shadow:0 4px 24px rgba(20,37,87,.06);border:1px solid rgba(51,133,255,.06)}
+.btn{padding:10px 24px;border-radius:12px;font-weight:600;font-size:14px;cursor:pointer;border:none;transition:all .2s;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{transform:translateY(-1px)}
+.btn-primary{background:linear-gradient(135deg,#3385ff,#1450e1);color:#fff}
+.btn-primary:hover{box-shadow:0 4px 16px rgba(51,133,255,.3)}
+.btn-green{background:linear-gradient(135deg,#18b47d,#0e7453);color:#fff}
+.btn-green:hover{box-shadow:0 4px 16px rgba(24,180,125,.3)}
+.stat-num{font-family:'JetBrains Mono',monospace;font-weight:700}
+.section-title{font-family:'Noto Serif SC',serif;font-weight:700;position:relative;display:inline-block;padding-bottom:12px}
+.section-title::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:48px;height:4px;border-radius:2px;background:linear-gradient(90deg,#3385ff,#18b47d)}
+
+/* Goal card */
+.goal-card{border-radius:16px;padding:16px;border:1px solid #e2e8f0;transition:all .25s;position:relative;overflow:hidden}
+.goal-card:hover{box-shadow:0 4px 16px rgba(51,133,255,.08)}
+.goal-card.completed{border-color:#86efac;background:linear-gradient(135deg,#f0fdf4,#fff)}
+.goal-card.expired{border-color:#fca5a5;background:#fffbfb}
+.goal-progress{height:6px;background:#e2e8f0;border-radius:99px;overflow:hidden}
+.goal-progress-fill{height:100%;border-radius:99px;transition:width .6s ease}
+
+/* Streak flame */
+.streak-flame{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700}
+
+/* Toast */
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-80px);padding:14px 28px;border-radius:14px;font-weight:600;z-index:999;transition:transform .4s cubic-bezier(.4,0,.2,1);font-size:14px}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}
+.toast.reward{background:#fff8ed;color:#92400e;border:1px solid #fde68a}
+
+/* Modal */
+.modal{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(20,37,87,.3);backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .3s}
+.modal.active{opacity:1;pointer-events:auto}
+.modal-box{background:#fff;border-radius:20px;padding:28px;max-width:440px;width:92%;box-shadow:0 24px 64px rgba(20,37,87,.18)}
+
+/* Preset goal pills */
+.preset-pill{padding:8px 16px;border-radius:10px;border:2px solid #e2e8f0;background:#fff;font-size:13px;cursor:pointer;transition:all .2s;font-family:inherit}
+.preset-pill:hover{border-color:#3385ff;background:#eef6ff;color:#3385ff}
+
+/* Calendar check grid */
+.check-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.check-cell{aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;transition:all .2s}
+.check-cell.done{background:#d1fae5;color:#065f46}
+.check-cell.today{border:2px solid #3385ff;color:#3385ff}
+.check-cell.future{background:#f8faff;color:#cbd5e1}
+.check-cell.past{background:#f1f5f9;color:#94a3b8}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeUp .4s ease both}
+</style>
+</head>
+<body>
+<div id="toast" class="toast"></div>
+
+<!-- NAVBAR -->
+<nav id="navbar" class="fixed top-0 left-0 w-full z-50" style="height:var(--nav-h)">
+  <div class="max-w-7xl mx-auto flex items-center justify-between px-5 md:px-8 h-full">
+    <a href="home.html" class="flex items-center gap-2 text-ocean-700 font-bold text-lg select-none">
+      <svg class="w-8 h-8" viewBox="0 0 40 40" fill="none"><defs><linearGradient id="lxG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3385ff"/><stop offset="100%" stop-color="#18b47d"/></linearGradient></defs><circle cx="20" cy="20" r="19" fill="url(#lxG)" opacity=".12"/><circle cx="20" cy="20" r="19" stroke="url(#lxG)" stroke-width="1.5"/><path d="M12 26c0-4 2-7 5-9l1-3c0-1 1-1.5 2-1.5s1.5.8 1.5 1.5l-.5 2c2-1 4-1 5.5 0l1.5-1c.5-.5 1.2-.3 1.5.2s.1 1.2-.4 1.5L27 18c1 1.5 1.5 3.5 1 5.5-.5 2-2 3-4 3.5H16c-2-.5-3.5-2-4-4z" fill="url(#lxG)" opacity=".85"/><circle cx="23" cy="19" r="1.3" fill="white"/></svg>
+      <span class="hidden sm:inline" style="font-family:'Noto Serif SC',serif">灵犀伴学</span>
+    </a>
+    <ul class="hidden md:flex items-center gap-1 text-sm font-medium">
+      <li><a href="home.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">首页</a></li>
+      <li><a href="ai-module.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">AI伴学</a></li>
+      <li><a href="profile.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习画像</a></li>
+      <li><a href="goals.html" class="px-4 py-2 rounded-lg text-ocean-600 bg-ocean-50 font-semibold transition">学习目标</a></li>
+      <li><a href="user.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">用户中心</a></li>
+    </ul>
+    <div class="flex items-center gap-3">
+      <a href="user.html" class="flex items-center gap-2"><div id="navAvatar" class="w-9 h-9 rounded-full bg-ocean-100"></div><span id="navUserName" class="hidden sm:inline text-sm font-medium text-ocean-700"></span></a>
+    </div>
+  </div>
+</nav>
+
+<main class="pt-24 pb-16 px-4 max-w-3xl mx-auto">
+  <div class="text-center mb-6 fade-in">
+    <h1 class="text-2xl md:text-3xl font-bold font-display text-ocean-900 mb-2">🎯 学习目标打卡</h1>
+    <p class="text-ocean-500 text-sm">设定目标 → 每日打卡 → 达成奖励，让学习更有动力</p>
+  </div>
+
+  <!-- Streak & Stats -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 fade-in">
+    <div class="card p-4 text-center">
+      <div class="text-2xl mb-1">🔥</div>
+      <div class="stat-num text-xl text-warm-600" id="streakDays">0</div>
+      <div class="text-xs text-ocean-400 mt-1">连续打卡</div>
+      <div class="text-[10px] mt-1 font-semibold" id="streakBonus" style="color:#f59e0b">基础奖励 ×1.0</div>
+    </div>
+    <div class="card p-4 text-center">
+      <div class="text-2xl mb-1">⭐</div>
+      <div class="stat-num text-xl text-ocean-600" id="myPoints">0</div>
+      <div class="text-xs text-ocean-400 mt-1">我的积分</div>
+      <div class="text-[10px] mt-1 text-ocean-400/70">全站通用</div>
+    </div>
+    <div class="card p-4 text-center">
+      <div class="text-2xl mb-1">✅</div>
+      <div class="stat-num text-xl text-mint-600" id="completedGoals">0</div>
+      <div class="text-xs text-ocean-400 mt-1">已完成目标</div>
+    </div>
+    <div class="card p-4 text-center">
+      <div class="text-2xl mb-1">📈</div>
+      <div class="stat-num text-xl text-green-600" id="monthlyNet">+0</div>
+      <div class="text-xs text-ocean-400 mt-1">本月净收益</div>
+      <div class="text-[10px] mt-1 text-ocean-400/70">打卡+奖励-漏打</div>
+    </div>
+  </div>
+
+  <!-- Check-in rules info card -->
+  <div class="card p-4 mb-6 fade-in" style="background:linear-gradient(135deg,rgba(51,133,255,.06),rgba(24,180,125,.06));border:1px dashed rgba(51,133,255,.2)">
+    <div class="flex items-start gap-3">
+      <div class="text-xl">💡</div>
+      <div class="flex-1 text-xs text-ocean-600 leading-relaxed">
+        <strong class="text-ocean-800">打卡积分规则：</strong>
+        每次打卡 <span class="font-bold text-mint-600">+10 积分</span>，漏打一天 <span class="font-bold text-red-500">-5 积分</span>（注册首日不扣）。
+        连续打卡享加成：<span class="font-semibold text-warm-600">3 天 ×1.2</span>、<span class="font-semibold text-warm-600">7 天 ×1.5</span>、<span class="font-semibold text-warm-600">30 天 ×2.0</span>。积分全站通用，可在积分商城兑换奖励。
+      </div>
+    </div>
+  </div>
+
+  <!-- 7-Day Check Calendar -->
+  <div class="card p-5 mb-6 fade-in">
+    <h3 class="text-sm font-bold text-ocean-800 mb-3 flex items-center gap-2">📅 本周打卡日历</h3>
+    <div class="flex justify-between text-xs text-ocean-400 mb-2">
+      <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+    </div>
+    <div class="check-grid" id="weekCalendar"></div>
+  </div>
+
+  <!-- Active Goals -->
+  <div class="flex items-center justify-between mb-4 fade-in">
+    <h2 class="text-lg font-bold text-ocean-900">进行中的目标</h2>
+    <button class="btn btn-primary text-sm" onclick="openAddGoal()">+ 新目标</button>
+  </div>
+  <div id="activeGoals" class="space-y-3 mb-8"></div>
+  <div id="emptyActive" class="card p-8 text-center hidden mb-8">
+    <div class="text-4xl mb-3">🎯</div>
+    <h3 class="font-bold text-ocean-700 mb-2">还没有学习目标</h3>
+    <p class="text-ocean-400 text-sm mb-4">设定一个小目标，让学习更有方向</p>
+    <button class="btn btn-primary" onclick="openAddGoal()">创建第一个目标</button>
+  </div>
+
+  <!-- Completed Goals -->
+  <div id="completedSection" class="hidden">
+    <h2 class="text-lg font-bold text-ocean-900 mb-4">已完成的目标 🎉</h2>
+    <div id="completedGoalsList" class="space-y-3 mb-6"></div>
+  </div>
+</main>
+
+<!-- Add Goal Modal -->
+<div class="modal" id="addGoalModal">
+  <div class="modal-box">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="font-bold text-lg text-ocean-900">🎯 创建学习目标</h3>
+      <button onclick="closeAddGoal()" class="w-8 h-8 rounded-lg bg-ocean-50 flex items-center justify-center text-ocean-400 hover:bg-ocean-100 transition" style="border:none;cursor:pointer">✕</button>
+    </div>
+
+    <!-- Preset goals -->
+    <p class="text-xs text-ocean-500 font-semibold mb-2">快速选择</p>
+    <div class="flex flex-wrap gap-2 mb-4">
+      <button class="preset-pill" onclick="fillGoal('每天向AI提问3个问题','ai-module.html',7,3)">💬 每天AI提问3次</button>
+      <button class="preset-pill" onclick="fillGoal('每天专注学习25分钟','timer.html',7,1)">⏱️ 每天专注25分钟</button>
+      <button class="preset-pill" onclick="fillGoal('完成10道知识农场答题','farm.html',7,10)">🌱 答题10道</button>
+      <button class="preset-pill" onclick="fillGoal('复习5道错题','error-book.html',5,5)">📝 复习5道错题</button>
+      <button class="preset-pill" onclick="fillGoal('练习英语口语3次','speaking.html',7,3)">🗣️ 口语练习3次</button>
+      <button class="preset-pill" onclick="fillGoal('成语冒险通关2次','idiom.html',7,2)">📖 成语冒险2次</button>
+    </div>
+
+    <!-- Custom goal form -->
+    <p class="text-xs text-ocean-500 font-semibold mb-2">自定义目标</p>
+    <input id="goalTitle" type="text" placeholder="目标名称，如：每天背10个单词" class="w-full px-4 py-3 rounded-xl border-2 border-ocean-200 text-sm focus:border-ocean-500 focus:outline-none transition mb-3" style="font-family:inherit">
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div>
+        <label class="text-xs text-ocean-500 font-semibold">持续天数</label>
+        <select id="goalDays" class="w-full mt-1 px-3 py-2.5 rounded-xl border-2 border-ocean-200 text-sm focus:border-ocean-500 focus:outline-none" style="font-family:inherit">
+          <option value="3">3 天</option>
+          <option value="5">5 天</option>
+          <option value="7" selected>7 天（一周）</option>
+          <option value="14">14 天</option>
+          <option value="21">21 天</option>
+          <option value="30">30 天</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs text-ocean-500 font-semibold">每日目标次数</label>
+        <input id="goalTarget" type="number" value="1" min="1" max="50" class="w-full mt-1 px-3 py-2.5 rounded-xl border-2 border-ocean-200 text-sm focus:border-ocean-500 focus:outline-none" style="font-family:inherit">
+      </div>
+    </div>
+    <input id="goalLink" type="hidden" value="">
+    <button class="btn btn-green w-full justify-center" onclick="createGoal()">✅ 创建目标</button>
+  </div>
+</div>
+
+<footer class="bg-ocean-950 text-white/60 py-6 text-center text-xs">© 2026 灵犀伴学 · 灵犀 Lab · 燕京理工学院</footer>
+
+<script>
+/* ═══ DATA STORAGE ═══ */
+var GOALS_KEY = 'zhibanGoals';
+var CHECKIN_KEY = 'zhibanCheckins';
+var POINTS_LOG_KEY = 'zhibanPointsLog';    // 积分变动日志（用于月度净收益）
+var MISSED_KEY = 'zhibanMissedChecked';    // 漏打卡检查日期记录
+
+function getGoals(){try{return JSON.parse(localStorage.getItem(GOALS_KEY)||'[]')}catch(e){return[]}}
+function saveGoals(g){localStorage.setItem(GOALS_KEY,JSON.stringify(g));if(window.sbGoals){g.forEach(function(item){sbGoals.save(item).catch(function(){});});}}
+function getCheckins(){try{return JSON.parse(localStorage.getItem(CHECKIN_KEY)||'{}')}catch(e){return{}}}
+function saveCheckins(c){localStorage.setItem(CHECKIN_KEY,JSON.stringify(c));if(window.sbCheckins){var today=new Date().toISOString().slice(0,10);sbCheckins.checkin(today).catch(function(){});}}
+function todayKey(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function dateKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+
+/* ═══ 积分系统（全站通用） ═══ */
+function getUser(){try{return JSON.parse(localStorage.getItem('zhibanUser')||'{}')}catch(e){return{}}}
+function saveUser(u){localStorage.setItem('zhibanUser',JSON.stringify(u));if(window.sbUsers&&u.points!==undefined){sbUsers.update({points:u.points}).catch(function(){});}}
+function getPointsLog(){try{return JSON.parse(localStorage.getItem(POINTS_LOG_KEY)||'[]')}catch(e){return[]}}
+function savePointsLog(log){if(log.length>200)log=log.slice(-200);localStorage.setItem(POINTS_LOG_KEY,JSON.stringify(log));}
+function addPoints(delta,reason){
+  var u=getUser();
+  u.points=Math.max(0,(u.points||0)+delta);
+  saveUser(u);
+  var log=getPointsLog();
+  log.push({t:new Date().toISOString(),d:delta,r:reason});
+  savePointsLog(log);
+}
+
+/* 计算连续打卡天数（截至昨天或今天） */
+function calcStreak(refDate){
+  var checkins=getCheckins();
+  var streak=0;
+  var d=refDate?new Date(refDate):new Date();
+  while(true){
+    var key=dateKey(d);
+    if(checkins[key]&&checkins[key]>0){streak++;d.setDate(d.getDate()-1)}
+    else break;
+  }
+  return streak;
+}
+
+/* 根据连续天数返回加成倍率 */
+function getStreakMultiplier(streak){
+  if(streak>=30)return 2.0;
+  if(streak>=7)return 1.5;
+  if(streak>=3)return 1.2;
+  return 1.0;
+}
+
+/* 检查并补扣漏打卡积分（每次打开页面时执行） */
+function checkMissedDays(){
+  var u=getUser();
+  if(!u.isLoggedIn)return;
+  // 以注册时间为起点，跳过注册首日
+  var regDate=u.registeredAt?new Date(u.registeredAt):null;
+  if(!regDate){
+    // 没有注册时间，记下今天当作首日
+    u.registeredAt=new Date().toISOString();
+    saveUser(u);
+    return;
+  }
+  var lastChecked=localStorage.getItem(MISSED_KEY)||dateKey(regDate);
+  var checkins=getCheckins();
+  var today=new Date();today.setHours(0,0,0,0);
+  var cursor=new Date(lastChecked);cursor.setDate(cursor.getDate()+1); // 从上次检查的下一天开始
+  var firstDay=new Date(regDate);firstDay.setHours(0,0,0,0);
+  var missed=0;
+  while(cursor<today){
+    var k=dateKey(cursor);
+    // 注册首日不扣
+    if(cursor.getTime()!==firstDay.getTime()){
+      if(!(checkins[k]&&checkins[k]>0)){
+        missed++;
+      }
+    }
+    cursor.setDate(cursor.getDate()+1);
+  }
+  if(missed>0){
+    addPoints(-5*missed,'漏打卡扣除 '+missed+' 天');
+    showToast('⚠️ 检测到 '+missed+' 天未打卡，扣除 '+(missed*5)+' 积分','warn');
+  }
+  localStorage.setItem(MISSED_KEY,dateKey(new Date(today.getTime()-86400000)));
+}
+
+/* 计算本月积分净收益 */
+function calcMonthlyNet(){
+  var log=getPointsLog();
+  var now=new Date();
+  var ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  return log.filter(function(e){return e.t.startsWith(ym);}).reduce(function(s,e){return s+e.d;},0);
+}
+
+/* ═══ MODAL ═══ */
+function openAddGoal(){document.getElementById('addGoalModal').classList.add('active')}
+function closeAddGoal(){document.getElementById('addGoalModal').classList.remove('active')}
+function fillGoal(title,link,days,target){
+  document.getElementById('goalTitle').value=title;
+  document.getElementById('goalDays').value=days;
+  document.getElementById('goalTarget').value=target;
+  document.getElementById('goalLink').value=link;
+}
+
+function createGoal(){
+  var title=document.getElementById('goalTitle').value.trim();
+  if(!title){alert('请输入目标名称');return}
+  var days=parseInt(document.getElementById('goalDays').value)||7;
+  var target=parseInt(document.getElementById('goalTarget').value)||1;
+  var link=document.getElementById('goalLink').value||'';
+  
+  var goals=getGoals();
+  var now=new Date();
+  goals.push({
+    id:'goal_'+Date.now(),
+    title:title,
+    link:link,
+    totalDays:days,
+    dailyTarget:target,
+    startDate:todayKey(),
+    endDate:dateKey(new Date(now.getTime()+(days-1)*86400000)),
+    checkedDays:{},
+    completed:false,
+    reward:days*target*2, // Points reward
+    createdAt:now.toISOString()
+  });
+  saveGoals(goals);
+  closeAddGoal();
+  document.getElementById('goalTitle').value='';
+  document.getElementById('goalLink').value='';
+  showToast('🎯 目标已创建！加油！','success');
+  renderAll();
+}
+
+/* ═══ CHECK-IN ═══ */
+function checkinGoal(goalId){
+  var goals=getGoals();
+  var goal=goals.find(function(g){return g.id===goalId});
+  if(!goal)return;
+  
+  var today=todayKey();
+  var current=goal.checkedDays[today]||0;
+  
+  if(current>=goal.dailyTarget){
+    showToast('今天已经打满卡了，明天继续！','success');
+    return;
+  }
+  
+  goal.checkedDays[today]=(current+1);
+  
+  // Update global checkins for calendar
+  var checkins=getCheckins();
+  var wasCheckedToday=(checkins[today]||0)>0;
+  checkins[today]=(checkins[today]||0)+1;
+  saveCheckins(checkins);
+  
+  // ─── 积分奖励：每次打卡 +10，首次打卡享连续加成 ───
+  if(!wasCheckedToday){
+    var streak=calcStreak();
+    var mult=getStreakMultiplier(streak);
+    var base=10;
+    var earned=Math.round(base*mult);
+    addPoints(earned,'打卡奖励 ×'+mult.toFixed(1));
+    if(mult>1){
+      showToast('🎉 打卡成功！连续 '+streak+' 天 ×'+mult.toFixed(1)+' 加成，+'+earned+' 积分','reward');
+    }else{
+      showToast('✅ 打卡成功！+'+earned+' 积分','success');
+    }
+  }else{
+    // 当天重复打卡，额外补 2 分鼓励
+    addPoints(2,'当日加练');
+    showToast('💪 当日加练 +2 积分 ('+goal.checkedDays[today]+'/'+goal.dailyTarget+')','success');
+  }
+  
+  // Check if fully completed
+  var checkedDayCount=Object.keys(goal.checkedDays).length;
+  if(checkedDayCount>=goal.totalDays && !goal.completed){
+    goal.completed=true;
+    // 目标达成额外奖励
+    addPoints(goal.reward,'目标「'+goal.title+'」达成');
+    setTimeout(function(){showToast('🏆 目标达成！额外获得 '+goal.reward+' 积分！','reward');},600);
+  }
+  
+  saveGoals(goals);
+  renderAll();
+}
+
+function deleteGoal(goalId){
+  if(!confirm('确定删除这个目标？'))return;
+  var goals=getGoals().filter(function(g){return g.id!==goalId});
+  saveGoals(goals);
+  renderAll();
+}
+
+/* ═══ RENDER ═══ */
+function renderAll(){
+  renderStats();
+  renderCalendar();
+  renderGoals();
+}
+
+function renderStats(){
+  var goals=getGoals();
+  var completed=goals.filter(function(g){return g.completed}).length;
+  
+  // Calculate streak
+  var streak=calcStreak();
+  var mult=getStreakMultiplier(streak);
+  
+  var streakEl=document.getElementById('streakDays');
+  var completedEl=document.getElementById('completedGoals');
+  var myPointsEl=document.getElementById('myPoints');
+  var monthlyNetEl=document.getElementById('monthlyNet');
+  var streakBonusEl=document.getElementById('streakBonus');
+  
+  if(streakEl)streakEl.textContent=streak;
+  if(completedEl)completedEl.textContent=completed;
+  var u=getUser();
+  if(myPointsEl)myPointsEl.textContent=u.points||0;
+  var net=calcMonthlyNet();
+  if(monthlyNetEl){
+    monthlyNetEl.textContent=(net>=0?'+':'')+net;
+    monthlyNetEl.className='stat-num text-xl '+(net>=0?'text-green-600':'text-red-500');
+  }
+  if(streakBonusEl){
+    if(mult>1)streakBonusEl.textContent='打卡奖励 ×'+mult.toFixed(1);
+    else streakBonusEl.textContent='基础奖励 ×1.0';
+  }
+}
+
+function renderCalendar(){
+  var container=document.getElementById('weekCalendar');
+  container.innerHTML='';
+  var checkins=getCheckins();
+  var today=new Date();
+  var todayStr=todayKey();
+  
+  // Find Monday of this week
+  var monday=new Date(today);
+  var dayOfWeek=monday.getDay();
+  if(dayOfWeek===0)dayOfWeek=7;
+  monday.setDate(monday.getDate()-(dayOfWeek-1));
+  
+  for(var i=0;i<7;i++){
+    var d=new Date(monday);
+    d.setDate(d.getDate()+i);
+    var key=dateKey(d);
+    var isToday=key===todayStr;
+    var isFuture=d>today&&!isToday;
+    var isDone=checkins[key]&&checkins[key]>0;
+    
+    var cell=document.createElement('div');
+    var cls='check-cell';
+    if(isDone)cls+=' done';
+    else if(isToday)cls+=' today';
+    else if(isFuture)cls+=' future';
+    else cls+=' past';
+    cell.className=cls;
+    cell.textContent=isDone?'✓':d.getDate();
+    cell.title=key+(isDone?' (已打卡)':'');
+    container.appendChild(cell);
+  }
+}
+
+function renderGoals(){
+  var goals=getGoals();
+  var today=todayKey();
+  var active=goals.filter(function(g){return!g.completed});
+  var done=goals.filter(function(g){return g.completed});
+  
+  var activeContainer=document.getElementById('activeGoals');
+  var emptyEl=document.getElementById('emptyActive');
+  var completedSection=document.getElementById('completedSection');
+  var completedList=document.getElementById('completedGoalsList');
+  
+  // Active goals
+  if(active.length===0){
+    activeContainer.innerHTML='';
+    emptyEl.classList.remove('hidden');
+  }else{
+    emptyEl.classList.add('hidden');
+    activeContainer.innerHTML=active.map(function(g){
+      var checkedDays=Object.keys(g.checkedDays).length;
+      var progress=Math.round(checkedDays/g.totalDays*100);
+      var todayCount=g.checkedDays[today]||0;
+      var todayDone=todayCount>=g.dailyTarget;
+      var isExpired=today>g.endDate&&!g.completed;
+      
+      var progressColor=isExpired?'#ef4444':progress>=70?'#18b47d':progress>=30?'#f59e0b':'#3385ff';
+      var statusBadge=isExpired?'<span class="text-xs font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">已逾期</span>':
+        todayDone?'<span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">✓ 今日已打卡</span>':
+        '<span class="text-xs font-bold text-ocean-500 bg-ocean-50 px-2 py-0.5 rounded-full">待打卡</span>';
+      
+      return '<div class="goal-card '+(isExpired?'expired':'')+'">' +
+        '<div class="flex items-start justify-between mb-2">' +
+          '<div class="flex-1"><h4 class="font-bold text-ocean-800 text-sm">'+escHTML(g.title)+'</h4>' +
+          '<p class="text-xs text-ocean-400 mt-0.5">'+g.startDate+' ~ '+g.endDate+' · 每日'+g.dailyTarget+'次 · 奖励'+g.reward+'积分</p></div>' +
+          statusBadge +
+        '</div>' +
+        '<div class="flex items-center gap-3 mb-2">' +
+          '<div class="goal-progress flex-1"><div class="goal-progress-fill" style="width:'+progress+'%;background:'+progressColor+'"></div></div>' +
+          '<span class="stat-num text-xs" style="color:'+progressColor+'">'+checkedDays+'/'+g.totalDays+'天</span>' +
+        '</div>' +
+        '<div class="flex items-center justify-between">' +
+          '<div class="flex gap-2">' +
+            (todayDone?'':'<button class="btn btn-green text-xs" style="padding:6px 16px" onclick="checkinGoal(\''+g.id+'\')">🎯 打卡 ('+todayCount+'/'+g.dailyTarget+')</button>') +
+            (g.link?'<a href="'+g.link+'" class="btn text-xs" style="padding:6px 16px;background:#f0f5ff;color:#3385ff;text-decoration:none">去执行 →</a>':'') +
+          '</div>' +
+          '<button onclick="deleteGoal(\''+g.id+'\')" class="text-xs text-ocean-300 hover:text-red-400 transition" style="background:none;border:none;cursor:pointer">删除</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+  
+  // Completed goals
+  if(done.length>0){
+    completedSection.classList.remove('hidden');
+    completedList.innerHTML=done.map(function(g){
+      return '<div class="goal-card completed">' +
+        '<div class="flex items-center gap-3">' +
+          '<div class="text-2xl">🏆</div>' +
+          '<div class="flex-1">' +
+            '<h4 class="font-bold text-green-800 text-sm">'+escHTML(g.title)+'</h4>' +
+            '<p class="text-xs text-green-600">'+g.totalDays+'天目标达成 · 获得'+g.reward+'积分</p>' +
+          '</div>' +
+          '<span class="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded-full">已完成</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }else{
+    completedSection.classList.add('hidden');
+  }
+}
+
+/* ═══ UTILS ═══ */
+function escHTML(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function showToast(msg,type){
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast '+(type||'success')+' show';
+  setTimeout(function(){t.classList.remove('show')},3000);
+}
+
+/* ═══ NAV USER SYNC ═══ */
+var _avatarColors=[{bg:'#dbeafe',face:'#3b82f6',hair:'#1e40af',acc:'#60a5fa'},{bg:'#d1fae5',face:'#10b981',hair:'#065f46',acc:'#6ee7b7'},{bg:'#fef3c7',face:'#f59e0b',hair:'#92400e',acc:'#fcd34d'},{bg:'#fce7f3',face:'#ec4899',hair:'#9d174d',acc:'#f9a8d4'},{bg:'#e0e7ff',face:'#6366f1',hair:'#3730a3',acc:'#a5b4fc'},{bg:'#ffedd5',face:'#f97316',hair:'#9a3412',acc:'#fdba74'}];
+function _genAvatar(idx,size){var c=_avatarColors[idx%6];var st=['<circle cx="32" cy="34" r="18" fill="'+c.face+'"/><ellipse cx="32" cy="20" rx="16" ry="12" fill="'+c.hair+'"/><circle cx="26" cy="33" r="2" fill="#fff"/><circle cx="38" cy="33" r="2" fill="#fff"/><path d="M28 40 Q32 44 36 40" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>','<rect x="16" y="24" width="32" height="28" rx="10" fill="'+c.face+'"/><rect x="14" y="18" width="36" height="14" rx="7" fill="'+c.hair+'"/><rect x="18" y="14" width="28" height="8" rx="4" fill="'+c.acc+'"/><circle cx="26" cy="36" r="2" fill="#fff"/><circle cx="38" cy="36" r="2" fill="#fff"/>'];return '<svg viewBox="0 0 64 64" width="'+size+'" height="'+size+'" xmlns="http://www.w3.org/2000/svg" class="avatar-svg"><rect width="64" height="64" rx="32" fill="'+c.bg+'"/>'+st[idx%2]+'</svg>';}
+function _syncNavUser(){try{var u=JSON.parse(localStorage.getItem('zhibanUser')||'{}'  );var av=document.getElementById('navAvatar'),nm=document.getElementById('navUserName');if(!av)return;if(u.isLoggedIn){if(u.customAvatar){av.innerHTML='<img src="'+u.customAvatar+'" style="width:36px;height:36px;object-fit:cover;border-radius:50%">';}else{av.innerHTML=_genAvatar(u.avatarIndex||0,36);}nm.textContent=u.userName||'';}else{av.innerHTML='<svg class="w-5 h-5 text-ocean-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a8.25 8.25 0 0115 0"/></svg>';nm.textContent='登录';}}catch(e){}}
+_syncNavUser();
+
+/* ═══ INIT ═══ */
+// 页面加载时检查漏打卡并扣分（延迟 500ms，等待 Supabase session 就绪）
+setTimeout(function(){try{checkMissedDays();}catch(e){console.warn('checkMissedDays',e);}},500);
+renderAll();
+</script>
+<script src="ai-character.js"></script>
+</body>
+</html>

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- 防缓存:确保用户总是拿到最新版本 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI口语陪练 — 灵犀伴学</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{ocean:{50:'#eef6ff',500:'#3385ff',700:'#1450e1',900:'#19398f',950:'#142557'},mint:{50:'#edfcf5',500:'#18b47d'},warm:{400:'#ff9f38'}},fontFamily:{display:['"Noto Serif SC"','serif']}}}};</script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans SC',system-ui,sans-serif;background:#f8faff;min-height:100vh;color:#1e293b}
+#navbar{background:rgba(255,255,255,.82);backdrop-filter:blur(16px);box-shadow:0 1px 24px rgba(20,37,87,.07)}
+.card{background:#fff;border-radius:18px;box-shadow:0 4px 24px rgba(20,37,87,.06);border:1px solid rgba(51,133,255,.06)}
+.mic-btn{width:80px;height:80px;border-radius:50%;border:none;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;position:relative}
+.mic-btn.idle{background:linear-gradient(135deg,#3385ff,#1a65f5);box-shadow:0 6px 25px rgba(51,133,255,.3)}
+.mic-btn.idle:hover{transform:scale(1.05);box-shadow:0 8px 30px rgba(51,133,255,.4)}
+.mic-btn.recording{background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 6px 25px rgba(239,68,68,.3);animation:pulse-mic 1.5s infinite}
+@keyframes pulse-mic{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 15px rgba(239,68,68,0)}}
+.chat-msg{padding:14px 18px;border-radius:16px;max-width:85%;font-size:14px;line-height:1.7;margin-bottom:12px}
+.chat-msg.user{background:linear-gradient(135deg,#3385ff,#1a65f5);color:#fff;margin-left:auto;border-bottom-right-radius:4px}
+.chat-msg.ai{background:#f1f5f9;color:#1e293b;border-bottom-left-radius:4px}
+.chat-msg .en{font-size:15px;font-weight:500}
+.chat-msg .zh{font-size:12px;color:rgba(255,255,255,.7);margin-top:4px}
+.chat-msg.ai .zh{color:#64748b}
+.scenario-card{padding:16px;border-radius:14px;border:2px solid #e2e8f0;cursor:pointer;transition:all .2s;text-align:center}
+.scenario-card:hover{border-color:#3385ff;background:#eef6ff;transform:translateY(-2px)}
+.scenario-card.active{border-color:#3385ff;background:#eef6ff}
+.wave-bar{display:inline-block;width:3px;height:12px;background:#fff;border-radius:2px;margin:0 1px;animation:wave 1s infinite ease-in-out}
+@keyframes wave{0%,100%{height:4px}50%{height:16px}}
+.wave-bar:nth-child(2){animation-delay:.15s}
+.wave-bar:nth-child(3){animation-delay:.3s}
+.wave-bar:nth-child(4){animation-delay:.45s}
+.wave-bar:nth-child(5){animation-delay:.6s}
+</style>
+</head>
+<body>
+<nav id="navbar" class="fixed top-0 left-0 w-full z-50" style="height:64px">
+  <div class="max-w-7xl mx-auto flex items-center justify-between px-5 h-full">
+    <a href="home.html" class="flex items-center gap-2 text-ocean-700 font-bold text-lg">
+      <svg class="w-8 h-8" viewBox="0 0 40 40" fill="none"><defs><linearGradient id="lxG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3385ff"/><stop offset="100%" stop-color="#18b47d"/></linearGradient></defs><circle cx="20" cy="20" r="19" fill="url(#lxG)" opacity=".12"/><circle cx="20" cy="20" r="19" stroke="url(#lxG)" stroke-width="1.5"/><path d="M12 26c0-4 2-7 5-9l1-3c0-1 1-1.5 2-1.5s1.5.8 1.5 1.5l-.5 2c2-1 4-1 5.5 0l1.5-1c.5-.5 1.2-.3 1.5.2s.1 1.2-.4 1.5L27 18c1 1.5 1.5 3.5 1 5.5-.5 2-2 3-4 3.5H16c-2-.5-3.5-2-4-4z" fill="url(#lxG)" opacity=".85"/><circle cx="23" cy="19" r="1.3" fill="white"/></svg>
+      <span style="font-family:'Noto Serif SC',serif">灵犀伴学</span>
+    </a>
+    <ul class="hidden md:flex items-center gap-1 text-sm font-medium"><li><a href="home.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">首页</a></li><li><a href="ai-module.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">AI伴学</a></li><li><a href="profile.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习画像</a></li><li><a href="goals.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习目标</a></li><li><a href="user.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">用户中心</a></li></ul>
+    <div class="flex items-center gap-3"><a href="user.html"><div id="navAvatar" class="w-9 h-9 rounded-full bg-ocean-100"></div></a></div>
+  </div>
+</nav>
+
+<main class="pt-24 pb-16 px-4 max-w-lg mx-auto">
+  <div class="text-center mb-6">
+    <h1 class="text-2xl font-bold font-display text-ocean-900 mb-2">🎙️ AI 口语陪练</h1>
+    <p class="text-ocean-500 text-sm">和AI练习英语对话，提升口语表达能力</p>
+  </div>
+
+  <!-- Scenario selection -->
+  <div class="card p-6 mb-6" id="scenarioSection">
+    <h3 class="text-sm font-semibold text-ocean-700 mb-4 text-center">选择对话场景</h3>
+    <div class="grid grid-cols-2 gap-3">
+      <div class="scenario-card" onclick="startScenario(0,this)"><div class="text-2xl mb-2">👋</div><div class="text-sm font-semibold">日常问候</div><div class="text-xs text-ocean-400 mt-1">基础打招呼对话</div></div>
+      <div class="scenario-card" onclick="startScenario(1,this)"><div class="text-2xl mb-2">🛒</div><div class="text-sm font-semibold">购物对话</div><div class="text-xs text-ocean-400 mt-1">商店买东西场景</div></div>
+      <div class="scenario-card" onclick="startScenario(2,this)"><div class="text-2xl mb-2">🍕</div><div class="text-sm font-semibold">餐厅点餐</div><div class="text-xs text-ocean-400 mt-1">餐厅吃饭对话</div></div>
+      <div class="scenario-card" onclick="startScenario(3,this)"><div class="text-2xl mb-2">✈️</div><div class="text-sm font-semibold">旅行问路</div><div class="text-xs text-ocean-400 mt-1">问路指方向</div></div>
+      <div class="scenario-card" onclick="startScenario(4,this)"><div class="text-2xl mb-2">📚</div><div class="text-sm font-semibold">校园生活</div><div class="text-xs text-ocean-400 mt-1">学校日常交流</div></div>
+      <div class="scenario-card" onclick="startScenario(5,this)"><div class="text-2xl mb-2">💬</div><div class="text-sm font-semibold">自由对话</div><div class="text-xs text-ocean-400 mt-1">聊任何话题</div></div>
+    </div>
+  </div>
+
+  <!-- Chat area -->
+  <div class="card p-5 mb-6" id="chatSection" style="display:none">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-sm font-semibold text-ocean-700" id="chatScenarioTitle">对话中</h3>
+      <button onclick="endConversation()" class="text-xs text-ocean-400 hover:text-red-400 transition">结束对话</button>
+    </div>
+    <div id="chatMessages" style="max-height:350px;overflow-y:auto;padding-right:4px"></div>
+    
+    <!-- Recognition status -->
+    <div id="recStatus" class="text-center py-3 hidden">
+      <div class="flex items-center justify-center gap-1 mb-1">
+        <span class="wave-bar"></span><span class="wave-bar"></span><span class="wave-bar"></span><span class="wave-bar"></span><span class="wave-bar"></span>
+      </div>
+      <p class="text-xs text-ocean-400">正在聆听...</p>
+    </div>
+    
+    <div id="userInput" class="text-center text-sm text-ocean-500 italic py-2 hidden"></div>
+  </div>
+
+  <!-- Mic button -->
+  <div class="text-center mb-6">
+    <button class="mic-btn idle" id="micBtn" onclick="toggleRecording()">
+      <svg width="32" height="32" fill="white" viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+    </button>
+    <p class="text-xs text-ocean-400 mt-3" id="micHint">点击开始说话（需要麦克风权限）</p>
+  </div>
+
+  <!-- Tips -->
+  <div class="card p-5">
+    <h3 class="text-sm font-semibold text-ocean-700 mb-3">💡 使用技巧</h3>
+    <div class="text-xs text-ocean-500 space-y-2">
+      <p>• 选择场景后，AI会先开始对话，你用英语回复</p>
+      <p>• 点击麦克风按钮开始语音输入，再次点击停止</p>
+      <p>• AI会根据你的回答继续对话并给出纠正建议</p>
+      <p>• 如果浏览器不支持语音识别，可以打字输入</p>
+    </div>
+  </div>
+</main>
+
+<footer class="bg-ocean-950 text-white/60 py-6 text-center text-xs">© 2026 灵犀伴学 · 灵犀 Lab · 燕京理工学院</footer>
+
+<script>
+const SCENARIOS = [
+  {title:'日常问候', opener:'Hello! How are you today? I\'m doing great. What about you?', openerZh:'你好！今天怎么样？我很好。你呢？'},
+  {title:'购物对话', opener:'Welcome to our store! What are you looking for today? We have many great products on sale.', openerZh:'欢迎来到我们的商店！你今天想买什么？我们有很多特价商品。'},
+  {title:'餐厅点餐', opener:'Good evening! Welcome to our restaurant. Here is the menu. What would you like to order?', openerZh:'晚上好！欢迎来到我们的餐厅。这是菜单。你想点什么？'},
+  {title:'旅行问路', opener:'Excuse me, you look a bit lost. Can I help you find your way? Where are you trying to go?', openerZh:'不好意思，你看起来有点迷路。我能帮你指路吗？你要去哪里？'},
+  {title:'校园生活', opener:'Hey! Are you new here? I can show you around the school. What grade are you in?', openerZh:'嘿！你是新来的吗？我可以带你参观学校。你几年级？'},
+  {title:'自由对话', opener:'Hi there! I\'m your English practice partner. Let\'s chat about anything you like. What topic interests you?', openerZh:'你好！我是你的英语练习伙伴。我们可以聊任何话题。你对什么感兴趣？'},
+];
+
+let currentScenario = -1;
+let isRecording = false;
+let recognition = null;
+let conversation = [];
+
+// AI response patterns for each scenario
+const AI_RESPONSES = {
+  0: [
+    {trigger:['fine','good','great','well','okay'],reply:'That\'s wonderful to hear! What did you do today?',zh:'听到这个真好！你今天做了什么？'},
+    {trigger:['school','study','learn','class'],reply:'School is important! What\'s your favorite subject?',zh:'学校很重要！你最喜欢什么科目？'},
+    {trigger:['morning','afternoon','evening','night'],reply:'Time flies, doesn\'t it? Do you have any plans for later?',zh:'时间过得真快，不是吗？你待会有什么计划吗？'},
+  ],
+  1: [
+    {trigger:['shirt','clothes','dress','wear'],reply:'We have some great options! What color do you prefer?',zh:'我们有很多不错的选择！你喜欢什么颜色？'},
+    {trigger:['price','cost','much','expensive','cheap'],reply:'This one is on sale! It\'s 50% off today. Would you like to try it on?',zh:'这个在打折！今天半价。你要试穿吗？'},
+    {trigger:['buy','take','want','like'],reply:'Great choice! Would you like to pay with cash or card?',zh:'好选择！你要用现金还是刷卡？'},
+  ],
+  2: [
+    {trigger:['pizza','burger','chicken','steak','fish','noodle'],reply:'Excellent choice! And what would you like to drink?',zh:'好选择！你想喝什么？'},
+    {trigger:['water','juice','coffee','tea','coke','cola'],reply:'Sure! Would you also like some dessert? We have chocolate cake today.',zh:'好的！你还想要甜点吗？我们今天有巧克力蛋糕。'},
+    {trigger:['bill','check','pay'],reply:'Of course! Your total is $25. Thank you for dining with us!',zh:'当然！总共25美元。感谢光临！'},
+  ],
+  3: [
+    {trigger:['station','bus','train','subway','metro'],reply:'The station is about 10 minutes from here. Go straight and turn right at the traffic light.',zh:'车站离这里大约10分钟。直走然后在红绿灯右转。'},
+    {trigger:['hotel','museum','park','airport'],reply:'It\'s not far from here. You can take a taxi or walk about 15 minutes.',zh:'离这里不远。你可以打车或者步行大约15分钟。'},
+    {trigger:['left','right','straight','turn'],reply:'You got it! Just keep going that way and you\'ll see it on your left.',zh:'没错！继续往那个方向走，你会在左边看到它。'},
+  ],
+  4: [
+    {trigger:['math','science','english','chinese','history'],reply:'That\'s a cool subject! Who\'s your favorite teacher?',zh:'那个科目很酷！你最喜欢哪个老师？'},
+    {trigger:['friend','friends','classmate'],reply:'It\'s great to have good friends! What do you usually do together?',zh:'有好朋友真棒！你们通常一起做什么？'},
+    {trigger:['homework','test','exam'],reply:'Don\'t worry too much! Just study step by step and you\'ll do great.',zh:'别太担心！一步一步学，你会做得很好的。'},
+  ],
+  5: [
+    {trigger:['music','song','sing'],reply:'Music is amazing! What kind of music do you like? Pop, rock, or classical?',zh:'音乐太棒了！你喜欢什么类型的音乐？流行、摇滚还是古典？'},
+    {trigger:['game','play','sport'],reply:'That sounds fun! Do you play video games or outdoor sports?',zh:'听起来很有趣！你玩电子游戏还是户外运动？'},
+    {trigger:['movie','film','watch'],reply:'I love movies too! What\'s the last movie you watched?',zh:'我也喜欢电影！你看的最近一部电影是什么？'},
+  ],
+};
+
+// Default response when no trigger matches
+const DEFAULT_REPLIES = [
+  {reply:'That\'s interesting! Can you tell me more about it?',zh:'真有趣！你能多说一些吗？'},
+  {reply:'I see! That\'s a great point. What else would you like to talk about?',zh:'我明白了！说得好。你还想聊什么？'},
+  {reply:'Wonderful! Your English is getting better. Keep practicing!',zh:'太好了！你的英语越来越好了。继续练习！'},
+  {reply:'Nice job expressing yourself! Try using longer sentences next time.',zh:'表达得不错！下次试试用更长的句子。'},
+];
+
+function startScenario(idx, el) {
+  currentScenario = idx;
+  document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  
+  document.getElementById('chatSection').style.display = '';
+  document.getElementById('chatScenarioTitle').textContent = SCENARIOS[idx].title;
+  document.getElementById('chatMessages').innerHTML = '';
+  conversation = [];
+  
+  addAIMessage(SCENARIOS[idx].opener, SCENARIOS[idx].openerZh);
+}
+
+function addAIMessage(en, zh) {
+  var div = document.createElement('div');
+  div.className = 'chat-msg ai';
+  div.innerHTML = '<div class="en">' + en + '</div><div class="zh">' + zh + '</div>';
+  document.getElementById('chatMessages').appendChild(div);
+  scrollChat();
+  conversation.push({role:'ai', text:en});
+}
+
+function addUserMessage(text) {
+  var div = document.createElement('div');
+  div.className = 'chat-msg user';
+  div.innerHTML = '<div class="en">' + text + '</div>';
+  document.getElementById('chatMessages').appendChild(div);
+  scrollChat();
+  conversation.push({role:'user', text:text});
+  
+  // Generate AI response
+  setTimeout(function() { generateResponse(text); }, 800);
+}
+
+function generateResponse(userText) {
+  var PAT    = 'pat_8LaYsLi87yoXz54xFMPR8pFGlkH8xjl4WTSKRpeI3hJ0GrS4ZeDylHVAqKZLf80R';
+  var BOT_ID = '7617865395269500974';
+  var scenarioName = currentScenario >= 0 ? SCENARIOS[currentScenario].title : '自由对话';
+
+  var historyText = conversation.slice(-6).map(function(m) {
+    return (m.role === 'ai' ? 'AI: ' : 'Student: ') + m.text;
+  }).join('\n');
+
+  var prompt = '你是一位专业的英语口语对话老师，正在进行【' + scenarioName + '】场景的英语口语练习。\n\n'
+    + '对话历史：\n' + historyText + '\n\n'
+    + '学生刚刚说：' + userText + '\n\n'
+    + '请严格按以下格式回复：\n\n'
+    + '[REPLY]\n（自然英语回复，1-2句，不要模板化）\n\n'
+    + '[CHINESE]\n（中文翻译）\n\n'
+    + '[GRAMMAR]\n（语法反馈：有错误则指出并给正确说法；正确则写"表达正确！很棒👍"）';
+
+  // 显示loading
+  var loadingId = 'ai-loading-' + Date.now();
+  var loadingDiv = document.createElement('div');
+  loadingDiv.className = 'chat-msg ai';
+  loadingDiv.id = loadingId;
+  loadingDiv.innerHTML = '<div class="en" style="color:#94a3b8;font-size:13px">● 思考中...</div>';
+  document.getElementById('chatMessages').appendChild(loadingDiv);
+  scrollChat();
+
+  var fullText = '';
+  var currentEvent = '';
+  var buf = '';
+
+  fetch('https://api.coze.cn/v3/chat', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + PAT,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      bot_id: BOT_ID,
+      user_id: 'sp_' + (localStorage.getItem('zhibanUserId') || Date.now()),
+      stream: true,
+      auto_save_history: false,
+      additional_messages: [{ role: 'user', content: prompt, content_type: 'text' }]
+    })
+  }).then(function(resp) {
+    if (!resp.ok) {
+      document.getElementById(loadingId).remove();
+      addAIMessage('Sorry, request failed.', '请求失败，请重试。');
+      return;
+    }
+    var reader = resp.body.getReader();
+    var decoder = new TextDecoder();
+
+    function read() {
+      reader.read().then(function(result) {
+        if (result.done) {
+          // 流结束，解析并显示
+          document.getElementById(loadingId) && document.getElementById(loadingId).remove();
+          if (!fullText) { addAIMessage('Sorry, no response.', '未收到回复。'); return; }
+
+          var replyM   = fullText.match(/\[REPLY\]([\s\S]*?)(?=\[CHINESE\]|\[GRAMMAR\]|$)/);
+          var chineseM = fullText.match(/\[CHINESE\]([\s\S]*?)(?=\[REPLY\]|\[GRAMMAR\]|$)/);
+          var grammarM = fullText.match(/\[GRAMMAR\]([\s\S]*?)(?=\[REPLY\]|\[CHINESE\]|$)/);
+          var reply   = replyM   ? replyM[1].trim()   : fullText.trim();
+          var chinese = chineseM ? chineseM[1].trim() : '';
+          var grammar = grammarM ? grammarM[1].trim() : '';
+
+          if (reply) addAIMessage(reply, chinese);
+          if (grammar) {
+            var gDiv = document.createElement('div');
+            gDiv.className = 'chat-msg ai';
+            var isOk = grammar.indexOf('正确') >= 0;
+            gDiv.innerHTML = '<div class="en" style="font-size:12px;background:'
+              + (isOk ? '#f0fdf4' : '#fef9c3')
+              + ';border-radius:8px;padding:8px 10px;border:1px solid '
+              + (isOk ? '#86efac' : '#fde047') + '">'
+              + '<strong style="color:' + (isOk ? '#16a34a' : '#d97706') + '">'
+              + (isOk ? '✅ 语法正确' : '📝 语法纠错') + '</strong><br>'
+              + grammar.replace(/\n/g, '<br>') + '</div>';
+            document.getElementById('chatMessages').appendChild(gDiv);
+            scrollChat();
+          }
+          return;
+        }
+
+        buf += decoder.decode(result.value, { stream: true });
+        var lines = buf.split('\n');
+        buf = lines.pop();
+        lines.forEach(function(line) {
+          if (line.startsWith('event:')) {
+            currentEvent = line.slice(6).trim();
+          } else if (line.startsWith('data:')) {
+            var raw = line.slice(5).trim();
+            if (!raw || raw === '[DONE]') return;
+            try {
+              var data = JSON.parse(raw);
+              if (currentEvent === 'conversation.message.delta' &&
+                  data.role === 'assistant' && data.type === 'answer' && data.content) {
+                fullText += data.content;
+              }
+            } catch(e) {}
+          }
+        });
+        read();
+      }).catch(function() {
+        document.getElementById(loadingId) && document.getElementById(loadingId).remove();
+        addAIMessage('Sorry, connection error.', '网络中断，请重试。');
+      });
+    }
+    read();
+  }).catch(function(e) {
+    document.getElementById(loadingId) && document.getElementById(loadingId).remove();
+    addAIMessage('Sorry, error: ' + e.message, '错误：' + e.message);
+  });
+}
+
+
+function scrollChat() {
+  var el = document.getElementById('chatMessages');
+  el.scrollTop = el.scrollHeight;
+}
+
+function endConversation() {
+  document.getElementById('chatSection').style.display = 'none';
+  document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
+  currentScenario = -1;
+  stopRecording();
+  
+  if (conversation.length > 2) {
+    var pts = Math.round(conversation.length * 2);
+    try {
+      var u = JSON.parse(localStorage.getItem('zhibanUser') || '{}');
+      u.points = (u.points || 0) + pts;
+      localStorage.setItem('zhibanUser', JSON.stringify(u));
+    } catch(e) {}
+    alert('对话结束！获得 ' + pts + ' 积分！继续练习提升口语~');
+  }
+}
+
+/* === SPEECH RECOGNITION === */
+function initRecognition() {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    document.getElementById('micHint').textContent = '浏览器不支持语音识别，请使用Chrome浏览器';
+    return null;
+  }
+  var r = new SR();
+  r.lang = 'en-US';
+  r.continuous = false;
+  r.interimResults = true;
+  
+  r.onresult = function(e) {
+    var transcript = '';
+    for (var i = e.resultIndex; i < e.results.length; i++) {
+      transcript += e.results[i][0].transcript;
+    }
+    document.getElementById('userInput').textContent = transcript;
+    document.getElementById('userInput').classList.remove('hidden');
+    
+    if (e.results[e.resultIndex].isFinal) {
+      addUserMessage(transcript);
+      document.getElementById('userInput').classList.add('hidden');
+    }
+  };
+  
+  r.onerror = function(e) {
+    console.log('Speech error:', e.error);
+    stopRecording();
+    if (e.error === 'not-allowed') {
+      document.getElementById('micHint').textContent = '请允许麦克风权限后重试';
+    }
+  };
+  
+  r.onend = function() {
+    if (isRecording) {
+      try { r.start(); } catch(e) { stopRecording(); }
+    }
+  };
+  
+  return r;
+}
+
+function toggleRecording() {
+  if (currentScenario < 0) { alert('请先选择一个对话场景'); return; }
+  
+  if (isRecording) {
+    stopRecording();
+  } else {
+    startRecording();
+  }
+}
+
+function startRecording() {
+  if (!recognition) recognition = initRecognition();
+  if (!recognition) {
+    // Fallback: text input
+    var text = prompt('请输入英语句子：');
+    if (text) addUserMessage(text);
+    return;
+  }
+  
+  isRecording = true;
+  document.getElementById('micBtn').className = 'mic-btn recording';
+  document.getElementById('recStatus').classList.remove('hidden');
+  document.getElementById('micHint').textContent = '再次点击停止录音';
+  
+  try { recognition.start(); } catch(e) {}
+}
+
+function stopRecording() {
+  isRecording = false;
+  document.getElementById('micBtn').className = 'mic-btn idle';
+  document.getElementById('recStatus').classList.add('hidden');
+  document.getElementById('micHint').textContent = '点击开始说话';
+  
+  if (recognition) { try { recognition.stop(); } catch(e) {} }
+}
+</script>
+<script src="ai-character.js"></script>
+</body>
+</html>

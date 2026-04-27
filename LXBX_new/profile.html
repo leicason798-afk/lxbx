@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- 防缓存:确保用户总是拿到最新版本 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学习者画像 — 灵犀伴学</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{ocean:{50:'#eef6ff',100:'#d9ecff',200:'#bcdeff',300:'#8ec9ff',400:'#59a9ff',500:'#3385ff',600:'#1a65f5',700:'#1450e1',800:'#1741b6',900:'#19398f',950:'#142557'},mint:{50:'#edfcf5',100:'#d3f8e6',200:'#aaf0d1',300:'#73e2b5',400:'#3acd95',500:'#18b47d',600:'#0f9165',700:'#0e7453'},warm:{50:'#fff8ed',100:'#fff0d4',200:'#ffdda8',300:'#ffc371',400:'#ff9f38',500:'#ff8211',600:'#f06807',700:'#c74e08'}},fontFamily:{display:['"Noto Serif SC"','serif'],body:['"Noto Sans SC"','sans-serif']}}}};</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--nav-h:64px}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Noto Sans SC',sans-serif;color:#1e293b;background:#f8faff;overflow-x:hidden;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse 80% 50% at 20% 10%,rgba(51,133,255,.06) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 80%,rgba(24,180,125,.05) 0%,transparent 60%)}
+#navbar{background:rgba(255,255,255,.82);backdrop-filter:blur(16px) saturate(1.4);box-shadow:0 1px 24px rgba(20,37,87,.07)}
+.avatar-svg{border-radius:50%}
+
+.card{background:#fff;border-radius:18px;box-shadow:0 4px 24px rgba(20,37,87,.06);border:1px solid rgba(51,133,255,.06);transition:transform .25s,box-shadow .25s}
+.card:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(51,133,255,.1)}
+.section-title{font-family:'Noto Serif SC',serif;font-weight:700;position:relative;display:inline-block;padding-bottom:12px}
+.section-title::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:48px;height:4px;border-radius:2px;background:linear-gradient(90deg,#3385ff,#18b47d)}
+.stat-num{font-family:'JetBrains Mono',monospace;font-weight:700}
+
+/* Profile header */
+.profile-banner{background:linear-gradient(135deg,#1450e1 0%,#3385ff 40%,#18b47d 100%);border-radius:24px;padding:32px;position:relative;overflow:hidden;margin-bottom:24px}
+.profile-banner::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(255,255,255,.08),transparent 70%);border-radius:50%}
+.profile-banner::after{content:'';position:absolute;bottom:-60px;left:-30px;width:180px;height:180px;background:radial-gradient(circle,rgba(255,255,255,.05),transparent 70%);border-radius:50%}
+
+/* Tag pills */
+.trait-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;backdrop-filter:blur(4px)}
+
+/* Ability bar */
+.ability-bar{height:8px;background:#e2e8f0;border-radius:99px;overflow:hidden;position:relative}
+.ability-fill{height:100%;border-radius:99px;transition:width 1.2s cubic-bezier(.4,0,.2,1);position:relative}
+.ability-fill::after{content:'';position:absolute;right:0;top:0;bottom:0;width:12px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4));border-radius:0 99px 99px 0}
+
+/* Spaced review card */
+.review-card{border-radius:14px;padding:14px;border:1px solid #e2e8f0;transition:all .25s;cursor:pointer}
+.review-card:hover{border-color:#3385ff;box-shadow:0 4px 16px rgba(51,133,255,.1)}
+.review-card.urgent{border-color:#fca5a5;background:#fff5f5}
+.review-card.today{border-color:#fbbf24;background:#fffbeb}
+.review-card.upcoming{border-color:#86efac;background:#f0fdf4}
+
+/* Habit heatmap */
+.habit-cell{width:100%;aspect-ratio:1;border-radius:4px;transition:all .2s}
+.habit-cell:hover{transform:scale(1.3);z-index:1}
+
+/* Weekly report */
+.report-section{border-left:3px solid;padding-left:16px;margin-bottom:16px}
+
+/* Learning style card */
+.style-card{border-radius:16px;padding:20px;border:2px solid transparent;transition:all .3s;cursor:default}
+.style-card.active{border-color:#3385ff;background:linear-gradient(135deg,#eef6ff,#fff);box-shadow:0 4px 20px rgba(51,133,255,.12)}
+.style-card .style-bar{height:6px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin-top:8px}
+.style-bar-fill{height:100%;border-radius:99px;transition:width 1s ease}
+
+/* Tabs */
+.tab-btn{padding:8px 20px;border-radius:10px;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:all .2s;background:transparent;color:#64748b;font-family:inherit}
+.tab-btn.active{background:linear-gradient(135deg,#3385ff,#1450e1);color:#fff;box-shadow:0 4px 12px rgba(51,133,255,.25)}
+
+/* Animations */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeUp .5s ease both}
+.fade-d1{animation-delay:.1s}.fade-d2{animation-delay:.2s}.fade-d3{animation-delay:.3s}.fade-d4{animation-delay:.4s}
+
+/* Responsive */
+@media(max-width:768px){
+  .grid-2{grid-template-columns:1fr !important}
+  .profile-banner{padding:24px}
+}
+</style>
+<script src="supabase-sync.js"></script>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav id="navbar" class="fixed top-0 left-0 w-full z-50" style="height:var(--nav-h)">
+  <div class="max-w-7xl mx-auto flex items-center justify-between px-5 md:px-8 h-full">
+    <a href="home.html" class="flex items-center gap-2 text-ocean-700 font-bold text-lg select-none">
+      <svg class="w-8 h-8" viewBox="0 0 40 40" fill="none"><defs><linearGradient id="lxG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3385ff"/><stop offset="100%" stop-color="#18b47d"/></linearGradient></defs><circle cx="20" cy="20" r="19" fill="url(#lxG)" opacity=".12"/><circle cx="20" cy="20" r="19" stroke="url(#lxG)" stroke-width="1.5"/><path d="M12 26c0-4 2-7 5-9l1-3c0-1 1-1.5 2-1.5s1.5.8 1.5 1.5l-.5 2c2-1 4-1 5.5 0l1.5-1c.5-.5 1.2-.3 1.5.2s.1 1.2-.4 1.5L27 18c1 1.5 1.5 3.5 1 5.5-.5 2-2 3-4 3.5H16c-2-.5-3.5-2-4-4z" fill="url(#lxG)" opacity=".85"/><circle cx="23" cy="19" r="1.3" fill="white"/></svg>
+      <span class="hidden sm:inline" style="font-family:'Noto Serif SC',serif">灵犀伴学</span>
+    </a>
+    <ul class="hidden md:flex items-center gap-1 text-sm font-medium">
+      <li><a href="home.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">首页</a></li>
+      <li><a href="ai-module.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">AI伴学</a></li>
+      <li><a href="dashboard.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学情分析</a></li>
+      <li><a href="user.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">用户中心</a></li>
+    
+      <li><a href="profile.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习画像</a></li>
+      <li><a href="goals.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习目标</a></li>
+    </ul>
+    <div class="flex items-center gap-3">
+      <a href="user.html" class="flex items-center gap-2"><div id="navAvatar" class="w-9 h-9 rounded-full bg-ocean-100"></div><span id="navUserName" class="hidden sm:inline text-sm font-medium text-ocean-700"></span></a>
+    </div>
+  </div>
+</nav>
+
+<main class="pt-24 pb-16 px-4 max-w-5xl mx-auto">
+
+  <!-- ══════ PROFILE BANNER ══════ -->
+  <div class="profile-banner fade-in" id="profileBanner">
+    <div class="relative z-10 flex flex-col md:flex-row items-center gap-6">
+      <div class="flex-shrink-0">
+        <div id="profileAvatar" class="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center" style="box-shadow:0 8px 32px rgba(0,0,0,.15)"></div>
+      </div>
+      <div class="flex-1 text-center md:text-left">
+        <h1 class="text-2xl font-bold text-white mb-1" id="profileName">学习者</h1>
+        <p class="text-white/70 text-sm mb-3" id="profileLevel">学习新手 · Lv.1</p>
+        <div class="flex flex-wrap gap-2 justify-center md:justify-start" id="profileTraits"></div>
+      </div>
+      <div class="text-center md:text-right">
+        <div class="text-white/50 text-xs mb-1">学习参与度</div>
+        <div class="stat-num text-4xl text-white" id="engagementScore">0</div>
+        <div class="text-white/50 text-xs mt-1">/ 100</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ QUICK STATS ══════ -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 fade-in fade-d1">
+    <div class="card p-4 text-center">
+      <div class="text-2xl mb-1">📚</div>
+      <div class="stat-num text-xl text-ocean-600" id="qsTotalSessions">0</div>
+      <div class="text-xs text-ocean-400 mt-1">对话轮次</div>
+    </div>
+    <div class="card p-4 text-center">
+      <div class="text-2xl mb-1">🔥</div>
+      <div class="stat-num text-xl text-warm-600" id="qsStudyDays">0</div>
+      <div class="text-xs text-ocean-400 mt-1">学习天数</div>
+    </div>
+    <div class="card p-4 text-center">
+      <div class="text-2xl mb-1">⏱️</div>
+      <div class="stat-num text-xl text-mint-600" id="qsFocusMinutes">0</div>
+      <div class="text-xs text-ocean-400 mt-1">专注分钟</div>
+    </div>
+    <div class="card p-4 text-center">
+      <div class="text-2xl mb-1">✅</div>
+      <div class="stat-num text-xl" style="color:#8b5cf6" id="qsMasteredRate">0%</div>
+      <div class="text-xs text-ocean-400 mt-1">错题掌握率</div>
+    </div>
+  </div>
+
+  <!-- ══════ MAIN GRID ══════ -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 grid-2">
+
+    <!-- LEFT: Radar Chart -->
+    <div class="card p-6 fade-in fade-d2">
+      <h3 class="text-base font-bold text-ocean-900 mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5 text-ocean-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5"/></svg>
+        学科能力雷达图
+      </h3>
+      <div style="position:relative;height:280px">
+        <canvas id="radarChart"></canvas>
+      </div>
+      <div class="mt-4 space-y-3" id="abilityBars"></div>
+    </div>
+
+    <!-- RIGHT: Learning Style -->
+    <div class="card p-6 fade-in fade-d3">
+      <h3 class="text-base font-bold text-ocean-900 mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5 text-ocean-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+        学习风格画像
+      </h3>
+      <div class="space-y-3" id="styleCards"></div>
+      <div class="mt-4 p-4 rounded-xl bg-ocean-50/60 border border-ocean-100">
+        <p class="text-xs text-ocean-500 font-semibold mb-1">💡 个性化建议</p>
+        <p class="text-sm text-ocean-700" id="styleAdvice">分析中...</p>
+      </div>
+    </div>
+
+    <!-- LEFT: Learning Habits -->
+    <div class="card p-6 fade-in fade-d2">
+      <h3 class="text-base font-bold text-ocean-900 mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5 text-ocean-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        学习习惯分析
+      </h3>
+      <!-- Active hours heatmap -->
+      <p class="text-xs text-ocean-500 font-semibold mb-2">活跃时段分布</p>
+      <div class="grid gap-1 mb-4" style="grid-template-columns:repeat(12,1fr)" id="hourHeatmap"></div>
+      <div class="flex justify-between text-xs text-ocean-300 mb-4">
+        <span>6:00</span><span>12:00</span><span>18:00</span><span>24:00</span>
+      </div>
+      <!-- Question type distribution -->
+      <p class="text-xs text-ocean-500 font-semibold mb-2">提问偏好分布</p>
+      <div style="position:relative;height:180px">
+        <canvas id="questionTypeChart"></canvas>
+      </div>
+    </div>
+
+    <!-- RIGHT: Spaced Repetition -->
+    <div class="card p-6 fade-in fade-d3">
+      <h3 class="text-base font-bold text-ocean-900 mb-2 flex items-center gap-2">
+        <svg class="w-5 h-5 text-ocean-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
+        艾宾浩斯复习计划
+      </h3>
+      <p class="text-xs text-ocean-400 mb-4">基于遗忘曲线，科学安排每道错题的复习时间</p>
+      
+      <div class="flex gap-2 mb-4">
+        <button class="tab-btn active" onclick="filterReview('all',this)">全部</button>
+        <button class="tab-btn" onclick="filterReview('urgent',this)">⚠️ 逾期</button>
+        <button class="tab-btn" onclick="filterReview('today',this)">📌 今天</button>
+        <button class="tab-btn" onclick="filterReview('upcoming',this)">📅 即将</button>
+      </div>
+      <div id="reviewList" class="space-y-2" style="max-height:320px;overflow-y:auto"></div>
+      <div id="reviewEmpty" class="text-center py-8 hidden">
+        <div class="text-3xl mb-2">🎯</div>
+        <p class="text-sm text-ocean-400">暂无复习任务</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ MODULE USAGE STATS ══════ -->
+  <div class="card p-6 mt-4 fade-in fade-d4">
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <h3 class="text-base font-bold text-ocean-900 flex items-center gap-2">
+        <svg class="w-5 h-5 text-ocean-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+        模块使用统计
+      </h3>
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-ocean-400" id="moduleGradeLabel"></span>
+        <div class="flex gap-1 bg-ocean-50 p-1 rounded-xl">
+          <button class="tab-btn active text-xs py-1 px-3" id="moduleTabWeek" onclick="switchModuleTab('week')">本周</button>
+          <button class="tab-btn text-xs py-1 px-3" id="moduleTabMonth" onclick="switchModuleTab('month')">本月</button>
+        </div>
+      </div>
+    </div>
+    <div id="moduleStatsContent"></div>
+  </div>
+
+  <!-- ══════ AI WEEKLY REPORT ══════ -->
+  <div class="card p-6 mt-4 fade-in fade-d4">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-base font-bold text-ocean-900 flex items-center gap-2">
+        <svg class="w-5 h-5 text-ocean-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+        AI 伴学周报
+      </h3>
+      <span class="text-xs text-ocean-400" id="reportDateRange"></span>
+    </div>
+    <div id="weeklyReport"></div>
+  </div>
+
+  <!-- ══════ SMART RECOMMENDATIONS ══════ -->
+  <div class="card p-6 mt-4 fade-in fade-d4">
+    <h3 class="text-base font-bold text-ocean-900 mb-4 flex items-center gap-2">
+      <svg class="w-5 h-5 text-warm-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/></svg>
+      个性化学习推荐
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="recommendations"></div>
+  </div>
+
+</main>
+
+<footer class="bg-ocean-950 text-white/60 py-6 text-center text-xs">© 2026 灵犀伴学 · 灵犀 Lab · 燕京理工学院</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   DATA COLLECTION — 从各localStorage键聚合所有学习数据
+   ═══════════════════════════════════════════════════ */
+
+function collectAllData() {
+  var user = {};
+  // 数据已由 sbInit() 同步到 localStorage，直接读取即可
+  try { user = JSON.parse(localStorage.getItem('zhibanUser') || '{}'); } catch(e) {}
+  
+  var chatHistory = [];
+  try { chatHistory = JSON.parse(localStorage.getItem('zhibanChatHistory') || '[]'); } catch(e) {}
+  
+  var errorBook = [];
+  try { errorBook = JSON.parse(localStorage.getItem('zhibanErrorBook') || '[]'); } catch(e) {}
+  
+  var timerStats = {};
+  try { timerStats = JSON.parse(localStorage.getItem('zhibanTimerStats') || '{}'); } catch(e) {}
+  
+  // === Subject analysis from chat ===
+  var subjectScores = { '语文': 0, '数学': 0, '英语': 0, '科学': 0, '综合': 0 };
+  var subjectKeywords = {
+    '数学': ['数学','计算','方程','几何','加减乘除','分数','面积','体积','概率','函数','代数'],
+    '语文': ['语文','作文','阅读','成语','诗词','写作','修辞','文言文','拼音','造句'],
+    '英语': ['英语','单词','语法','句型','翻译','口语','听力','作文','tense','grammar'],
+    '科学': ['物理','化学','生物','科学','实验','力','电','磁','原子','分子','细胞'],
+  };
+  
+  var totalQuestions = 0;
+  var questionTypes = { '知识问答': 0, '解题辅导': 0, '写作指导': 0, '概念理解': 0, '学习规划': 0 };
+  var hourDistribution = new Array(24).fill(0);
+  
+  chatHistory.forEach(function(session) {
+    (session.messages || []).forEach(function(m) {
+      if (m.role !== 'user') return;
+      totalQuestions++;
+      var content = (m.content || '').toLowerCase();
+      
+      // Subject scoring
+      for (var subj in subjectKeywords) {
+        var keywords = subjectKeywords[subj];
+        for (var k = 0; k < keywords.length; k++) {
+          if (content.indexOf(keywords[k]) >= 0) {
+            subjectScores[subj] += 10;
+            break;
+          }
+        }
+      }
+      
+      // Question type classification
+      if (content.match(/怎么做|解|算|求|等于/)) questionTypes['解题辅导']++;
+      else if (content.match(/写|作文|文章|段落/)) questionTypes['写作指导']++;
+      else if (content.match(/什么是|为什么|解释|原理|概念/)) questionTypes['概念理解']++;
+      else if (content.match(/计划|规划|安排|复习|目标/)) questionTypes['学习规划']++;
+      else questionTypes['知识问答']++;
+    });
+    
+    // Hour distribution from session time
+    if (session.time) {
+      var timeMatch = session.time.match(/(\d{1,2}):(\d{2})/);
+      if (timeMatch) {
+        var hour = parseInt(timeMatch[1]);
+        if (hour >= 0 && hour < 24) hourDistribution[hour]++;
+      }
+    }
+  });
+  
+  // 有数据才计算，没有数据保持0
+  for (var s in subjectScores) {
+    subjectScores[s] = Math.min(100, Math.max(0, subjectScores[s]));
+  }
+  // Uncategorized questions go to 综合
+  var zongheRaw = totalQuestions * 3 - subjectScores['语文'] - subjectScores['数学'] - subjectScores['英语'] - subjectScores['科学'];
+  subjectScores['综合'] = Math.min(100, Math.max(0, zongheRaw));
+  
+  // === Timer stats aggregation ===
+  var totalFocusMinutes = 0;
+  var totalFocusSessions = 0;
+  for (var day in timerStats) {
+    totalFocusMinutes += timerStats[day].minutes || 0;
+    totalFocusSessions += timerStats[day].sessions || 0;
+  }
+  
+  // === Error book analysis ===
+  var totalErrors = errorBook.length;
+  var masteredErrors = errorBook.filter(function(e) { return e.mastered; }).length;
+  var masteredRate = totalErrors > 0 ? Math.round(masteredErrors / totalErrors * 100) : 0;
+  
+  var errorBySubject = {};
+  errorBook.forEach(function(e) {
+    errorBySubject[e.subject] = (errorBySubject[e.subject] || 0) + 1;
+  });
+  
+  // === Engagement score ===
+  var engagement = Math.min(100, Math.round(
+    chatHistory.length * 6 +
+    totalQuestions * 2 +
+    (user.studyDays || 0) * 8 +
+    totalFocusMinutes * 0.3 +
+    masteredErrors * 5
+  ));
+  
+  // === Learning style analysis ===
+  var styles = {
+    '探索型': { score: 0, icon: '🔍', color: '#3385ff', desc: '喜欢通过提问探索新知识' },
+    '练习型': { score: 0, icon: '✍️', color: '#18b47d', desc: '注重刷题练习巩固知识' },
+    '计划型': { score: 0, icon: '📋', color: '#f59e0b', desc: '善于制定学习计划和目标' },
+    '社交型': { score: 0, icon: '💬', color: '#8b5cf6', desc: '通过对话互动加深理解' },
+  };
+  
+  styles['探索型'].score = Math.min(100, questionTypes['概念理解'] * 15 + questionTypes['知识问答'] * 8);
+  styles['练习型'].score = Math.min(100, totalFocusSessions * 12 + totalErrors * 6 + questionTypes['解题辅导'] * 10);
+  styles['计划型'].score = Math.min(100, questionTypes['学习规划'] * 20 + totalFocusSessions * 8);
+  styles['社交型'].score = Math.min(100, chatHistory.length * 10 + totalQuestions * 3);
+  
+  // 无数据时保持0，不强制最小值
+  for (var st in styles) {
+    styles[st].score = Math.max(0, styles[st].score);
+  }
+  
+  // === Spaced repetition schedule ===
+  var reviewSchedule = [];
+  var INTERVALS = [1, 3, 7, 15, 30]; // Ebbinghaus intervals in days
+  var now = new Date();
+  var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  errorBook.forEach(function(err) {
+    if (err.mastered) return;
+    var errorDate = new Date(err.date);
+    if (isNaN(errorDate.getTime())) {
+      // Try parsing Chinese date format
+      var parts = err.date.match(/(\d+)\/(\d+)\/(\d+)/);
+      if (parts) errorDate = new Date(parts[1], parts[2]-1, parts[3]);
+      else errorDate = new Date();
+    }
+    
+    var daysSinceError = Math.floor((today - errorDate) / 86400000);
+    var reviewCount = err.reviewCount || 0;
+    var nextInterval = INTERVALS[Math.min(reviewCount, INTERVALS.length - 1)];
+    var nextReviewDate = new Date(errorDate.getTime() + nextInterval * 86400000);
+    var daysUntilReview = Math.floor((nextReviewDate - today) / 86400000);
+    
+    var status = 'upcoming';
+    if (daysUntilReview < 0) status = 'urgent';
+    else if (daysUntilReview === 0) status = 'today';
+    
+    reviewSchedule.push({
+      id: err.id,
+      subject: err.subject,
+      question: err.question,
+      status: status,
+      daysUntil: daysUntilReview,
+      reviewCount: reviewCount,
+      nextInterval: nextInterval,
+      nextDate: nextReviewDate,
+    });
+  });
+  
+  // Sort: urgent first, then today, then upcoming
+  reviewSchedule.sort(function(a, b) {
+    var order = { urgent: 0, today: 1, upcoming: 2 };
+    if (order[a.status] !== order[b.status]) return order[a.status] - order[b.status];
+    return a.daysUntil - b.daysUntil;
+  });
+  
+  return {
+    user: user,
+    chatHistory: chatHistory,
+    errorBook: errorBook,
+    subjectScores: subjectScores,
+    totalQuestions: totalQuestions,
+    questionTypes: questionTypes,
+    hourDistribution: hourDistribution,
+    totalFocusMinutes: totalFocusMinutes,
+    totalFocusSessions: totalFocusSessions,
+    totalErrors: totalErrors,
+    masteredErrors: masteredErrors,
+    masteredRate: masteredRate,
+    errorBySubject: errorBySubject,
+    engagement: engagement,
+    styles: styles,
+    reviewSchedule: reviewSchedule,
+    studyDays: user.studyDays || 0,
+    points: user.points || 0,
+  };
+}
+
+/* ═══════════════════════════════════════════════════
+   RENDER FUNCTIONS
+   ═══════════════════════════════════════════════════ */
+
+function renderAll() {
+  var data = collectAllData();
+  
+  renderProfileBanner(data);
+  renderQuickStats(data);
+  renderRadarChart(data);
+  renderAbilityBars(data);
+  renderStyleCards(data);
+  renderHourHeatmap(data);
+  renderQuestionTypeChart(data);
+  renderReviewSchedule(data, 'all');
+  renderModuleStats('week');
+  renderWeeklyReport(data);
+  renderRecommendations(data);
+}
+
+function renderProfileBanner(data) {
+  // 重新读最新用户数据确保准确
+  try { var _u = JSON.parse(localStorage.getItem('zhibanUser')||'{}'); if(_u.userName) data.user = _u; } catch(e) {}
+  var u = data.user;
+  var nameEl = document.getElementById('profileName');
+  nameEl.textContent = (u.userName || '学习者') + ' 的学习画像';
+  
+  // Level
+  var levelNames = ['学习新手', '知识探索者', '进步之星', '学霸见习', '知识达人', '学神'];
+  var levelIdx = Math.min(5, Math.floor((data.points || 0) / 100));
+  document.getElementById('profileLevel').textContent = levelNames[levelIdx] + ' · Lv.' + (levelIdx + 1);
+  document.getElementById('engagementScore').textContent = data.engagement;
+  
+  // Avatar
+  var avEl = document.getElementById('profileAvatar');
+  if (u.customAvatar) {
+    avEl.innerHTML = '<img src="' + u.customAvatar + '" style="width:80px;height:80px;border-radius:50%;object-fit:cover">';
+  } else if (u.premiumAvatar) {
+    avEl.innerHTML = _renderPremiumAvatar(u.premiumAvatar, 72);
+  } else {
+    avEl.innerHTML = _genAvatar(u.avatarIndex || 0, 72);
+  }
+  
+  // Trait tags
+  var traitsEl = document.getElementById('profileTraits');
+  traitsEl.innerHTML = '';
+  var traits = [];
+  
+  // Determine dominant style
+  var maxStyle = '探索型', maxScore = 0;
+  for (var s in data.styles) {
+    if (data.styles[s].score > maxScore) { maxScore = data.styles[s].score; maxStyle = s; }
+  }
+  traits.push({ text: maxStyle, bg: 'rgba(255,255,255,.2)', color: '#fff' });
+  
+  // Dominant subject
+  var maxSubj = '综合', maxSubjScore = 0;
+  for (var subj in data.subjectScores) {
+    if (subj !== '综合' && data.subjectScores[subj] > maxSubjScore) {
+      maxSubjScore = data.subjectScores[subj]; maxSubj = subj;
+    }
+  }
+  if (maxSubjScore > 15) traits.push({ text: maxSubj + '达人', bg: 'rgba(255,255,255,.15)', color: 'rgba(255,255,255,.9)' });
+  
+  if (data.totalFocusSessions > 3) traits.push({ text: '专注力强', bg: 'rgba(251,191,36,.3)', color: '#fef3c7' });
+  if (data.totalQuestions > 20) traits.push({ text: '好奇心旺', bg: 'rgba(24,180,125,.3)', color: '#d1fae5' });
+  if (data.masteredRate > 60) traits.push({ text: '复习之星', bg: 'rgba(139,92,246,.3)', color: '#ede9fe' });
+  
+  traits.forEach(function(t) {
+    var span = document.createElement('span');
+    span.className = 'trait-tag';
+    span.style.background = t.bg;
+    span.style.color = t.color;
+    span.textContent = t.text;
+    traitsEl.appendChild(span);
+  });
+}
+
+function renderQuickStats(data) {
+  document.getElementById('qsTotalSessions').textContent = data.chatHistory.length;
+  document.getElementById('qsStudyDays').textContent = data.studyDays;
+  document.getElementById('qsFocusMinutes').textContent = data.totalFocusMinutes;
+  document.getElementById('qsMasteredRate').textContent = data.masteredRate + '%';
+}
+
+function renderRadarChart(data) {
+  var subjects = ['语文', '数学', '英语', '科学', '综合'];
+  var scores = subjects.map(function(s) { return data.subjectScores[s] || 5; });
+  
+  var ctx = document.getElementById('radarChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: subjects,
+      datasets: [{
+        label: '学科能力',
+        data: scores,
+        backgroundColor: 'rgba(51,133,255,.15)',
+        borderColor: '#3385ff',
+        borderWidth: 2,
+        pointBackgroundColor: '#3385ff',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        r: {
+          beginAtZero: true,
+          max: 100,
+          ticks: { stepSize: 20, font: { size: 10, family: 'Noto Sans SC' }, backdropColor: 'transparent', color: '#94a3b8' },
+          grid: { color: 'rgba(51,133,255,.08)' },
+          pointLabels: { font: { size: 13, weight: '600', family: 'Noto Sans SC' }, color: '#334155' },
+          angleLines: { color: 'rgba(51,133,255,.08)' },
+        }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+function renderAbilityBars(data) {
+  var container = document.getElementById('abilityBars');
+  container.innerHTML = '';
+  var subjects = ['语文', '数学', '英语', '科学', '综合'];
+  var colors = { '语文': '#18b47d', '数学': '#3385ff', '英语': '#f59e0b', '科学': '#8b5cf6', '综合': '#64748b' };
+  
+  subjects.forEach(function(subj) {
+    var score = data.subjectScores[subj] || 5;
+    var div = document.createElement('div');
+    div.innerHTML = '<div class="flex justify-between text-xs mb-1"><span class="font-semibold text-ocean-700">' + subj + '</span><span class="stat-num text-ocean-500" style="font-size:12px">' + score + '</span></div><div class="ability-bar"><div class="ability-fill" style="width:0%;background:' + colors[subj] + '"></div></div>';
+    container.appendChild(div);
+  });
+  
+  // Animate
+  setTimeout(function() {
+    container.querySelectorAll('.ability-fill').forEach(function(bar, i) {
+      bar.style.width = (data.subjectScores[subjects[i]] || 5) + '%';
+    });
+  }, 300);
+}
+
+function renderStyleCards(data) {
+  var container = document.getElementById('styleCards');
+  container.innerHTML = '';
+  
+  var maxStyle = '', maxScore = 0;
+  for (var s in data.styles) {
+    if (data.styles[s].score > maxScore) { maxScore = data.styles[s].score; maxStyle = s; }
+  }
+  
+  for (var name in data.styles) {
+    var st = data.styles[name];
+    var isActive = name === maxStyle;
+    var div = document.createElement('div');
+    div.className = 'style-card' + (isActive ? ' active' : '');
+    div.style.background = isActive ? '' : '#f8faff';
+    div.innerHTML = '<div class="flex items-center gap-3"><div class="text-2xl">' + st.icon + '</div><div class="flex-1"><div class="flex justify-between items-center"><span class="text-sm font-bold text-ocean-800">' + name + (isActive ? ' <span style="font-size:10px;color:#3385ff">← 你的主导风格</span>' : '') + '</span><span class="stat-num text-xs" style="color:' + st.color + '">' + st.score + '%</span></div><p class="text-xs text-ocean-400 mt-0.5">' + st.desc + '</p><div class="style-bar"><div class="style-bar-fill" style="width:0%;background:' + st.color + '"></div></div></div></div>';
+    container.appendChild(div);
+  }
+  
+  // Animate
+  setTimeout(function() {
+    var bars = container.querySelectorAll('.style-bar-fill');
+    var idx = 0;
+    for (var n in data.styles) {
+      if (bars[idx]) bars[idx].style.width = data.styles[n].score + '%';
+      idx++;
+    }
+  }, 400);
+  
+  // Style advice
+  var advices = {
+    '探索型': '你喜欢探索新知识！建议多使用知识图谱功能，顺着知识脉络深入学习。遇到问题先自己思考再向AI提问，效果更好。',
+    '练习型': '你注重实战练习！建议利用知识农场的分级题库系统性刷题，配合错题本的遗忘曲线复习，效率倍增。',
+    '计划型': '你善于规划学习！建议每周日制定下周计划，利用番茄钟确保执行，周末回顾学习报告评估效果。',
+    '社交型': '你通过对话加深理解！建议多利用AI的苏格拉底教学模式，让AI用引导式提问帮你主动思考。',
+  };
+  document.getElementById('styleAdvice').textContent = advices[maxStyle] || '继续保持你的学习节奏！';
+}
+
+function renderHourHeatmap(data) {
+  var container = document.getElementById('hourHeatmap');
+  container.innerHTML = '';
+  var maxVal = Math.max.apply(null, data.hourDistribution.slice(6, 24)) || 1;
+  
+  // Only show 6:00 - 23:00 (18 hours) mapped to 12 columns
+  for (var h = 6; h < 24; h++) {
+    var val = data.hourDistribution[h];
+    var intensity = val / maxVal;
+    var cell = document.createElement('div');
+    cell.className = 'habit-cell';
+    cell.title = h + ':00 - ' + (h+1) + ':00  活跃度: ' + val;
+    if (val === 0) {
+      cell.style.background = '#f1f5f9';
+    } else if (intensity < 0.25) {
+      cell.style.background = '#bcdeff';
+    } else if (intensity < 0.5) {
+      cell.style.background = '#59a9ff';
+    } else if (intensity < 0.75) {
+      cell.style.background = '#3385ff';
+    } else {
+      cell.style.background = '#1450e1';
+    }
+    cell.style.borderRadius = '4px';
+    container.appendChild(cell);
+  }
+}
+
+function renderQuestionTypeChart(data) {
+  var labels = [], values = [], colors = ['#3385ff', '#18b47d', '#f59e0b', '#8b5cf6', '#ec4899'];
+  var i = 0;
+  for (var type in data.questionTypes) {
+    labels.push(type);
+    values.push(data.questionTypes[type]);
+    i++;
+  }
+  
+  new Chart(document.getElementById('questionTypeChart'), {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: values,
+        backgroundColor: colors,
+        borderWidth: 2,
+        borderColor: '#fff',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { usePointStyle: true, padding: 12, font: { size: 11, family: 'Noto Sans SC' } } }
+      },
+      cutout: '60%',
+    }
+  });
+}
+
+var _currentReviewFilter = 'all';
+function filterReview(filter, btn) {
+  _currentReviewFilter = filter;
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  renderReviewSchedule(collectAllData(), filter);
+}
+
+function renderReviewSchedule(data, filter) {
+  var list = data.reviewSchedule;
+  if (filter && filter !== 'all') {
+    list = list.filter(function(r) { return r.status === filter; });
+  }
+  
+  var container = document.getElementById('reviewList');
+  var emptyEl = document.getElementById('reviewEmpty');
+  container.innerHTML = '';
+  
+  if (list.length === 0) {
+    emptyEl.classList.remove('hidden');
+    container.classList.add('hidden');
+    return;
+  }
+  emptyEl.classList.add('hidden');
+  container.classList.remove('hidden');
+  
+  var statusLabels = {
+    urgent: { text: '已逾期', bg: '#fef2f2', color: '#dc2626', icon: '⚠️' },
+    today:  { text: '今日复习', bg: '#fffbeb', color: '#d97706', icon: '📌' },
+    upcoming: { text: '即将到来', bg: '#f0fdf4', color: '#16a34a', icon: '📅' },
+  };
+  
+  list.forEach(function(item) {
+    var st = statusLabels[item.status];
+    var div = document.createElement('div');
+    div.className = 'review-card ' + item.status;
+    var dateText = '';
+    if (item.daysUntil < 0) dateText = '逾期' + Math.abs(item.daysUntil) + '天';
+    else if (item.daysUntil === 0) dateText = '今天';
+    else dateText = item.daysUntil + '天后';
+    
+    div.innerHTML = '<div class="flex items-start justify-between mb-1.5"><div class="flex items-center gap-2"><span class="text-xs font-bold px-2 py-0.5 rounded-full" style="background:' + st.bg + ';color:' + st.color + '">' + st.icon + ' ' + st.text + '</span><span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-ocean-50 text-ocean-600">' + item.subject + '</span></div><span class="text-xs text-ocean-400">' + dateText + '</span></div><p class="text-sm text-ocean-800 font-medium mb-1.5" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + escHTML(item.question) + '</p><div class="flex items-center justify-between"><span class="text-xs text-ocean-400">已复习 ' + item.reviewCount + ' 次 · 下次间隔 ' + item.nextInterval + ' 天</span><a href="error-book.html" class="text-xs text-ocean-500 font-semibold hover:text-ocean-700 transition">去复习 →</a></div>';
+    container.appendChild(div);
+  });
+}
+
+function renderWeeklyReport(data) {
+  var container = document.getElementById('weeklyReport');
+  var dateEl = document.getElementById('reportDateRange');
+  
+  var now = new Date();
+  var weekAgo = new Date(now.getTime() - 7 * 86400000);
+  dateEl.textContent = formatDate(weekAgo) + ' ~ ' + formatDate(now);
+  
+  // Calculate this week's data
+  var weekSessions = 0, weekQuestions = 0;
+  var todayStr = formatDateKey(now);
+  
+  data.chatHistory.forEach(function(s) {
+    if (s.time) {
+      // Simple check if session is within last 7 days
+      weekSessions++;
+      (s.messages || []).forEach(function(m) { if (m.role === 'user') weekQuestions++; });
+    }
+  });
+  
+  // Weekly focus minutes
+  var weekFocus = 0;
+  var timerStats = {};
+  try { timerStats = JSON.parse(localStorage.getItem('zhibanTimerStats') || '{}'); } catch(e) {}
+  for (var day in timerStats) {
+    weekFocus += timerStats[day].minutes || 0;
+  }
+  
+  // Find strongest subject this week
+  var maxSubj = '综合', maxVal = 0;
+  for (var subj in data.subjectScores) {
+    if (subj !== '综合' && data.subjectScores[subj] > maxVal) {
+      maxVal = data.subjectScores[subj]; maxSubj = subj;
+    }
+  }
+  
+  // Find weakest
+  var minSubj = '综合', minVal = 999;
+  for (var subj2 in data.subjectScores) {
+    if (subj2 !== '综合' && data.subjectScores[subj2] < minVal) {
+      minVal = data.subjectScores[subj2]; minSubj = subj2;
+    }
+  }
+  
+  var urgentReviews = data.reviewSchedule.filter(function(r) { return r.status === 'urgent' || r.status === 'today'; }).length;
+  
+  var html = '';
+  
+  // 总览
+  html += '<div class="report-section" style="border-color:#3385ff"><h4 class="text-sm font-bold text-ocean-800 mb-2">📊 本周总览</h4>';
+  html += '<div class="grid grid-cols-2 md:grid-cols-4 gap-3">';
+  html += '<div class="text-center p-3 rounded-xl bg-ocean-50"><div class="stat-num text-lg text-ocean-600">' + weekSessions + '</div><div class="text-xs text-ocean-400">对话轮次</div></div>';
+  html += '<div class="text-center p-3 rounded-xl bg-mint-50"><div class="stat-num text-lg text-mint-600">' + weekQuestions + '</div><div class="text-xs text-ocean-400">提问数</div></div>';
+  html += '<div class="text-center p-3 rounded-xl bg-warm-50"><div class="stat-num text-lg text-warm-600">' + weekFocus + '</div><div class="text-xs text-ocean-400">专注分钟</div></div>';
+  html += '<div class="text-center p-3 rounded-xl" style="background:#ede9fe"><div class="stat-num text-lg" style="color:#7c3aed">' + data.masteredRate + '%</div><div class="text-xs text-ocean-400">错题掌握率</div></div>';
+  html += '</div></div>';
+  
+  // 优势与提升
+  html += '<div class="report-section" style="border-color:#18b47d"><h4 class="text-sm font-bold text-ocean-800 mb-2">💪 优势学科</h4>';
+  html += '<p class="text-sm text-ocean-600">你的 <strong class="text-mint-600">' + maxSubj + '</strong> 表现最突出（能力值 ' + data.subjectScores[maxSubj] + '），继续保持！</p></div>';
+  
+  html += '<div class="report-section" style="border-color:#f59e0b"><h4 class="text-sm font-bold text-ocean-800 mb-2">📈 待提升方向</h4>';
+  html += '<p class="text-sm text-ocean-600"><strong class="text-warm-600">' + minSubj + '</strong> 是目前的薄弱环节（能力值 ' + data.subjectScores[minSubj] + '），建议本周重点突破。</p></div>';
+  
+  // 复习提醒
+  if (urgentReviews > 0) {
+    html += '<div class="report-section" style="border-color:#ef4444"><h4 class="text-sm font-bold text-ocean-800 mb-2">⏰ 复习提醒</h4>';
+    html += '<p class="text-sm text-ocean-600">你有 <strong class="text-red-500">' + urgentReviews + '</strong> 道错题需要今天复习，根据遗忘曲线，现在正是巩固记忆的最佳时机！</p></div>';
+  }
+  
+  // 下周建议
+  html += '<div class="report-section" style="border-color:#8b5cf6"><h4 class="text-sm font-bold text-ocean-800 mb-2">🎯 下周建议</h4><ul class="text-sm text-ocean-600 space-y-1">';
+  if (weekQuestions < 10) html += '<li>• 每天至少向AI提问3个问题，培养提问习惯</li>';
+  if (weekFocus < 60) html += '<li>• 每天使用番茄钟专注学习至少15分钟</li>';
+  html += '<li>• 重点攻克 ' + minSubj + ' 学科，每天练习相关题目</li>';
+  if (urgentReviews > 0) html += '<li>• 清理逾期错题，按遗忘曲线定时复习</li>';
+  html += '<li>• 尝试使用知识图谱梳理 ' + maxSubj + ' 的知识体系</li>';
+  html += '</ul></div>';
+  
+  container.innerHTML = html;
+}
+
+function renderRecommendations(data) {
+  var container = document.getElementById('recommendations');
+  container.innerHTML = '';
+  var recs = [];
+  
+  // Find weakest subject
+  var minSubj = '综合', minVal = 999;
+  for (var subj in data.subjectScores) {
+    if (subj !== '综合' && data.subjectScores[subj] < minVal) {
+      minVal = data.subjectScores[subj]; minSubj = subj;
+    }
+  }
+  
+  // Weak subject recommendation
+  recs.push({
+    icon: '📐', title: minSubj + '能力提升',
+    desc: '你的' + minSubj + '能力值仅' + minVal + '，建议针对性练习',
+    action: '去练习', href: 'farm.html',
+    gradient: 'linear-gradient(135deg,#eef6ff,#fff)',
+    border: 'rgba(51,133,255,.15)'
+  });
+  
+  // Urgent review
+  var urgentCount = data.reviewSchedule.filter(function(r) { return r.status === 'urgent' || r.status === 'today'; }).length;
+  if (urgentCount > 0) {
+    recs.push({
+      icon: '🔔', title: urgentCount + '道错题待复习',
+      desc: '根据遗忘曲线，今天是最佳复习时机',
+      action: '去复习', href: 'error-book.html',
+      gradient: 'linear-gradient(135deg,#fff5f5,#fff)',
+      border: 'rgba(239,68,68,.15)'
+    });
+  }
+  
+  // Focus time recommendation
+  if (data.totalFocusMinutes < 30) {
+    recs.push({
+      icon: '⏱️', title: '增加专注时间',
+      desc: '本周仅专注' + data.totalFocusMinutes + '分钟，试试番茄钟',
+      action: '去计时', href: 'timer.html',
+      gradient: 'linear-gradient(135deg,#edfcf5,#fff)',
+      border: 'rgba(24,180,125,.15)'
+    });
+  }
+  
+  // Oral practice
+  var englishScore = data.subjectScores['英语'] || 5;
+  if (englishScore < 40) {
+    recs.push({
+      icon: '🗣️', title: '英语口语练习',
+      desc: '英语能力待提升，试试AI口语陪练',
+      action: '去练习', href: 'speaking.html',
+      gradient: 'linear-gradient(135deg,#fff8ed,#fff)',
+      border: 'rgba(245,158,11,.15)'
+    });
+  }
+  
+  // Knowledge graph
+  if (data.chatHistory.length > 3) {
+    recs.push({
+      icon: '🧠', title: '梳理知识体系',
+      desc: '你已有' + data.chatHistory.length + '次对话，来整理知识脉络吧',
+      action: '去整理', href: 'knowledge-graph.html',
+      gradient: 'linear-gradient(135deg,#ede9fe,#fff)',
+      border: 'rgba(139,92,246,.15)'
+    });
+  }
+  
+  // AI dialogue
+  if (data.totalQuestions < 5) {
+    recs.push({
+      icon: '💬', title: '开始AI对话学习',
+      desc: '多和AI交流，让它了解你的学习情况',
+      action: '去对话', href: 'ai-module.html',
+      gradient: 'linear-gradient(135deg,#eef6ff,#fff)',
+      border: 'rgba(51,133,255,.15)'
+    });
+  }
+  
+  recs.slice(0, 4).forEach(function(rec) {
+    var div = document.createElement('a');
+    div.href = rec.href;
+    div.style.textDecoration = 'none';
+    div.innerHTML = '<div class="rounded-2xl p-4 transition-all hover:shadow-lg hover:-translate-y-1" style="background:' + rec.gradient + ';border:1px solid ' + rec.border + '"><div class="flex items-start gap-3"><div class="text-2xl flex-shrink-0">' + rec.icon + '</div><div class="flex-1"><h4 class="text-sm font-bold text-ocean-800 mb-1">' + rec.title + '</h4><p class="text-xs text-ocean-500">' + rec.desc + '</p></div><span class="text-xs font-semibold text-ocean-500 whitespace-nowrap mt-0.5">' + rec.action + ' →</span></div></div>';
+    container.appendChild(div);
+  });
+}
+
+/* ═══ MODULE USAGE STATS ═══ */
+var _moduleTab = 'week';
+var _moduleChartInst = null;
+
+function switchModuleTab(tab) {
+  _moduleTab = tab;
+  document.getElementById('moduleTabWeek').classList.toggle('active', tab === 'week');
+  document.getElementById('moduleTabMonth').classList.toggle('active', tab === 'month');
+  renderModuleStats(tab);
+}
+
+function renderModuleStats(tab) {
+  var user = {};
+  try { user = JSON.parse(localStorage.getItem('zhibanUser') || '{}'); } catch(e) {}
+  var chatHistory = [];
+  try { chatHistory = JSON.parse(localStorage.getItem('zhibanChatHistory') || '[]'); } catch(e) {}
+  var errorBook = [];
+  try { errorBook = JSON.parse(localStorage.getItem('zhibanErrorBook') || '[]'); } catch(e) {}
+  var timerStats = {};
+  try { timerStats = JSON.parse(localStorage.getItem('zhibanTimerStats') || '{}'); } catch(e) {}
+  var goals = [];
+  try { goals = JSON.parse(localStorage.getItem('zhibanGoals') || '[]'); } catch(e) {}
+  var checkins = [];
+  try { checkins = JSON.parse(localStorage.getItem('zhibanCheckins') || '[]'); } catch(e) {}
+
+  // 年级标签
+  var grade = user.grade || '';
+  var gradeLabel = document.getElementById('moduleGradeLabel');
+  if (gradeLabel) gradeLabel.textContent = grade ? '年级：' + grade : '';
+
+  // 时间范围
+  var now = new Date();
+  var cutoff = new Date(now);
+  if (tab === 'week') {
+    cutoff.setDate(now.getDate() - 7);
+  } else {
+    cutoff.setMonth(now.getMonth() - 1);
+  }
+
+  function inRange(dateStr) {
+    if (!dateStr) return false;
+    var d = new Date(dateStr);
+    if (isNaN(d.getTime())) {
+      // try MM/DD/YYYY
+      var m = String(dateStr).match(/(\d+)\/(\d+)\/(\d+)/);
+      if (m) d = new Date(m[3], m[1]-1, m[2]);
+    }
+    return !isNaN(d.getTime()) && d >= cutoff;
+  }
+
+  // AI对话次数
+  var aiCount = chatHistory.filter(function(m) {
+    return m.role === 'user' && inRange(m.time);
+  }).length;
+
+  // 错题本新增
+  var errorCount = errorBook.filter(function(e) { return inRange(e.date); }).length;
+
+  // 计时器使用（session数）
+  var timerCount = 0;
+  for (var day in timerStats) {
+    var d = new Date(day);
+    if (!isNaN(d.getTime()) && d >= cutoff) {
+      timerCount += timerStats[day].sessions || 0;
+    }
+  }
+
+  // 打卡次数
+  var checkinCount = checkins.filter(function(c) { return inRange(c.date || c); }).length;
+
+  // 学习目标完成数
+  var goalDone = goals.filter(function(g) { return g.done && inRange(g.doneAt || g.date); }).length;
+
+  var modules = [
+    { name: 'AI伴学对话', icon: '🤖', count: aiCount, unit: '次', color: '#3385ff', max: tab==='week'?30:120 },
+    { name: '错题本记录', icon: '📝', count: errorCount, unit: '题', color: '#18b47d', max: tab==='week'?20:80 },
+    { name: '学习计时', icon: '⏱️', count: timerCount, unit: '次', color: '#f59e0b', max: tab==='week'?14:56 },
+    { name: '目标打卡', icon: '✅', count: checkinCount, unit: '次', color: '#8b5cf6', max: tab==='week'?7:30 },
+    { name: '目标完成', icon: '🏆', count: goalDone, unit: '个', color: '#ec4899', max: tab==='week'?5:20 },
+  ];
+
+  var hasAnyData = modules.some(function(m) { return m.count > 0; });
+  var container = document.getElementById('moduleStatsContent');
+
+  if (!hasAnyData) {
+    container.innerHTML = '<div class="text-center py-10"><div class="text-4xl mb-3">📊</div><p class="text-sm text-ocean-400">暂无使用数据，开始使用各功能模块后这里会显示统计</p></div>';
+    return;
+  }
+
+  // 顶部数字卡
+  var html = '<div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">';
+  modules.forEach(function(m) {
+    html += '<div class="rounded-2xl p-3 text-center" style="background:' + m.color + '12;border:1px solid ' + m.color + '30">' +
+      '<div class="text-xl mb-1">' + m.icon + '</div>' +
+      '<div class="font-bold text-lg" style="color:' + m.color + ';font-family:\'JetBrains Mono\',monospace">' + m.count + '</div>' +
+      '<div class="text-xs text-ocean-400 mt-0.5">' + m.name + '</div>' +
+      '</div>';
+  });
+  html += '</div>';
+
+  // 条形进度
+  html += '<div class="space-y-3">';
+  modules.forEach(function(m) {
+    var pct = m.max > 0 ? Math.min(100, Math.round(m.count / m.max * 100)) : 0;
+    html += '<div>' +
+      '<div class="flex justify-between text-xs mb-1"><span class="font-semibold text-ocean-700">' + m.icon + ' ' + m.name + '</span>' +
+      '<span style="color:' + m.color + ';font-family:\'JetBrains Mono\',monospace">' + m.count + ' ' + m.unit + '</span></div>' +
+      '<div class="ability-bar"><div class="ability-fill" style="width:' + pct + '%;background:' + m.color + '"></div></div>' +
+      '</div>';
+  });
+  html += '</div>';
+
+  // 年级对比提示
+  if (grade) {
+    var gradeNum = parseInt(grade);
+    var suggestion = '';
+    if (!isNaN(gradeNum)) {
+      if (gradeNum <= 3) suggestion = '小学低年级建议重点使用语文、数学题库和口语陪练功能。';
+      else if (gradeNum <= 6) suggestion = '小学高年级建议多使用AI错题本和知识农场巩固基础。';
+      else if (gradeNum <= 9) suggestion = '初中阶段建议结合知识图谱和AI伴学深入理解难点。';
+      else suggestion = '高中阶段建议利用学习计时器和目标打卡保持高效学习节奏。';
+    }
+    if (suggestion) {
+      html += '<div class="mt-4 p-3 rounded-xl bg-ocean-50 border border-ocean-100">' +
+        '<p class="text-xs text-ocean-500 font-semibold mb-1">📌 年级建议</p>' +
+        '<p class="text-sm text-ocean-700">' + suggestion + '</p></div>';
+    }
+  }
+
+  container.innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════════════ */
+
+/* ═══ UTILITY ═══ */
+function escHTML(str) { var d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+function formatDate(d) { return (d.getMonth()+1) + '月' + d.getDate() + '日'; }
+function formatDateKey(d) { return String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0'); }
+
+/* ═══ NAV USER SYNC ═══ */
+var _avatarColors=[{bg:'#dbeafe',face:'#3b82f6',hair:'#1e40af',acc:'#60a5fa'},{bg:'#d1fae5',face:'#10b981',hair:'#065f46',acc:'#6ee7b7'},{bg:'#fef3c7',face:'#f59e0b',hair:'#92400e',acc:'#fcd34d'},{bg:'#fce7f3',face:'#ec4899',hair:'#9d174d',acc:'#f9a8d4'},{bg:'#e0e7ff',face:'#6366f1',hair:'#3730a3',acc:'#a5b4fc'},{bg:'#ffedd5',face:'#f97316',hair:'#9a3412',acc:'#fdba74'}];
+function _genAvatar(idx,size){var c=_avatarColors[idx%6];var st=['<circle cx="32" cy="34" r="18" fill="'+c.face+'"/><ellipse cx="32" cy="20" rx="16" ry="12" fill="'+c.hair+'"/><circle cx="26" cy="33" r="2" fill="#fff"/><circle cx="38" cy="33" r="2" fill="#fff"/><path d="M28 40 Q32 44 36 40" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>','<rect x="16" y="24" width="32" height="28" rx="10" fill="'+c.face+'"/><rect x="14" y="18" width="36" height="14" rx="7" fill="'+c.hair+'"/><rect x="18" y="14" width="28" height="8" rx="4" fill="'+c.acc+'"/><circle cx="26" cy="36" r="2" fill="#fff"/><circle cx="38" cy="36" r="2" fill="#fff"/>','<ellipse cx="32" cy="36" rx="16" ry="18" fill="'+c.face+'"/><ellipse cx="32" cy="22" rx="14" ry="10" fill="'+c.hair+'"/><circle cx="26" cy="35" r="5" stroke="#fff" stroke-width="1.5" fill="none"/><circle cx="38" cy="35" r="5" stroke="#fff" stroke-width="1.5" fill="none"/><circle cx="26" cy="35" r="1.5" fill="#fff"/><circle cx="38" cy="35" r="1.5" fill="#fff"/>','<circle cx="32" cy="36" r="16" fill="'+c.face+'"/><polygon points="18,24 14,10 26,20" fill="'+c.hair+'"/><polygon points="46,24 50,10 38,20" fill="'+c.hair+'"/><circle cx="26" cy="34" r="2" fill="#fff"/><circle cx="38" cy="34" r="2" fill="#fff"/>','<circle cx="32" cy="36" r="17" fill="'+c.face+'"/><ellipse cx="32" cy="22" rx="15" ry="10" fill="'+c.hair+'"/><polygon points="26,33 24,31 22,33 24,35" fill="#fff"/><polygon points="38,33 36,31 40,31 42,33 40,35 36,35" fill="#fff"/>','<rect x="16" y="22" width="32" height="30" rx="6" fill="'+c.face+'"/><rect x="20" y="16" width="24" height="10" rx="3" fill="'+c.hair+'"/><rect x="22" y="32" width="8" height="5" rx="2" fill="#fff"/><rect x="34" y="32" width="8" height="5" rx="2" fill="#fff"/>'];return '<svg viewBox="0 0 64 64" width="'+size+'" height="'+size+'" xmlns="http://www.w3.org/2000/svg" class="avatar-svg"><rect width="64" height="64" rx="32" fill="'+c.bg+'"/>'+st[idx%6]+'</svg>';}
+var PREMIUM_AVATARS=[{id:'p0',svg:function(s){return '<svg viewBox="0 0 64 64" width="'+s+'" height="'+s+'" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#0f172a"/><circle cx="32" cy="32" r="28" fill="#1e293b"/><circle cx="32" cy="35" r="14" fill="#3b82f6"/><rect x="20" y="20" width="24" height="12" rx="6" fill="#60a5fa"/><circle cx="28" cy="26" r="2" fill="#22d3ee"/><circle cx="36" cy="26" r="2" fill="#22d3ee"/></svg>';}}];
+function _renderPremiumAvatar(id,size){var a=PREMIUM_AVATARS.find(function(x){return x.id===id});return a?a.svg(size):'';}
+function _syncNavUser(){try{var u=JSON.parse(localStorage.getItem('zhibanUser')||'{}');var av=document.getElementById('navAvatar'),nm=document.getElementById('navUserName');if(!av)return;if(u.isLoggedIn){if(u.premiumAvatar){av.innerHTML=_renderPremiumAvatar(u.premiumAvatar,36);}else{av.innerHTML=_genAvatar(u.avatarIndex||0,36);}nm.textContent=u.userName||'';}else{av.innerHTML='<svg class="w-5 h-5 text-ocean-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a8.25 8.25 0 0115 0"/></svg>';nm.textContent='登录';}}catch(e){}}
+_syncNavUser();
+
+/* ═══ INIT ═══ */
+// 云端同步后渲染
+if(window.sbInit){sbInit().then(function(){renderAll();}).catch(function(){renderAll();});}else{renderAll();}
+</script>
+<script src="ai-character.js"></script>
+</body>
+</html>

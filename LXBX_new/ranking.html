@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- 防缓存:确保用户总是拿到最新版本 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>考试模拟 — 灵犀伴学</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{ocean:{50:'#eef6ff',100:'#d9ecff',200:'#bcdeff',500:'#3385ff',600:'#1a65f5',700:'#1450e1',800:'#1741b6',900:'#19398f'},mint:{50:'#edfcf5',500:'#18b47d',600:'#0f9165'},warm:{400:'#ff9f38',500:'#ff8211',600:'#f06807'}}}}};</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="supabase-sync.js"></script>
+<style>
+:root{--nav-h:64px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans SC',system-ui,sans-serif;background:#0a0f1e;color:#e2e8f0;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse 80% 50% at 20% 10%,rgba(51,133,255,.08),transparent 60%),radial-gradient(ellipse 60% 40% at 80% 80%,rgba(24,180,125,.06),transparent 60%)}
+
+#navbar{background:rgba(10,15,30,.85);backdrop-filter:blur(16px);border-bottom:1px solid rgba(51,133,255,.12)}
+
+.card{background:rgba(255,255,255,.04);border:1px solid rgba(51,133,255,.12);border-radius:18px;backdrop-filter:blur(8px)}
+.card-glow{box-shadow:0 0 30px rgba(51,133,255,.08)}
+
+/* Rank badges */
+.rank-1{background:linear-gradient(135deg,#ffd700,#ff9f38);color:#1a0a00}
+.rank-2{background:linear-gradient(135deg,#c0c0c0,#a0a0a0);color:#1a1a1a}
+.rank-3{background:linear-gradient(135deg,#cd7f32,#a0522d);color:#fff}
+.rank-n{background:rgba(255,255,255,.08);color:#94a3b8}
+
+/* Table */
+.lb-table{width:100%;border-collapse:collapse}
+.lb-table th{background:rgba(51,133,255,.08);padding:10px 14px;font-size:12px;font-weight:600;color:#64748b;text-align:left;border-bottom:1px solid rgba(51,133,255,.1)}
+.lb-table td{padding:12px 14px;font-size:13px;border-bottom:1px solid rgba(255,255,255,.04)}
+.lb-table tr:hover td{background:rgba(51,133,255,.05)}
+.lb-table tr.me td{background:rgba(51,133,255,.1);border-left:3px solid #3385ff}
+
+/* Tab btns */
+.tab-btn{padding:7px 16px;border-radius:10px;font-size:12px;font-weight:600;border:1px solid rgba(51,133,255,.2);cursor:pointer;background:transparent;color:#64748b;transition:all .2s;font-family:inherit}
+.tab-btn.active{background:linear-gradient(135deg,#3385ff,#1450e1);color:#fff;border-color:transparent;box-shadow:0 4px 12px rgba(51,133,255,.3)}
+
+/* Exam modal */
+.exam-modal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center}
+.exam-modal.show{display:flex}
+.exam-box{background:#0f1729;border:1px solid rgba(51,133,255,.2);border-radius:20px;width:min(680px,95vw);max-height:90vh;overflow-y:auto;padding:28px}
+
+/* Question option */
+.q-opt{width:100%;padding:12px 16px;border:1.5px solid rgba(51,133,255,.2);border-radius:12px;background:rgba(255,255,255,.03);color:#e2e8f0;text-align:left;font-size:14px;cursor:pointer;transition:all .2s;margin-bottom:8px;font-family:inherit}
+.q-opt:hover{border-color:#3385ff;background:rgba(51,133,255,.08)}
+.q-opt.correct{border-color:#18b47d;background:rgba(24,180,125,.12);color:#6ee7b7}
+.q-opt.wrong{border-color:#ef4444;background:rgba(239,68,68,.1);color:#fca5a5}
+
+/* Progress bar */
+.prog-bar{height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,#3385ff,#18b47d);border-radius:3px;transition:width .4s}
+
+/* Score ring */
+.score-ring{width:100px;height:100px;position:relative}
+.score-ring svg{transform:rotate(-90deg)}
+.score-ring .val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#3385ff;font-family:'JetBrains Mono',monospace}
+
+/* Logo watermark */
+.logo-mark{opacity:.06;position:fixed;bottom:20px;right:20px;pointer-events:none}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeUp .4s ease both}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(51,133,255,.3);border-radius:2px}
+
+/* Answer card */
+.ac-num{width:36px;height:36px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.ac-num.correct{background:rgba(24,180,125,.25);color:#6ee7b7;border:1.5px solid #18b47d}
+.ac-num.wrong{background:rgba(239,68,68,.2);color:#fca5a5;border:1.5px solid #ef4444}
+.ac-num.unanswered{background:rgba(100,116,139,.15);color:#64748b;border:1.5px solid rgba(100,116,139,.3)}
+.ac-num.selected{box-shadow:0 0 0 3px rgba(51,133,255,.6);transform:scale(1.1)}
+.ac-analysis{background:rgba(51,133,255,.06);border:1px solid rgba(51,133,255,.15);border-radius:14px;padding:16px;margin-top:14px;min-height:80px}
+.period-btn{padding:4px 10px;border-radius:7px;font-size:11px;font-weight:600;border:1px solid rgba(51,133,255,.2);cursor:pointer;background:transparent;color:#64748b;transition:all .2s;font-family:inherit}
+.period-btn.active{background:linear-gradient(135deg,#3385ff,#1450e1);color:#fff;border-color:transparent}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav id="navbar" class="fixed top-0 left-0 w-full z-50" style="height:var(--nav-h)">
+  <div class="max-w-7xl mx-auto flex items-center justify-between px-5 h-full">
+    <a href="home.html" class="flex items-center gap-2 font-bold text-lg">
+      <svg class="w-8 h-8" viewBox="0 0 40 40" fill="none"><defs><linearGradient id="lxG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3385ff"/><stop offset="100%" stop-color="#18b47d"/></linearGradient></defs><circle cx="20" cy="20" r="19" fill="url(#lxG)" opacity=".12"/><circle cx="20" cy="20" r="19" stroke="url(#lxG)" stroke-width="1.5"/><path d="M12 26c0-4 2-7 5-9l1-3c0-1 1-1.5 2-1.5s1.5.8 1.5 1.5l-.5 2c2-1 4-1 5.5 0l1.5-1c.5-.5 1.2-.3 1.5.2s.1 1.2-.4 1.5L27 18c1 1.5 1.5 3.5 1 5.5-.5 2-2 3-4 3.5H16c-2-.5-3.5-2-4-4z" fill="url(#lxG)" opacity=".85"/><circle cx="23" cy="19" r="1.3" fill="white"/></svg>
+      <span style="background:linear-gradient(135deg,#3385ff,#18b47d);-webkit-background-clip:text;-webkit-text-fill-color:transparent">灵犀伴学</span>
+    </a>
+    <ul class="hidden md:flex items-center gap-1 text-sm font-medium">
+      <li><a href="home.html" class="px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition">首页</a></li>
+      <li><a href="ai-module.html" class="px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition">AI伴学</a></li>
+      <li><a href="error-book.html" class="px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition">错题本</a></li>
+      <li><a href="profile.html" class="px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition">学习画像</a></li>
+    </ul>
+    <a href="user.html"><div id="navAvatar" class="w-9 h-9 rounded-full bg-white/5 border border-white/10"></div></a>
+  </div>
+</nav>
+
+<main class="pt-20 pb-16 px-4 max-w-6xl mx-auto">
+
+  <!-- Header -->
+  <div class="text-center mb-8 fade-in">
+    <h1 class="text-3xl font-bold mb-2" style="background:linear-gradient(135deg,#3385ff,#18b47d);-webkit-background-clip:text;-webkit-text-fill-color:transparent">考试模拟</h1>
+    <p class="text-slate-400 text-sm">参加模拟考试模拟，与全国同学比拼，赢取积分兑换专属头像</p>
+  </div>
+
+  <!-- Exam launcher -->
+  <div class="card card-glow p-6 mb-6 fade-in">
+    <div class="flex flex-wrap items-center gap-4 mb-4">
+      <div>
+        <p class="text-sm font-semibold text-slate-300 mb-2">选择年级</p>
+        <div class="flex flex-wrap gap-2" id="gradeSelector">
+          <!-- rendered by JS -->
+        </div>
+      </div>
+      <div>
+        <p class="text-sm font-semibold text-slate-300 mb-2">选择学科</p>
+        <div class="flex gap-2">
+          <button class="tab-btn active" id="subj_语文" onclick="selectSubj('语文')">语文</button>
+          <button class="tab-btn" id="subj_数学" onclick="selectSubj('数学')">数学</button>
+          <button class="tab-btn" id="subj_英语" onclick="selectSubj('英语')">英语</button>
+        </div>
+      </div>
+      <div>
+        <p class="text-sm font-semibold text-slate-300 mb-2">选择学期</p>
+        <div class="flex gap-2">
+          <button class="tab-btn active" id="sem_上" onclick="selectSem('上')">上学期</button>
+          <button class="tab-btn" id="sem_下" onclick="selectSem('下')">下学期</button>
+        </div>
+      </div>
+    </div>
+    <div class="flex items-center justify-between flex-wrap gap-3">
+      <div class="text-sm text-slate-400">
+        当前：<span id="examLabel" class="text-ocean-400 font-semibold"></span>
+        <span class="ml-3">题目数：<span class="text-white font-semibold">20题</span></span>
+        <span class="ml-3">完成可获：<span class="text-yellow-400 font-semibold">+30~100积分</span></span>
+      </div>
+      <button onclick="startExam()" class="px-6 py-2.5 rounded-xl font-bold text-white" style="background:linear-gradient(135deg,#3385ff,#1450e1);box-shadow:0 4px 16px rgba(51,133,255,.3)">🚀 开始考试</button>
+    </div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 fade-in">
+    <div class="card p-4 text-center">
+      <div class="text-2xl font-bold text-ocean-400" id="myBestScore">—</div>
+      <div class="text-xs text-slate-500 mt-1">我的最高分</div>
+    </div>
+    <div class="card p-4 text-center">
+      <div class="text-2xl font-bold text-yellow-400" id="myRank">—</div>
+      <div class="text-xs text-slate-500 mt-1">当前排名</div>
+    </div>
+    <div class="card p-4 text-center">
+      <div class="text-2xl font-bold text-mint-500" id="myExamCount">0</div>
+      <div class="text-xs text-slate-500 mt-1">参考次数</div>
+    </div>
+    <div class="card p-4 text-center">
+      <div class="text-2xl font-bold text-warm-400" id="myTotalPoints">0</div>
+      <div class="text-xs text-slate-500 mt-1">考试获得积分</div>
+    </div>
+  </div>
+
+  <!-- Score trend chart + history -->
+  <div class="grid md:grid-cols-2 gap-4 mb-6 fade-in">
+    <!-- Trend chart -->
+    <div class="card p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-bold text-sm flex items-center gap-2">
+          <svg class="w-4 h-4 text-ocean-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"/></svg>
+          成绩走势
+        </h3>
+        <div class="flex gap-1">
+          <button class="tab-btn text-xs py-1 px-2 active" id="trend_语文" onclick="switchTrend('语文')">语文</button>
+          <button class="tab-btn text-xs py-1 px-2" id="trend_数学" onclick="switchTrend('数学')">数学</button>
+          <button class="tab-btn text-xs py-1 px-2" id="trend_英语" onclick="switchTrend('英语')">英语</button>
+        </div>
+      </div>
+      <div style="position:relative;height:180px">
+        <canvas id="trendChart"></canvas>
+      </div>
+      <p class="text-xs text-slate-500 mt-2 text-center" id="trendHint">参加考试后显示成绩走势</p>
+    </div>
+
+    <!-- Exam history -->
+    <div class="card p-5">
+      <h3 class="font-bold text-sm mb-3 flex items-center gap-2">
+        <svg class="w-4 h-4 text-ocean-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"/></svg>
+        我的考试记录
+      </h3>
+      <div id="historyList" style="max-height:200px;overflow-y:auto" class="space-y-2">
+        <p class="text-xs text-slate-500 text-center py-6">暂无考试记录</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW: Subject distribution & Score band distribution -->
+  <div class="grid md:grid-cols-2 gap-4 mb-6 fade-in">
+    <!-- Doughnut: 今日各科目考试次数 -->
+    <div class="card p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-bold text-sm flex items-center gap-2">
+          <svg class="w-4 h-4 text-ocean-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z"/><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z"/></svg>
+          各科目考试次数
+        </h3>
+        <div class="flex items-center gap-2">
+          <div class="flex gap-1">
+            <button class="period-btn active" id="period_day" onclick="switchPeriod('day')">每日</button>
+            <button class="period-btn" id="period_week" onclick="switchPeriod('week')">每周</button>
+            <button class="period-btn" id="period_month" onclick="switchPeriod('month')">每月</button>
+          </div>
+          <span class="text-xs text-slate-500" id="todayTotal">全站 · 0 场</span>
+        </div>
+      </div>
+      <div style="position:relative;height:200px">
+        <canvas id="subjDistChart"></canvas>
+      </div>
+      <p class="text-xs text-slate-500 mt-2 text-center" id="subjDistHint">全站用户今日参加各科目考试的次数统计</p>
+    </div>
+
+    <!-- Horizontal bar: 成绩段分布 -->
+    <div class="card p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-bold text-sm flex items-center gap-2">
+          <svg class="w-4 h-4 text-mint-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+          各年级成绩段分布
+        </h3>
+        <div class="flex gap-1">
+          <select id="distGradeSel" class="text-xs bg-white/5 border border-white/10 rounded px-2 py-1 text-slate-300" style="font-family:inherit" onchange="renderDistChart()">
+            <option value="all">全部年级</option>
+          </select>
+          <select id="distSubjSel" class="text-xs bg-white/5 border border-white/10 rounded px-2 py-1 text-slate-300" style="font-family:inherit" onchange="renderDistChart()">
+            <option value="all">全部学科</option>
+            <option value="语文">语文</option>
+            <option value="数学">数学</option>
+            <option value="英语">英语</option>
+          </select>
+        </div>
+      </div>
+      <div style="position:relative;height:200px">
+        <canvas id="distChart"></canvas>
+      </div>
+      <p class="text-xs text-slate-500 mt-2 text-center">全站考试成绩分段统计 · 可按年级学科筛选</p>
+    </div>
+  </div>
+
+  <!-- Leaderboard -->
+  <div class="card p-0 overflow-hidden fade-in">
+    <div class="px-5 py-4 border-b border-white/5">
+      <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+        <h2 class="font-bold text-base flex items-center gap-2">
+          <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 1l2.39 4.845 5.345.776-3.867 3.77.913 5.32L10 13.115l-4.78 2.596.913-5.32L2.265 6.62l5.345-.776z"/></svg>
+          实时排行榜
+          <span class="text-xs text-slate-500 font-normal ml-1" id="lbCountLabel">共 0 条</span>
+        </h2>
+        <div class="flex gap-2">
+          <button class="tab-btn active text-xs" id="lb_all" onclick="switchLB('all')">全部学科</button>
+          <button class="tab-btn text-xs" id="lb_语文" onclick="switchLB('语文')">语文</button>
+          <button class="tab-btn text-xs" id="lb_数学" onclick="switchLB('数学')">数学</button>
+          <button class="tab-btn text-xs" id="lb_英语" onclick="switchLB('英语')">英语</button>
+        </div>
+      </div>
+      <!-- NEW: grade + semester filters -->
+      <div class="flex items-center gap-3 flex-wrap text-xs">
+        <span class="text-slate-500">筛选：</span>
+        <select id="lbGradeSel" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-slate-300" style="font-family:inherit" onchange="applyLBFilters()">
+          <option value="all">全部年级</option>
+          <option value="1">1年级</option><option value="2">2年级</option><option value="3">3年级</option>
+          <option value="4">4年级</option><option value="5">5年级</option><option value="6">6年级</option>
+          <option value="7">7年级</option><option value="8">8年级</option><option value="9">9年级</option>
+        </select>
+        <select id="lbSemSel" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-slate-300" style="font-family:inherit" onchange="applyLBFilters()">
+          <option value="all">全部学期</option>
+          <option value="上">上学期</option>
+          <option value="下">下学期</option>
+        </select>
+        <button class="text-ocean-400 hover:text-ocean-300 underline" onclick="resetLBFilters()">重置筛选</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="lb-table">
+        <thead>
+          <tr>
+            <th style="width:60px">排名</th>
+            <th>用户名</th>
+            <th>年级</th>
+            <th>学科</th>
+            <th>学期</th>
+            <th>分数</th>
+            <th>积分</th>
+            <th>时间</th>
+          </tr>
+        </thead>
+        <tbody id="lbBody">
+          <tr><td colspan="8" class="text-center text-slate-500 py-10">加载中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<!-- EXAM MODAL -->
+<div class="exam-modal" id="examModal">
+  <div class="exam-box">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <h3 class="font-bold text-lg" id="examTitle"></h3>
+        <p class="text-xs text-slate-400 mt-0.5" id="examSubtitle"></p>
+      </div>
+      <button onclick="confirmClose()" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-red-500/20 flex items-center justify-center text-slate-400 hover:text-red-400 transition text-lg">×</button>
+    </div>
+    <!-- Progress -->
+    <div class="flex items-center gap-3 mb-5">
+      <div class="prog-bar flex-1"><div class="prog-fill" id="examProg" style="width:5%"></div></div>
+      <span class="text-xs text-slate-400" id="examProgLabel">1 / 20</span>
+    </div>
+    <!-- Timer -->
+    <div class="flex items-center justify-between mb-4">
+      <span class="text-xs text-slate-500">剩余时间</span>
+      <span class="font-mono font-bold text-ocean-400" id="examTimer">25:00</span>
+    </div>
+    <!-- Question -->
+    <div class="mb-5">
+      <p class="text-xs text-slate-500 mb-2" id="qNum">第 1 题</p>
+      <p class="text-base font-medium text-white leading-relaxed mb-4" id="qText"></p>
+      <div id="qOpts"></div>
+    </div>
+    <!-- Result hint -->
+    <div id="qResult" class="mb-4 hidden p-3 rounded-xl text-sm"></div>
+    <!-- Nav -->
+    <div class="flex justify-between">
+      <button id="btnPrev" onclick="prevQ()" class="px-4 py-2 rounded-xl border border-white/10 text-slate-400 hover:text-white hover:border-white/30 transition text-sm" style="display:none">← 上一题</button>
+      <div></div>
+      <button id="btnNext" onclick="nextQ()" class="px-5 py-2 rounded-xl text-white text-sm font-semibold" style="background:linear-gradient(135deg,#3385ff,#1450e1)">下一题 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT MODAL -->
+<div class="exam-modal" id="resultModal">
+  <div class="exam-box text-center">
+    <div class="mb-4">
+      <div class="inline-flex w-20 h-20 rounded-full items-center justify-center text-4xl mb-2" style="background:rgba(51,133,255,.1)">🎯</div>
+      <h3 class="text-xl font-bold text-white mb-1">考试完成！</h3>
+      <p class="text-slate-400 text-sm" id="resultSubtitle"></p>
+    </div>
+    <div class="grid grid-cols-3 gap-4 mb-6">
+      <div class="card p-3"><div class="text-2xl font-bold text-ocean-400" id="resScore">—</div><div class="text-xs text-slate-500 mt-1">得分</div></div>
+      <div class="card p-3"><div class="text-2xl font-bold text-mint-500" id="resCorrect">—</div><div class="text-xs text-slate-500 mt-1">答对</div></div>
+      <div class="card p-3"><div class="text-2xl font-bold text-yellow-400" id="resPoints">—</div><div class="text-xs text-slate-500 mt-1">+积分</div></div>
+    </div>
+    <div id="resMistakes" class="mb-5 text-left"></div>
+    <div class="flex gap-3">
+      <button onclick="closeResult()" class="flex-1 py-2.5 rounded-xl border border-white/10 text-slate-300 hover:bg-white/5 transition text-sm">返回排行榜</button>
+      <button onclick="showAnswerCard()" class="flex-1 py-2.5 rounded-xl border border-ocean-400/40 text-ocean-400 hover:bg-ocean-500/10 transition text-sm font-semibold">📋 查看答题卡</button>
+      <button onclick="startExam()" class="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm" style="background:linear-gradient(135deg,#3385ff,#1450e1)">再考一次</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAST EXAM REVIEW MODAL -->
+<div class="exam-modal" id="reviewModal">
+  <div class="exam-box">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h3 class="font-bold text-lg" id="reviewTitle">试卷回顾</h3>
+        <p class="text-xs text-slate-400 mt-0.5" id="reviewSubtitleText"></p>
+      </div>
+      <button onclick="document.getElementById('reviewModal').classList.remove('show')" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-red-500/20 flex items-center justify-center text-slate-400 hover:text-red-400 transition text-lg">×</button>
+    </div>
+    <div class="flex items-center gap-4 mb-4 p-3 rounded-xl" style="background:rgba(51,133,255,.08)">
+      <div class="text-center"><div class="text-xl font-bold text-ocean-400 font-mono" id="rvScore">—</div><div class="text-xs text-slate-500">得分</div></div>
+      <div class="text-center"><div class="text-xl font-bold text-mint-500 font-mono" id="rvCorrect">—</div><div class="text-xs text-slate-500">正确</div></div>
+      <div class="text-center"><div class="text-xl font-bold text-yellow-400 font-mono" id="rvPoints">—</div><div class="text-xs text-slate-500">积分</div></div>
+      <div class="text-center flex-1"><div class="text-xs text-slate-400" id="rvTime">—</div><div class="text-xs text-slate-500">考试时间</div></div>
+    </div>
+    <div id="reviewQList" style="max-height:55vh;overflow-y:auto" class="space-y-3"></div>
+  </div>
+</div>
+
+<!-- ANSWER CARD MODAL -->
+<div class="exam-modal" id="answerCardModal">
+  <div class="exam-box" style="max-width:560px">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h3 class="font-bold text-lg">📋 答题卡</h3>
+        <p class="text-xs text-slate-400 mt-0.5" id="acSubtitle"></p>
+      </div>
+      <button onclick="document.getElementById('answerCardModal').classList.remove('show')" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-red-500/20 flex items-center justify-center text-slate-400 hover:text-red-400 transition text-lg">×</button>
+    </div>
+    <!-- legend -->
+    <div class="flex items-center gap-4 mb-4 text-xs text-slate-400">
+      <span class="flex items-center gap-1.5"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:rgba(24,180,125,.25);border:1.5px solid #18b47d"></span>答对</span>
+      <span class="flex items-center gap-1.5"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:rgba(239,68,68,.2);border:1.5px solid #ef4444"></span>答错</span>
+      <span class="flex items-center gap-1.5"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:rgba(100,116,139,.15);border:1.5px solid rgba(100,116,139,.3)"></span>未答</span>
+    </div>
+    <!-- number grid -->
+    <div id="acGrid" class="flex flex-wrap gap-2 mb-1"></div>
+    <!-- analysis panel -->
+    <div class="ac-analysis" id="acAnalysis">
+      <p class="text-xs text-slate-500 text-center pt-2">点击题号查看解析</p>
+    </div>
+  </div>
+</div>
+
+<!-- Logo watermark -->
+<div class="logo-mark">
+  <svg viewBox="0 0 40 40" width="80" height="80" fill="none"><defs><linearGradient id="lxW" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3385ff"/><stop offset="100%" stop-color="#18b47d"/></linearGradient></defs><circle cx="20" cy="20" r="19" stroke="url(#lxW)" stroke-width="1.5"/><path d="M12 26c0-4 2-7 5-9l1-3c0-1 1-1.5 2-1.5s1.5.8 1.5 1.5l-.5 2c2-1 4-1 5.5 0l1.5-1c.5-.5 1.2-.3 1.5.2s.1 1.2-.4 1.5L27 18c1 1.5 1.5 3.5 1 5.5-.5 2-2 3-4 3.5H16c-2-.5-3.5-2-4-4z" fill="url(#lxW)" opacity=".85"/></svg>
+</div>
+
+<script>
+/* ── QUESTION BANK ── */
+const QB = {
+  '语文': {
+    '1上':[ {q:'下列词语中，读音完全正确的一项是？',opts:['A.朋友(péngyǒu) 学校(xuéxiào)','B.老师(lǎoshī) 同学(tóngxué)','C.数学(shùxué) 语文(yǔwén)','D.以上都正确'],ans:3},{q:'"春眠不觉晓，处处闻啼鸟"出自哪位诗人？',opts:['李白','杜甫','孟浩然','王维'],ans:2},{q:'下列哪个字的笔画最多？',opts:['口','目','田','山'],ans:1},{q:'"一去二三里，烟村四五家"中数字最大的是？',opts:['三','四','五','二'],ans:2},{q:'小红有5个苹果，送给小明2个，还剩几个？',opts:['2个','3个','4个','5个'],ans:1},{q:'下面哪个词是表示颜色的？',opts:['高兴','红色','跑步','吃饭'],ans:1},{q:'"鹅鹅鹅，曲项向天歌"描写的是什么动物？',opts:['鸭子','天鹅','大雁','鹅'],ans:3},{q:'下列句子中标点符号使用正确的是？',opts:['我爱北京。','我爱北京？','我爱北京！','我，爱北京'],ans:2},{q:'"床前明月光"的下一句是？',opts:['低头思故乡','疑是地上霜','举头望明月','春风送暖入屠苏'],ans:1},{q:'下列哪个是反义词？',opts:['大——小','天——地','黑——白','A和C'],ans:3},{q:'"日"字加一笔可以变成什么字？',opts:['田','目','旦','以上都可以'],ans:3},{q:'下列哪个词语形容天气晴朗？',opts:['阴天','下雨','晴天','刮风'],ans:2},{q:'树上有10只鸟，飞走了3只，还剩几只？',opts:['6只','7只','8只','5只'],ans:1},{q:'"荷叶圆圆的，绿绿的"用了什么修辞？',opts:['比喻','拟人','排比','夸张'],ans:2},{q:'下列哪个字读"shū"？',opts:['鱼','书','木','石'],ans:1},{q:'小明家有猫3只，狗2只，共有几只动物？',opts:['4只','5只','6只','3只'],ans:1},{q:'下面哪个词语是描写人物心情的？',opts:['高兴','蓝天','大树','小河'],ans:0},{q:'"春雨贵如油"说明春雨的什么特点？',opts:['珍贵','颜色','味道','声音'],ans:0},{q:'下列哪个字是形声字？',opts:['山','水','清','木'],ans:2},{q:'"乌鸦喝水"的故事说明了什么？',opts:['乌鸦聪明机智','乌鸦爱喝水','石头有用','水会流动'],ans:0}],
+    '1下':[ {q:'"两个黄鹂鸣翠柳"中"鸣"的意思是？',opts:['飞翔','鸣叫','跳跃','休息'],ans:1},{q:'下列哪个词语含有"火"字旁？',opts:['水','灯','木','土'],ans:1},{q:'"不知细叶谁裁出"中"裁"的意思是？',opts:['剪裁','栽种','才能','材料'],ans:0},{q:'汉字"木"加上不同偏旁可以组成？',opts:['枝、树、桌','花、草、叶','海、河、湖','山、石、土'],ans:0},{q:'下列哪组词语是近义词？',opts:['高兴—难过','美丽—漂亮','大—小','快—慢'],ans:1},{q:'"望庐山瀑布"的作者是？',opts:['杜甫','白居易','李白','苏轼'],ans:2},{q:'"春风又绿江南岸"中"绿"字的用法是？',opts:['名词','动词','形容词','副词'],ans:1},{q:'日记的开头应该写什么？',opts:['标题','日期和天气','正文','结尾'],ans:1},{q:'下列哪个成语形容做事认真？',opts:['一心一意','三心二意','心不在焉','半途而废'],ans:0},{q:'"小荷才露尖尖角"描写的是哪种植物？',opts:['竹子','荷花','柳树','松树'],ans:1},{q:'下列哪个句子是疑问句？',opts:['今天天气真好！','你去哪里？','请坐下。','他跑得很快。'],ans:1},{q:'故事的三要素是？',opts:['时间地点人物','开头中间结尾','起因经过结果','人物情节主题'],ans:2},{q:'"绿树村边合，青山郭外斜"描写的是什么？',opts:['城市风光','农村风景','海边景色','冬天雪景'],ans:1},{q:'下列哪个词是象声词？',opts:['美丽','哗哗','跑步','高兴'],ans:1},{q:'把句子"小明打了篮球"改成被字句？',opts:['篮球被小明打了','小明被篮球打了','篮球打了小明','小明和篮球'],ans:0},{q:'"问君何能尔？心远地自偏。"的作者是？',opts:['王维','陶渊明','李白','杜甫'],ans:1},{q:'汉字由哪几种基本笔画组成？',opts:['横竖撇捺折','点横竖撇捺折','点横竖','横撇捺折'],ans:1},{q:'下列句子中用了比喻手法的是？',opts:['弯弯的月亮像小船','小鸟在树上唱歌','河水流得很快','花儿开了'],ans:0},{q:'"明月几时有，把酒问青天"的作者是？',opts:['李白','杜甫','苏轼','白居易'],ans:2},{q:'下列哪个字是多音字？',opts:['长','山','水','土'],ans:0}],
+    '2上':[ {q:'下列词语中，书写有误的一项是？',opts:['温暖','寒冷','炎热','春天（春填）'],ans:3},{q:'"竹外桃花三两枝，春江水暖鸭先知"的作者是？',opts:['苏轼','李白','杜甫','王安石'],ans:0},{q:'下列句子哪个是比喻句？',opts:['小明跑得像风一样快','今天天气很好','我喜欢读书','小鸟在飞翔'],ans:0},{q:'把字句"我把作业做完了"改成被字句是？',opts:['作业被我做完了','我做完了作业','作业做完了','被我作业做完'],ans:0},{q:'"稻花香里说丰年，听取蛙声一片"描写的是哪个季节？',opts:['春','夏','秋','冬'],ans:2},{q:'下列哪组是同音字？',opts:['在—再','大—小','多—少','黑—白'],ans:0},{q:'一篇记叙文的六要素不包括？',opts:['时间','地点','人物','颜色'],ans:3},{q:'"白日依山尽"的下一句是？',opts:['黄河入海流','举头望明月','春风送暖入屠苏','不知细叶谁裁出'],ans:0},{q:'下列哪个词是贬义词？',opts:['勤劳','懒惰','勇敢','善良'],ans:1},{q:'给句子"的地得"正确使用：高兴____蹦了起来',opts:['的','地','得','以上都可以'],ans:1},{q:'下列成语故事出自《战国》的是？',opts:['守株待兔','刻舟求剑','负荆请罪','掩耳盗铃'],ans:3},{q:'"半亩方塘一鉴开"中"鉴"的意思是？',opts:['镜子','开放','一半','方形'],ans:0},{q:'下列哪个词不是形容词？',opts:['美丽','快乐','跑步','善良'],ans:2},{q:'《小王子》的作者是哪国人？',opts:['英国','法国','德国','美国'],ans:1},{q:'"不积跬步，无以至千里"的意思是？',opts:['要积累才能成功','千里路很长','步子要大','不要走路'],ans:0},{q:'下列哪个字的偏旁是"氵"（三点水）？',opts:['清','清','林','明'],ans:0},{q:'省略号的作用不包括？',opts:['表示省略内容','表示声音延续','表示说话断断续续','表示强调'],ans:3},{q:'"野火烧不尽，春风吹又生"写的是什么？',opts:['小草','树木','庄稼','花朵'],ans:0},{q:'下列哪个字形声字的声旁是"青"？',opts:['清','情','晴','以上都是'],ans:3},{q:'一封信的基本格式不包括？',opts:['称呼','问候','正文','序号'],ans:3}],
+    '2下':[{q:'"春色满园关不住，一枝红杏出墙来"的作者是？',opts:['叶绍翁','苏轼','李白','杜甫'],ans:0},{q:'下列哪个词语含有"贬义"意思？',opts:['聪明','狡猾','勤劳','善良'],ans:1},{q:'把"我爱读书"改为双重否定句是？',opts:['我不爱不读书','我不得不爱读书','我非常爱读书','我爱书也爱读'],ans:1},{q:'下列哪个是ABB式词语？',opts:['高高兴兴','蓝蓝的','来来往往','绿油油'],ans:3},{q:'"举头望明月，低头思故乡"中"故乡"是指？',opts:['异乡','家乡','城市','山村'],ans:1},{q:'下列哪组词语是反义词？',opts:['美丽—漂亮','黑暗—光明','快乐—高兴','勤劳—努力'],ans:1},{q:'日记的正文主要写什么？',opts:['当天的天气','当天的所见所闻所感','明天的计划','昨天的事情'],ans:1},{q:'"春蚕到死丝方尽"比喻什么精神？',opts:['无私奉献','春蚕吐丝','坚持不懈','勤劳努力'],ans:0},{q:'按照音序排列：波、常、安、丁，正确顺序是？',opts:['安波常丁','波安常丁','丁常安波','安常丁波'],ans:0},{q:'下列哪种说明方法是举例子？',opts:['像苹果一样圆','例如，地球是球体','大约有10米长','比大象还重'],ans:1},{q:'写一篇习作最重要的是？',opts:['字数多','中心明确','段落多','词语华丽'],ans:1},{q:'"欲穷千里目，更上一层楼"说明什么道理？',opts:['要登高望远','视野要开阔','要不断进步','楼要造高'],ans:2},{q:'下列哪个句子用了拟人手法？',opts:['月亮像玉盘','风儿轻轻地唱歌','山很高','水很清'],ans:1},{q:'下列哪个词语是描写冬天的？',opts:['冰天雪地','鸟语花香','春暖花开','烈日当空'],ans:0},{q:'"花开堪折直须折，莫待无花空折枝"告诉我们什么？',opts:['要珍惜时机','要爱护花朵','花开了就折','等花开再折'],ans:0},{q:'阅读文章时，下列哪个方法最有效？',opts:['只看开头结尾','边读边思考','快速翻阅','只读有插图的页'],ans:1},{q:'"横眉冷对千夫指，俯首甘为孺子牛"的作者是？',opts:['毛泽东','鲁迅','郭沫若','老舍'],ans:1},{q:'下列哪个字的笔顺是先横后竖？',opts:['十','人','入','八'],ans:0},{q:'"锄禾日当午，汗滴禾下土"表达了什么情感？',opts:['对农民辛苦劳动的同情','对丰收的喜悦','对夏天的描写','对农业的赞美'],ans:0},{q:'下列哪个标点符号表示并列关系？',opts:['、','，','。','！'],ans:0}],
+  },
+  '数学': {
+    '1上':[ {q:'5+3=?',opts:['7','8','9','6'],ans:1},{q:'10-4=?',opts:['5','6','7','8'],ans:1},{q:'下列哪个数最大？',opts:['5','3','9','7'],ans:2},{q:'3个苹果和5个苹果一共几个？',opts:['7','8','9','6'],ans:1},{q:'□+4=9，□=?',opts:['4','5','6','3'],ans:1},{q:'比6大1的数是？',opts:['5','6','7','8'],ans:2},{q:'10以内最小的自然数是？',opts:['0','1','2','3'],ans:0},{q:'8-□=3，□=?',opts:['4','5','6','3'],ans:1},{q:'5的前面一个数是？',opts:['4','5','6','3'],ans:0},{q:'2+□=7，□=?',opts:['4','5','6','3'],ans:1},{q:'数一数：●●●●● 有几个？',opts:['4','5','6','3'],ans:1},{q:'哪个算式得数是6？',opts:['3+4','2+4','5+2','1+4'],ans:1},{q:'从1数到10，共有几个数？',opts:['9','10','11','8'],ans:1},{q:'10-7=?',opts:['2','3','4','5'],ans:1},{q:'4比3大几？',opts:['0','1','2','3'],ans:1},{q:'□-3=4，□=?',opts:['6','7','8','5'],ans:1},{q:'3+4+2=?',opts:['8','9','10','7'],ans:1},{q:'比10小1的数是？',opts:['8','9','10','11'],ans:1},{q:'小明有3本书，又买了5本，共有几本？',opts:['7','8','9','6'],ans:1},{q:'9-□=5，□=?',opts:['3','4','5','6'],ans:1}],
+    '1下':[{q:'20以内：13+5=?',opts:['17','18','19','16'],ans:1},{q:'20以内：18-6=?',opts:['11','12','13','10'],ans:1},{q:'下列哪个加法算式得数是20？',opts:['9+9','10+10','8+11','7+12'],ans:1},{q:'15+□=20，□=?',opts:['4','5','6','3'],ans:1},{q:'19-□=13，□=?',opts:['5','6','7','4'],ans:1},{q:'把12、8、15、5按从小到大排列，第二个是？',opts:['8','12','15','5'],ans:0},{q:'一共有20个气球，飞走了8个，还剩多少？',opts:['11','12','13','14'],ans:1},{q:'□+9=17，□=?',opts:['7','8','9','6'],ans:1},{q:'比18小3的数是？',opts:['14','15','16','21'],ans:1},{q:'20-15+6=?',opts:['9','10','11','8'],ans:2},{q:'哪个得数等于11？',opts:['5+5','6+5','4+6','3+7'],ans:1},{q:'9+□<15，□最大是？',opts:['4','5','6','3'],ans:1},{q:'妈妈买了20个橙子，给了邻居7个，还剩？',opts:['12','13','14','11'],ans:1},{q:'17比□大5，□是?',opts:['11','12','13','10'],ans:1},{q:'□-8=8，□=?',opts:['15','16','17','14'],ans:1},{q:'从20倒着数到15，共数了几个数？',opts:['5','6','7','4'],ans:1},{q:'小红有16块糖，吃了8块，还剩？',opts:['7','8','9','10'],ans:1},{q:'14+□=20，□=?',opts:['5','6','7','4'],ans:1},{q:'最大的两位数是？',opts:['89','98','99','100'],ans:2},{q:'20以内，哪两个数相加等于16？',opts:['8+8','7+8','9+6','以上都对'],ans:3}],
+    '2上':[{q:'两位数加法：35+47=?',opts:['81','82','83','80'],ans:1},{q:'两位数减法：84-37=?',opts:['46','47','48','45'],ans:1},{q:'乘法口诀：3×8=?',opts:['21','24','27','18'],ans:1},{q:'□×6=42，□=?',opts:['6','7','8','5'],ans:1},{q:'乘法口诀：7×7=?',opts:['47','48','49','46'],ans:2},{q:'98-□=59，□=?',opts:['38','39','40','37'],ans:1},{q:'3×□=27，□=?',opts:['8','9','10','7'],ans:1},{q:'一排有9棵树，种了7排，共多少棵？',opts:['62','63','64','61'],ans:1},{q:'4×8+5=?',opts:['36','37','38','35'],ans:1},{q:'下列哪个算式结果最大？',opts:['7×8','6×9','5×9','8×8'],ans:3},{q:'□×5=45，□=?',opts:['8','9','10','7'],ans:1},{q:'乘法口诀：9×6=?',opts:['53','54','55','52'],ans:1},{q:'36÷□=9，□=?',opts:['3','4','5','6'],ans:1},{q:'一本书有56页，小明已读了29页，还剩？',opts:['26','27','28','25'],ans:1},{q:'8×□=72，□=?',opts:['8','9','10','7'],ans:1},{q:'乘法口诀：6×7=?',opts:['41','42','43','40'],ans:1},{q:'100-38-25=?',opts:['36','37','38','35'],ans:1},{q:'□÷8=9，□=?',opts:['70','71','72','73'],ans:2},{q:'乘法口诀中，哪个算式等于36？',opts:['4×9','6×7','5×8','7×6'],ans:0},{q:'两个加数都是45，和是？',opts:['89','90','91','88'],ans:1}],
+    '2下':[{q:'三位数加法：256+348=?',opts:['603','604','605','602'],ans:1},{q:'三位数减法：700-248=?',opts:['451','452','453','450'],ans:1},{q:'□÷9=8余3，□=?',opts:['74','75','76','73'],ans:1},{q:'一箱苹果有96个，分给8个班，每班几个？',opts:['11','12','13','14'],ans:1},{q:'除法：63÷7=?',opts:['8','9','10','7'],ans:1},{q:'有余数的除法：29÷4=?余?',opts:['7余1','6余5','7余2','8余1'],ans:0},{q:'500-198=?',opts:['301','302','303','300'],ans:1},{q:'5×(8+7)=?',opts:['74','75','76','73'],ans:1},{q:'□×8=480，□=?',opts:['59','60','61','58'],ans:1},{q:'下列哪个数是4的倍数？',opts:['21','22','24','26'],ans:2},{q:'分米和厘米的关系：1分米=?厘米',opts:['10','100','1000','1'],ans:0},{q:'正方形的四条边都相等，边长5厘米，周长是？',opts:['15','20','25','10'],ans:1},{q:'长方形面积公式是？',opts:['长×宽','(长+宽)×2','长+宽','长×高'],ans:0},{q:'面积为24平方厘米的长方形，长6厘米，宽是？',opts:['3厘米','4厘米','5厘米','6厘米'],ans:1},{q:'时钟显示3:30，分针指向？',opts:['3','6','9','12'],ans:1},{q:'1时=?分',opts:['30分','60分','90分','120分'],ans:1},{q:'100×5+50=?',opts:['549','550','551','548'],ans:1},{q:'把360分成4等份，每份是？',opts:['89','90','91','88'],ans:1},{q:'□÷6=15，□=?',opts:['89','90','91','88'],ans:1},{q:'用3、5、7三张卡片能组成的最大三位数是？',opts:['537','573','735','753'],ans:3}],
+  },
+  '英语':{
+    '1上':[{q:'What color is the sky?',opts:['Red','Blue','Green','Yellow'],ans:1},{q:'How many fingers do you have?',opts:['Eight','Nine','Ten','Six'],ans:2},{q:'What animal says "Moo"?',opts:['Cat','Dog','Cow','Pig'],ans:2},{q:'Which is a fruit?',opts:['Apple','Desk','Chair','Book'],ans:0},{q:'What comes after Monday?',opts:['Sunday','Tuesday','Wednesday','Thursday'],ans:1},{q:'"Hello" means?',opts:['Goodbye','Hi','Thanks','Please'],ans:1},{q:'How do you say "再见" in English?',opts:['Hello','Goodbye','Thank you','Sorry'],ans:1},{q:'What shape has 4 equal sides?',opts:['Circle','Triangle','Square','Rectangle'],ans:2},{q:'"Red, yellow, pink and green" — which is NOT a color?',opts:['Red','Book','Green','Pink'],ans:1},{q:'What is 2+3 in English?',opts:['Four','Five','Six','Three'],ans:1},{q:'Which animal can fly?',opts:['Dog','Cat','Bird','Fish'],ans:2},{q:'"Mother" means?',opts:['爸爸','妈妈','哥哥','姐姐'],ans:1},{q:'What season comes after Spring?',opts:['Autumn','Winter','Summer','Spring'],ans:2},{q:'Which number comes after 9?',opts:['8','10','11','12'],ans:1},{q:'How do you say "猫" in English?',opts:['Dog','Cat','Bird','Fish'],ans:1},{q:'What day comes before Friday?',opts:['Thursday','Wednesday','Saturday','Tuesday'],ans:0},{q:'"Big" is the opposite of?',opts:['Long','Short','Small','Tall'],ans:2},{q:'Which of these is a body part?',opts:['Apple','Hand','Chair','Book'],ans:1},{q:'How do you say "你好" in English?',opts:['Goodbye','Hello','Thank you','Sorry'],ans:1},{q:'What color is grass?',opts:['Blue','Red','Green','Yellow'],ans:2}],
+    '1下':[{q:'Which sentence is correct?',opts:['I is happy','I am happy','I are happy','I be happy'],ans:1},{q:'"This is a ___." (苹果)',opts:['apple','orange','banana','mango'],ans:0},{q:'How many days in a week?',opts:['5','6','7','8'],ans:2},{q:'"She ___ a teacher." (是)',opts:['am','is','are','be'],ans:1},{q:'What is the plural of "book"?',opts:['books','bookes','bookes','bookies'],ans:0},{q:'Which word means "大"?',opts:['Small','Big','Long','Short'],ans:1},{q:'"I like ___ apples." (eat)',opts:['eat','eating','eats','ate'],ans:1},{q:'What color is a panda?',opts:['Black and white','All black','All white','Brown'],ans:0},{q:'Which is a vegetable?',opts:['Apple','Banana','Carrot','Orange'],ans:2},{q:'"They ___ students."',opts:['am','is','are','be'],ans:2},{q:'How do you say "数字" in English?',opts:['Number','Color','Shape','Letter'],ans:0},{q:'What sound does "A" make in "apple"?',opts:['/eɪ/','/æ/','/ɑː/','/ə/'],ans:1},{q:'Which animal lives in the sea?',opts:['Lion','Fish','Bird','Horse'],ans:1},{q:'"I have ___ apple."',opts:['a','an','the','—'],ans:1},{q:'What time is it? "Seven o\'clock" means?',opts:['6:00','7:00','8:00','9:00'],ans:1},{q:'Which word is a verb?',opts:['Happy','Run','Apple','Big'],ans:1},{q:'"My name ___ Tom."',opts:['am','is','are','be'],ans:1},{q:'How do you spell "猫"?',opts:['Cat','Kat','Coat','Cot'],ans:0},{q:'Which sentence uses "have" correctly?',opts:['I have a dog','She have a dog','They has a dog','He have dogs'],ans:0},{q:'"Good morning" is used?',opts:['At night','In the morning','In the afternoon','At noon'],ans:1}],
+    '2上':[{q:'Which sentence is correct?',opts:['He go to school','He goes to school','He going to school','He gone to school'],ans:1},{q:'What is the past tense of "eat"?',opts:['Eated','Ate','Eaten','Eats'],ans:1},{q:'Choose the correct article: "___ elephant is big."',opts:['A','An','The','—'],ans:1},{q:'"She is ___ than me." (tall)',opts:['tall','taller','tallest','more tall'],ans:1},{q:'Which word means "美丽的"?',opts:['Ugly','Beautiful','Big','Small'],ans:1},{q:'What is the plural of "child"?',opts:['Childs','Children','Childes','Childies'],ans:1},{q:'"___ you like coffee?" (do/does)',opts:['Do','Does','Did','Have'],ans:0},{q:'Which sentence is in past tense?',opts:['I go to school','I went to school','I will go to school','I am going to school'],ans:1},{q:'"There ___ some water in the glass."',opts:['am','is','are','be'],ans:1},{q:'What is the superlative of "good"?',opts:['Better','Best','More good','Gooder'],ans:1},{q:'"She ___ her homework yesterday."',opts:['do','does','did','has done'],ans:2},{q:'Choose the correct preposition: "The book is ___ the table."',opts:['in','on','at','for'],ans:1},{q:'What does "often" mean?',opts:['从不','有时','经常','总是'],ans:2},{q:'"I ___ watching TV when you called."',opts:['am','was','were','is'],ans:1},{q:'Which is a question word?',opts:['Because','When','Although','But'],ans:1},{q:'"He has lived here ___ 2010."',opts:['for','since','in','at'],ans:1},{q:'What is the negative form of "I like cats"?',opts:["I don't like cats","I doesn't like cats","I not like cats","I no like cats"],ans:0},{q:'"___ does she go to school?" "By bus."',opts:['Why','How','When','Where'],ans:1},{q:'Which sentence uses "much" correctly?',opts:['Much books','Much water','Much apples','Much trees'],ans:1},{q:'What is the opposite of "cheap"?',opts:['Small','Big','Expensive','Poor'],ans:2}],
+    '2下':[{q:'Which tense: "I have finished my homework."',opts:['Simple present','Simple past','Present perfect','Future'],ans:2},{q:'Choose the right form: "She ___ to school every day."',opts:['go','goes','went','is going'],ans:1},{q:'Which relative pronoun is correct: "The book ___ I bought is interesting."',opts:['who','which','where','when'],ans:1},{q:'"If I ___ you, I would study harder."',opts:['am','was','were','be'],ans:2},{q:'What does "although" mean?',opts:['因为','虽然','如果','当…时'],ans:1},{q:'Choose the correct passive voice: "The letter ___ yesterday."',opts:['wrote','was written','has written','is written'],ans:1},{q:'"She asked me ___ I was happy."',opts:['that','if','what','how'],ans:1},{q:'Which sentence has an error?',opts:["He doesn't likes fish","She doesn't like fish","I don't like fish","They don't like fish"],ans:0},{q:'What is the correct question tag: "You like music, ___?"',opts:["don't you","do you","aren't you","isn't it"],ans:0},{q:'"I wish I ___ fly like a bird."',opts:['can','could','will','would'],ans:1},{q:'Which sentence is in reported speech?',opts:['She said: "I am tired"',"She said she was tired","She says: 'I am tired'","She told: I am tired"],ans:1},{q:'Choose the correct comparative: "This problem is ___ difficult than that one."',opts:['more','most','much','very'],ans:0},{q:'"___ he studies, ___ he learns." (越...越...)',opts:['The more / the more','More / more','Most / most','The most / the most'],ans:0},{q:'Which preposition: "She is good ___ math."',opts:['in','at','on','for'],ans:1},{q:'What does "unless" mean?',opts:['因为','除非','尽管','然而'],ans:1},{q:'Choose the correct form: "I am used to ___ up early."',opts:['get','getting','got','gets'],ans:1},{q:'"By the time he arrived, we ___ dinner."',opts:['finish','finished','had finished','have finished'],ans:2},{q:'Which sentence uses "few" correctly?',opts:['Few water','Few money','Few students','Few news'],ans:2},{q:'What is the meaning of "indifferent"?',opts:['不同的','漠不关心的','勤奋的','友好的'],ans:1},{q:'Choose the right conjunction: "He was tired, ___ he kept working."',opts:['because','so','but','and'],ans:2}],
+  }
+};
+// Extend for grades 3-9 by referencing grade level data
+function getQuestions(grade,subj,sem){
+  var gradeNum=parseInt(grade);
+  // Map higher grades to existing data with slight variation
+  var keys=Object.keys(QB[subj]||{});
+  var key=gradeNum+''+sem;
+  if(QB[subj]&&QB[subj][key]) return shuffleArr(QB[subj][key].slice()).slice(0,20);
+  // For grades 3-9 not explicitly defined, generate from highest available
+  var avail=keys.filter(function(k){return k.endsWith(sem);});
+  if(!avail.length) avail=keys;
+  var base=QB[subj][avail[avail.length-1]];
+  return shuffleArr(base.slice()).slice(0,20);
+}
+function shuffleArr(arr){
+  for(var i=arr.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=arr[i];arr[i]=arr[j];arr[j]=t;}
+  return arr;
+}
+
+/* ── STATE ── */
+var selGrade='1',selSubj='语文',selSem='上';
+var examQs=[],examIdx=0,examAnswers=[],examTimer=null,examSecs=1500;
+var lbFilter='all';
+
+/* ── INIT ── */
+var grades=['1','2','3','4','5','6','7','8','9'];
+var gradeEl=document.getElementById('gradeSelector');
+grades.forEach(function(g){
+  var btn=document.createElement('button');
+  btn.className='tab-btn'+(g==='1'?' active':'');
+  btn.id='grade_'+g;
+  btn.textContent=g+'年级';
+  btn.onclick=function(){selectGrade(g);};
+  gradeEl.appendChild(btn);
+});
+
+function selectGrade(g){
+  selGrade=g;
+  document.querySelectorAll('[id^=grade_]').forEach(function(b){b.classList.remove('active');});
+  var el=document.getElementById('grade_'+g);
+  if(el)el.classList.add('active');
+  updateLabel();
+}
+function selectSubj(s){
+  selSubj=s;
+  document.querySelectorAll('[id^=subj_]').forEach(function(b){b.classList.remove('active');});
+  var el=document.getElementById('subj_'+s);
+  if(el)el.classList.add('active');
+  updateLabel();
+}
+function selectSem(s){
+  selSem=s;
+  document.querySelectorAll('[id^=sem_]').forEach(function(b){b.classList.remove('active');});
+  var el=document.getElementById('sem_'+s);
+  if(el)el.classList.add('active');
+  updateLabel();
+}
+function updateLabel(){
+  document.getElementById('examLabel').textContent=selGrade+'年级 '+selSubj+' '+selSem+'学期期末';
+}
+updateLabel();
+
+/* ── LEADERBOARD DATA ── */
+/* ── SUPABASE LEADERBOARD ── */
+var SURL='https://ixwvbwwielgtytjriofy.supabase.co';
+var SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4d3Zid3dpZWxndHl0anJpb2Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyODgzMzIsImV4cCI6MjA5MDg2NDMzMn0.uAYEeLwEql9h9xlP82JDTus2YhZpRbgLiz-R4x5nBxQ';
+var LB_KEY='zhibanLeaderboard'; // 本地缓存兜底
+
+function sbHeaders(){
+  var h={'apikey':SKEY,'Content-Type':'application/json'};
+  try{var s=JSON.parse(localStorage.getItem('sb_session')||'{}');if(s.access_token)h['Authorization']='Bearer '+s.access_token;}catch(e){}
+  if(!h['Authorization'])h['Authorization']='Bearer '+SKEY;
+  return h;
+}
+
+// 从Supabase读取全部排行榜记录
+async function fetchLBFromCloud(){
+  try{
+    var resp=await fetch(SURL+'/rest/v1/leaderboard?select=*&order=score.desc&limit=200',{headers:sbHeaders()});
+    if(!resp.ok)throw new Error('fetch fail');
+    var rows=await resp.json();
+    // 本地缓存
+    var local=rows.map(function(r){
+      return {
+        name:r.user_name,grade:r.grade,subj:r.subj,sem:r.sem,
+        score:r.score,correct:r.correct,total:r.total,points:r.points,
+        time:r.time,id:r.id
+      };
+    });
+    localStorage.setItem(LB_KEY,JSON.stringify(local));
+    return local;
+  }catch(e){
+    // 降级：返回本地缓存
+    try{return JSON.parse(localStorage.getItem(LB_KEY)||'[]');}catch(e2){return [];}
+  }
+}
+
+// 写入一条记录到Supabase
+async function pushLBToCloud(entry){
+  // 先写本地
+  var local=[];
+  try{local=JSON.parse(localStorage.getItem(LB_KEY)||'[]');}catch(e){}
+  local.unshift(entry);
+  if(local.length>200)local=local.slice(0,200);
+  localStorage.setItem(LB_KEY,JSON.stringify(local));
+
+  // 再推云端（不含questions字段，节省空间）
+  try{
+    var payload={
+      user_name:entry.name,
+      grade:entry.grade,
+      subj:entry.subj,
+      sem:entry.sem,
+      score:entry.score,
+      correct:entry.correct,
+      total:entry.total,
+      points:entry.points,
+      time:entry.time,
+    };
+    await fetch(SURL+'/rest/v1/leaderboard',{
+      method:'POST',
+      headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'}),
+      body:JSON.stringify(payload)
+    });
+  }catch(e){}
+}
+
+function getLB(){try{return JSON.parse(localStorage.getItem(LB_KEY)||'[]');}catch(e){return[];}}
+function saveLB(data){localStorage.setItem(LB_KEY,JSON.stringify(data));}
+
+function getMyName(){
+  try{var u=JSON.parse(localStorage.getItem('zhibanUser')||'{}');return u.userName||'匿名用户';}catch(e){return '匿名用户';}
+}
+
+// 筛选状态
+var lbGradeFilter='all';
+var lbSemFilter='all';
+
+function renderLB(data){
+  if(!data) data=getLB(); // 无参数时用本地缓存
+  // 多维筛选：学科 + 年级 + 学期
+  var filtered=data.filter(function(r){
+    if(lbFilter!=='all' && r.subj!==lbFilter)return false;
+    if(lbGradeFilter!=='all' && String(r.grade)!==String(lbGradeFilter))return false;
+    if(lbSemFilter!=='all' && r.sem!==lbSemFilter)return false;
+    return true;
+  });
+  filtered.sort(function(a,b){return b.score-a.score;});
+  var me=getMyName();
+  var myRankEl=document.getElementById('myRank');
+  var myBestEl=document.getElementById('myBestScore');
+  var myRecords=data.filter(function(r){return r.name===me;});
+  var myBest=myRecords.length?Math.max.apply(null,myRecords.map(function(r){return r.score;})):null;
+  if(myBestEl)myBestEl.textContent=myBest!==null?myBest+'分':'—';
+  var myRankNum=filtered.findIndex(function(r){return r.name===me;});
+  if(myRankEl)myRankEl.textContent=myRankNum>=0?(myRankNum+1)+'名':'—';
+  // exam count
+  document.getElementById('myExamCount').textContent=myRecords.length;
+  var pts=myRecords.reduce(function(s,r){return s+(r.points||0);},0);
+  document.getElementById('myTotalPoints').textContent=pts;
+
+  // 更新筛选条数标签
+  var cntEl=document.getElementById('lbCountLabel');
+  if(cntEl)cntEl.textContent='共 '+filtered.length+' 条';
+
+  var tbody=document.getElementById('lbBody');
+  if(!filtered.length){tbody.innerHTML='<tr><td colspan="8" class="text-center text-slate-500 py-10">当前筛选无记录，试试切换其他筛选条件</td></tr>';}
+  else{
+    tbody.innerHTML=filtered.slice(0,50).map(function(r,i){
+      var rankClass=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-n';
+      var rankText=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
+      var isMe=r.name===me;
+      return '<tr class="'+(isMe?'me':'')+'">'+
+        '<td><span class="inline-flex w-7 h-7 rounded-full items-center justify-center text-xs font-bold '+rankClass+'">'+rankText+'</span></td>'+
+        '<td class="font-medium '+(isMe?'text-ocean-400':'text-white')+'">'+r.name+(isMe?' <span class="text-xs text-ocean-400">（我）</span>':'')+'</td>'+
+        '<td class="text-slate-400">'+r.grade+'年级</td>'+
+        '<td><span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(51,133,255,.15);color:#93c5fd">'+r.subj+'</span></td>'+
+        '<td class="text-slate-400">'+r.sem+'学期</td>'+
+        '<td class="font-bold text-white font-mono">'+r.score+'分</td>'+
+        '<td class="text-yellow-400 font-mono">+'+r.points+'</td>'+
+        '<td class="text-slate-500 text-xs">'+r.time+'</td>'+
+      '</tr>';
+    }).join('');
+  }
+
+  // 同步刷新统计图表
+  try{renderSubjDistChart(data);}catch(e){}
+  try{renderDistChart(data);}catch(e){}
+  // 填充成绩段筛选器的年级选项（只做一次）
+  try{populateDistGrades(data);}catch(e){}
+}
+
+function applyLBFilters(){
+  var g=document.getElementById('lbGradeSel');
+  var s=document.getElementById('lbSemSel');
+  if(g)lbGradeFilter=g.value;
+  if(s)lbSemFilter=s.value;
+  renderLB();
+}
+function resetLBFilters(){
+  lbGradeFilter='all';lbSemFilter='all';lbFilter='all';
+  var g=document.getElementById('lbGradeSel');if(g)g.value='all';
+  var s=document.getElementById('lbSemSel');if(s)s.value='all';
+  document.querySelectorAll('[id^=lb_]').forEach(function(b){b.classList.remove('active');});
+  var allBtn=document.getElementById('lb_all');if(allBtn)allBtn.classList.add('active');
+  renderLB();
+}
+
+function switchLB(f){
+  lbFilter=f;
+  document.querySelectorAll('[id^=lb_]').forEach(function(b){b.classList.remove('active');});
+  var el=document.getElementById('lb_'+f);
+  if(el)el.classList.add('active');
+  // 重新从云端拉取
+  fetchLBFromCloud().then(function(data){renderLB(data);});
+}
+
+/* ═══════════════════════════════════════════════════════
+   NEW: 各科目考试次数（环形图）+ 时间段筛选
+   ═══════════════════════════════════════════════════════ */
+var _subjDistChart=null;
+var _subjDistPeriod='day'; // 'day' | 'week' | 'month'
+
+function switchPeriod(p){
+  _subjDistPeriod=p;
+  ['day','week','month'].forEach(function(k){
+    var b=document.getElementById('period_'+k);
+    if(b)b.classList.toggle('active',k===p);
+  });
+  var hints={'day':'全站用户今日参加各科目考试的次数统计','week':'全站用户本周参加各科目考试的次数统计','month':'全站用户本月参加各科目考试的次数统计'};
+  var h=document.getElementById('subjDistHint');
+  if(h)h.textContent=hints[p];
+  renderSubjDistChart();
+}
+
+function renderSubjDistChart(data){
+  if(!data)data=getLB();
+  var now=new Date();
+  var counts={'语文':0,'数学':0,'英语':0};
+  data.forEach(function(r){
+    if(!r.time)return;
+    var t=new Date(r.time.replace(/\//g,'-'));
+    if(isNaN(t.getTime()))return;
+    var match=false;
+    if(_subjDistPeriod==='day'){
+      match=t.getFullYear()===now.getFullYear()&&t.getMonth()===now.getMonth()&&t.getDate()===now.getDate();
+    } else if(_subjDistPeriod==='week'){
+      // Mon-based week
+      var startOfWeek=new Date(now);
+      var day=now.getDay()||7;
+      startOfWeek.setHours(0,0,0,0);
+      startOfWeek.setDate(now.getDate()-day+1);
+      var endOfWeek=new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate()+7);
+      match=t>=startOfWeek&&t<endOfWeek;
+    } else if(_subjDistPeriod==='month'){
+      match=t.getFullYear()===now.getFullYear()&&t.getMonth()===now.getMonth();
+    }
+    if(match&&counts.hasOwnProperty(r.subj))counts[r.subj]++;
+  });
+  var total=counts['语文']+counts['数学']+counts['英语'];
+  var periodLabel={'day':'今日','week':'本周','month':'本月'};
+  var lbl=document.getElementById('todayTotal');
+  if(lbl)lbl.textContent='全站 · '+total+' 场 ('+periodLabel[_subjDistPeriod]+')';
+
+  var ctx=document.getElementById('subjDistChart');
+  if(!ctx)return;
+  var values=[counts['语文'],counts['数学'],counts['英语']];
+  var isEmpty=total===0;
+  if(_subjDistChart){_subjDistChart.destroy();_subjDistChart=null;}
+  _subjDistChart=new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels:['语文','数学','英语'],
+      datasets:[{
+        data:isEmpty?[1,1,1]:values,
+        backgroundColor:['#3385ff','#18b47d','#fbbf24'],
+        borderColor:'rgba(10,15,30,.8)',
+        borderWidth:3,
+        hoverOffset:6
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      cutout:'62%',
+      plugins:{
+        legend:{
+          position:'bottom',
+          labels:{color:'#94a3b8',font:{size:11},padding:12,boxWidth:12,boxHeight:12}
+        },
+        tooltip:{
+          callbacks:{
+            label:function(ctx){
+              if(isEmpty)return '暂无数据';
+              return ctx.label+': '+ctx.parsed+' 场';
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════════════
+   NEW: 成绩段分布（横向柱状图）
+   ═══════════════════════════════════════════════════════ */
+var _distChart=null;
+var _distGradesPopulated=false;
+function populateDistGrades(data){
+  if(_distGradesPopulated)return;
+  var sel=document.getElementById('distGradeSel');
+  if(!sel)return;
+  // 收集实际出现过的年级
+  var grades={};
+  data.forEach(function(r){if(r.grade)grades[r.grade]=1;});
+  var keys=Object.keys(grades).sort(function(a,b){return parseInt(a)-parseInt(b);});
+  keys.forEach(function(g){
+    var opt=document.createElement('option');
+    opt.value=g;opt.textContent=g+'年级';
+    sel.appendChild(opt);
+  });
+  _distGradesPopulated=true;
+}
+
+function renderDistChart(data){
+  if(!data||!data.length)data=getLB();
+  var gradeSel=document.getElementById('distGradeSel');
+  var subjSel=document.getElementById('distSubjSel');
+  var gf=gradeSel?gradeSel.value:'all';
+  var sf=subjSel?subjSel.value:'all';
+  var filtered=data.filter(function(r){
+    if(gf!=='all' && String(r.grade)!==String(gf))return false;
+    if(sf!=='all' && r.subj!==sf)return false;
+    return true;
+  });
+  // 分段: 90-100, 80-89, 70-79, 60-69, <60
+  var bands=[0,0,0,0,0];
+  filtered.forEach(function(r){
+    var s=r.score||0;
+    if(s>=90)bands[0]++;
+    else if(s>=80)bands[1]++;
+    else if(s>=70)bands[2]++;
+    else if(s>=60)bands[3]++;
+    else bands[4]++;
+  });
+  var ctx=document.getElementById('distChart');
+  if(!ctx)return;
+  if(_distChart){_distChart.destroy();_distChart=null;}
+  _distChart=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:['90-100分','80-89分','70-79分','60-69分','60分以下'],
+      datasets:[{
+        label:'人次',
+        data:bands,
+        backgroundColor:['#18b47d','#3385ff','#60a5fa','#fbbf24','#ef4444'],
+        borderRadius:6,
+        barPercentage:.7
+      }]
+    },
+    options:{
+      indexAxis:'y',
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{label:function(ctx){return ctx.parsed.x+' 人次';}}
+        }
+      },
+      scales:{
+        x:{
+          beginAtZero:true,
+          ticks:{color:'#64748b',font:{size:10},precision:0},
+          grid:{color:'rgba(148,163,184,.08)'}
+        },
+        y:{
+          ticks:{color:'#94a3b8',font:{size:11}},
+          grid:{display:false}
+        }
+      }
+    }
+  });
+}
+
+/* ── EXAM ── */
+function startExam(){
+  examQs=getQuestions(selGrade,selSubj,selSem);
+  examIdx=0;
+  examAnswers=new Array(examQs.length).fill(null);
+  examSecs=20*60;
+  clearInterval(examTimer);
+  examTimer=setInterval(function(){
+    examSecs--;
+    var m=Math.floor(examSecs/60),s=examSecs%60;
+    var el=document.getElementById('examTimer');
+    if(el)el.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+    if(examSecs<=0){clearInterval(examTimer);finishExam();}
+  },1000);
+  document.getElementById('examTitle').textContent=selGrade+'年级'+selSubj+selSem+'学期期末模拟';
+  document.getElementById('examSubtitle').textContent='共'+examQs.length+'题 · 每题5分 · 限时20分钟';
+  document.getElementById('resultModal').classList.remove('show');
+  document.getElementById('examModal').classList.add('show');
+  renderQ();
+}
+
+function renderQ(){
+  var q=examQs[examIdx];
+  document.getElementById('qNum').textContent='第 '+(examIdx+1)+' 题 / 共'+examQs.length+'题';
+  document.getElementById('qText').textContent=q.q;
+  document.getElementById('examProg').style.width=((examIdx+1)/examQs.length*100)+'%';
+  document.getElementById('examProgLabel').textContent=(examIdx+1)+' / '+examQs.length;
+  document.getElementById('qResult').classList.add('hidden');
+  document.getElementById('qResult').textContent='';
+  var optsDiv=document.getElementById('qOpts');
+  optsDiv.innerHTML='';
+  var labels=['A','B','C','D'];
+  q.opts.forEach(function(opt,i){
+    var btn=document.createElement('button');
+    btn.className='q-opt';
+    btn.textContent=labels[i]+'. '+opt;
+    btn.onclick=function(){selectAnswer(i,btn);};
+    if(examAnswers[examIdx]===i){
+      btn.classList.add(i===q.ans?'correct':'wrong');
+    }
+    optsDiv.appendChild(btn);
+  });
+  document.getElementById('btnPrev').style.display=examIdx>0?'':'none';
+  var nextBtn=document.getElementById('btnNext');
+  nextBtn.textContent=examIdx>=examQs.length-1?'提交考试 ✓':'下一题 →';
+}
+
+function selectAnswer(idx,btn){
+  if(examAnswers[examIdx]!==null)return;
+  examAnswers[examIdx]=idx;
+  var q=examQs[examIdx];
+  var correct=idx===q.ans;
+  var allBtns=document.getElementById('qOpts').querySelectorAll('.q-opt');
+  allBtns.forEach(function(b,i){
+    if(i===q.ans)b.classList.add('correct');
+    else if(i===idx)b.classList.add('wrong');
+  });
+  var res=document.getElementById('qResult');
+  res.classList.remove('hidden');
+  if(correct){res.style.background='rgba(24,180,125,.12)';res.style.color='#6ee7b7';res.textContent='✓ 回答正确！';}
+  else{res.style.background='rgba(239,68,68,.1)';res.style.color='#fca5a5';res.textContent='✗ 回答错误，正确答案是：'+['A','B','C','D'][q.ans]+'。'+q.opts[q.ans];}
+  // Auto add to error book if wrong — write DIRECTLY to localStorage (no dependency on external page)
+  if(!correct){
+    try{
+      var eb=JSON.parse(localStorage.getItem('zhibanErrorBook')||'[]');
+      var dupKey=q.q+'|'+selSubj+'|'+q.ans;
+      var alreadyIn=eb.some(function(e){return ((e.question||'')+'|'+(e.subject||'')+'|'+e.correctIdx)===dupKey;});
+      if(!alreadyIn){
+        eb.unshift({
+          id:'err_'+Date.now()+'_'+Math.floor(Math.random()*9999),
+          subject:selSubj,
+          question:q.q,
+          options:q.opts,
+          correctIdx:q.ans,
+          userIdx:idx,
+          source:selGrade+'年级期末模拟',
+          date:new Date().toLocaleDateString(),
+          mastered:false,
+          reviewCount:0
+        });
+        localStorage.setItem('zhibanErrorBook',JSON.stringify(eb));
+      }
+    }catch(e){}
+  }
+}
+
+function prevQ(){if(examIdx>0){examIdx--;renderQ();}}
+function nextQ(){
+  if(examIdx<examQs.length-1){examIdx++;renderQ();}
+  else finishExam();
+}
+
+function confirmClose(){if(confirm('确定放弃本次考试吗？')){clearInterval(examTimer);document.getElementById('examModal').classList.remove('show');}}
+
+function finishExam(){
+  clearInterval(examTimer);
+  document.getElementById('examModal').classList.remove('show');
+  var correct=examAnswers.filter(function(a,i){return a===examQs[i].ans;}).length;
+  var total=examQs.length;
+  var score=Math.round(correct/total*100);
+  var points=Math.round(score*1+correct*2);
+  document.getElementById('resScore').textContent=score+'分';
+  document.getElementById('resCorrect').textContent=correct+'/'+total;
+  document.getElementById('resPoints').textContent='+'+points;
+  document.getElementById('resultSubtitle').textContent=selGrade+'年级 '+selSubj+' '+selSem+'学期期末模拟';
+
+  // Wrong analysis
+  var mistakesHtml='';
+  var wrongOnes=examQs.filter(function(q,i){return examAnswers[i]!==q.ans;});
+  if(wrongOnes.length){
+    mistakesHtml='<div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:14px"><p class="text-xs font-semibold text-red-400 mb-2">错题已加入错题本（'+wrongOnes.length+'道）</p>';
+    wrongOnes.slice(0,3).forEach(function(q){
+      mistakesHtml+='<p class="text-xs text-slate-400 mb-1">• '+q.q.slice(0,40)+'…</p>';
+    });
+    if(wrongOnes.length>3)mistakesHtml+='<p class="text-xs text-slate-500">…等共'+wrongOnes.length+'道</p>';
+    mistakesHtml+='</div>';
+  }else{
+    mistakesHtml='<div class="text-center py-3 text-mint-500 text-sm">🎉 全部答对！完美发挥！</div>';
+  }
+  document.getElementById('resMistakes').innerHTML=mistakesHtml;
+
+  // Save to leaderboard (云端+本地)
+  var entry={
+    name:getMyName(),grade:selGrade,subj:selSubj,sem:selSem,
+    score:score,correct:correct,total:total,points:points,
+    time:new Date().toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}),
+    questions:examQs.map(function(q,i){return {q:q.q,opts:q.opts,ans:q.ans,userAns:examAnswers[i]};}),
+  };
+
+  // 保存答题卡数据
+  _acData=entry;
+
+  // Add points to user
+  try{
+    var u=JSON.parse(localStorage.getItem('zhibanUser')||'{}');
+    u.points=(u.points||0)+points;
+    localStorage.setItem('zhibanUser',JSON.stringify(u));
+  }catch(e){}
+
+  document.getElementById('resultModal').classList.add('show');
+  renderHistory();
+  renderTrendChart();
+
+  // 先用本地数据渲染，再推云端后刷新
+  pushLBToCloud(entry).then(function(){
+    return fetchLBFromCloud();
+  }).then(function(data){
+    renderLB(data);
+  }).catch(function(){
+    renderLB();
+  });
+}
+
+function closeResult(){
+  document.getElementById('resultModal').classList.remove('show');
+  fetchLBFromCloud().then(function(data){renderLB(data);});
+}
+
+/* ── NAV AVATAR ── */
+(function(){
+  try{
+    var u=JSON.parse(localStorage.getItem('zhibanUser')||'{}');
+    var av=document.getElementById('navAvatar');
+    if(!av)return;
+    if(u.customAvatar){av.innerHTML='<img src="'+u.customAvatar+'" style="width:36px;height:36px;object-fit:cover;border-radius:50%">';}
+    else{var cs=['#dbeafe','#d1fae5','#fef3c7','#fce7f3','#e0e7ff','#ffedd5'];av.style.background=cs[(u.avatarIndex||0)%6];av.style.borderRadius='50%';}
+  }catch(e){}
+})();
+
+/* ── EXAM HISTORY ── */
+var EXAM_HIST_KEY='zhibanExamHistory';
+function getExamHistory(){try{return JSON.parse(localStorage.getItem(LB_KEY)||'[]').filter(function(r){return r.name===getMyName();});}catch(e){return[];}}
+
+function renderHistory(){
+  var hist=getExamHistory();
+  var el=document.getElementById('historyList');
+  if(!hist.length){el.innerHTML='<p class="text-xs text-slate-500 text-center py-6">暂无考试记录</p>';return;}
+  var subjColors={'语文':'#18b47d','数学':'#3385ff','英语':'#ff9f38'};
+  el.innerHTML=hist.slice(0,20).map(function(r,i){
+    var hasQ=r.questions&&r.questions.length;
+    return '<div class="flex items-center gap-3 p-2.5 rounded-xl" style="background:rgba(255,255,255,.04)">' +
+      '<div class="text-xs font-bold font-mono px-2 py-1 rounded-lg text-white" style="background:'+(subjColors[r.subj]||'#64748b')+'">'+r.subj+'</div>' +
+      '<div class="flex-1 min-w-0">' +
+        '<div class="text-xs text-white font-medium">'+r.grade+'年级 '+r.sem+'学期 · <span class="font-mono text-ocean-400">'+r.score+'分</span></div>' +
+        '<div class="text-xs text-slate-500">'+r.time+'</div>' +
+      '</div>' +
+      (hasQ?'<div class="flex gap-1"><button onclick="showReview('+i+')" class="text-xs px-2 py-1 rounded-lg text-ocean-400 hover:text-white hover:bg-ocean-500/20 transition whitespace-nowrap">查看试卷</button><button onclick="showCardFromHistory('+i+')" class="text-xs px-2 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition whitespace-nowrap">答题卡</button></div>':'') +
+    '</div>';
+  }).join('');
+}
+
+function showCardFromHistory(idx){
+  var hist=getExamHistory();
+  var r=hist[idx];
+  if(!r||!r.questions)return;
+  _acData=r;
+  showAnswerCard();
+}
+
+function showReview(idx){
+  var hist=getExamHistory();
+  var r=hist[idx];
+  if(!r||!r.questions)return;
+  document.getElementById('reviewTitle').textContent=r.grade+'年级'+r.subj+r.sem+'学期期末';
+  document.getElementById('reviewSubtitleText').textContent='共'+r.total+'题，答对'+r.correct+'题';
+  document.getElementById('rvScore').textContent=r.score+'分';
+  document.getElementById('rvCorrect').textContent=r.correct+'/'+r.total;
+  document.getElementById('rvPoints').textContent='+'+r.points;
+  document.getElementById('rvTime').textContent=r.time;
+  var labels=['A','B','C','D'];
+  document.getElementById('reviewQList').innerHTML=r.questions.map(function(q,i){
+    var isCorrect=q.userAns===q.ans;
+    var unanswered=q.userAns===null||q.userAns===undefined;
+    return '<div class="p-3 rounded-xl" style="background:'+(isCorrect?'rgba(24,180,125,.08)':'rgba(239,68,68,.08)')+';border:1px solid '+(isCorrect?'rgba(24,180,125,.2)':'rgba(239,68,68,.2)')+'">' +
+      '<p class="text-xs font-bold mb-1" style="color:'+(isCorrect?'#6ee7b7':'#fca5a5')+'">'+(isCorrect?'✓ 正确':'✗ 错误')+(unanswered?' (未作答)':'')+'　第'+(i+1)+'题</p>' +
+      '<p class="text-sm text-white mb-2">'+q.q+'</p>' +
+      q.opts.map(function(opt,j){
+        var isAns=j===q.ans, isUser=j===q.userAns;
+        var col=isAns?'#6ee7b7':(isUser&&!isAns?'#fca5a5':'#64748b');
+        var prefix=isAns?'✓ ':(isUser&&!isAns?'✗ ':' ');
+        return '<p class="text-xs mb-0.5" style="color:'+col+'">'+prefix+labels[j]+'. '+opt+'</p>';
+      }).join('') +
+    '</div>';
+  }).join('');
+  document.getElementById('reviewModal').classList.add('show');
+}
+
+/* ── ANSWER CARD ── */
+var _acData=null; // stores questions+answers for current/last exam
+
+function showAnswerCard(){
+  if(!_acData)return;
+  var r=_acData;
+  document.getElementById('acSubtitle').textContent=r.grade+'年级 '+r.subj+' '+r.sem+'学期  共'+r.total+'题 · '+r.correct+'对 '+r.score+'分';
+  var grid=document.getElementById('acGrid');
+  grid.innerHTML='';
+  r.questions.forEach(function(q,i){
+    var isCorrect=q.userAns===q.ans;
+    var unanswered=(q.userAns===null||q.userAns===undefined);
+    var cls=unanswered?'unanswered':(isCorrect?'correct':'wrong');
+    var btn=document.createElement('button');
+    btn.className='ac-num '+cls;
+    btn.textContent=i+1;
+    btn.id='acn_'+i;
+    btn.onclick=function(){selectCardQ(i);};
+    grid.appendChild(btn);
+  });
+  document.getElementById('acAnalysis').innerHTML='<p class="text-xs text-slate-500 text-center pt-2">点击题号查看解析</p>';
+  document.getElementById('answerCardModal').classList.add('show');
+}
+
+function selectCardQ(idx){
+  var r=_acData;
+  var q=r.questions[idx];
+  var labels=['A','B','C','D'];
+  var isCorrect=q.userAns===q.ans;
+  var unanswered=(q.userAns===null||q.userAns===undefined);
+  // highlight selected
+  document.querySelectorAll('.ac-num').forEach(function(b){b.classList.remove('selected');});
+  var cur=document.getElementById('acn_'+idx);
+  if(cur)cur.classList.add('selected');
+  var optsHtml=q.opts.map(function(opt,j){
+    var isAns=j===q.ans,isUser=j===q.userAns;
+    var col=isAns?'#6ee7b7':(isUser&&!isAns?'#fca5a5':'#94a3b8');
+    var bg=isAns?'rgba(24,180,125,.1)':(isUser&&!isAns?'rgba(239,68,68,.08)':'transparent');
+    var prefix=isAns?'✓':(isUser&&!isAns?'✗':'  ');
+    return '<div style="padding:6px 10px;border-radius:8px;margin-bottom:5px;background:'+bg+';border:1px solid '+(isAns?'rgba(24,180,125,.3)':(isUser&&!isAns?'rgba(239,68,68,.3)':'rgba(255,255,255,.06)'))+'">' +
+      '<span style="color:'+col+';font-size:12px;font-weight:600">'+prefix+' '+labels[j]+'. '+opt+'</span></div>';
+  }).join('');
+  var statusTxt=unanswered?'<span style="color:#94a3b8">⚪ 未作答</span>':(isCorrect?'<span style="color:#6ee7b7">✓ 答对</span>':'<span style="color:#fca5a5">✗ 答错</span>');
+  document.getElementById('acAnalysis').innerHTML=
+    '<div class="flex items-center justify-between mb-2">' +
+      '<span class="text-xs text-slate-400 font-semibold">第 '+(idx+1)+' 题</span>' +
+      '<span class="text-xs font-bold">'+statusTxt+'</span>' +
+    '</div>' +
+    '<p class="text-sm text-white font-medium mb-3" style="line-height:1.6">'+q.q+'</p>' +
+    optsHtml +
+    (unanswered?'':'<p class="text-xs text-slate-500 mt-2">正确答案：<span style="color:#6ee7b7;font-weight:700">'+labels[q.ans]+'</span></p>');
+}
+
+/* ── TREND CHART ── */
+var _trendChart=null;
+var _trendSubj='语文';
+
+function switchTrend(subj){
+  _trendSubj=subj;
+  ['语文','数学','英语'].forEach(function(s){
+    var b=document.getElementById('trend_'+s);
+    if(b)b.classList.toggle('active',s===subj);
+  });
+  renderTrendChart();
+}
+
+function renderTrendChart(){
+  var hist=getExamHistory().filter(function(r){return r.subj===_trendSubj;});
+  var ctx=document.getElementById('trendChart');
+  if(!ctx)return;
+
+  if(hist.length===0){
+    document.getElementById('trendHint').textContent='参加'+_trendSubj+'考试后显示走势';
+    if(_trendChart){_trendChart.destroy();_trendChart=null;}
+    return;
+  }
+  document.getElementById('trendHint').textContent='';
+
+  // Group by grade+sem, take best score each
+  var grouped={};
+  hist.forEach(function(r){
+    var key=r.grade+'年级'+r.sem+'学期';
+    if(!grouped[key]||r.score>grouped[key])grouped[key]=r.score;
+  });
+  var sorted=Object.keys(grouped).sort();
+  var labels=sorted;
+  var data=sorted.map(function(k){return grouped[k];});
+
+  var subjColor={'语文':'#18b47d','数学':'#3385ff','英语':'#ff9f38'};
+  var color=subjColor[_trendSubj]||'#3385ff';
+
+  if(_trendChart){_trendChart.destroy();}
+  _trendChart=new Chart(ctx.getContext('2d'),{
+    type:'line',
+    data:{
+      labels:labels,
+      datasets:[{
+        label:_trendSubj+'成绩',
+        data:data,
+        borderColor:color,
+        backgroundColor:color+'22',
+        pointBackgroundColor:color,
+        pointRadius:5,
+        pointHoverRadius:7,
+        fill:true,
+        tension:0.3,
+        borderWidth:2,
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:function(c){return c.parsed.y+'分';}}}
+      },
+      scales:{
+        x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},
+        y:{min:0,max:100,ticks:{color:'#64748b',font:{size:10},stepSize:20},grid:{color:'rgba(255,255,255,.06)'}},
+      }
+    }
+  });
+}
+
+/* ── RENDER ── */
+// 初始化：先用本地缓存显示，再从云端拉取刷新
+renderLB();
+renderHistory();
+renderTrendChart();
+fetchLBFromCloud().then(function(data){renderLB(data);});
+</script>
+<script>
+/* ── Navbar 头像同步（通用版，支持全部三种头像类型） ── */
+(function syncNav(){
+  try {
+    var u = JSON.parse(localStorage.getItem('zhibanUser') || '{}');
+    var av = document.getElementById('navAvatar');
+    var nm = document.getElementById('navUserName');
+    if (!av) return;
+    if (u.customAvatar) {
+      av.innerHTML = '<img src="' + u.customAvatar + '" style="width:36px;height:36px;object-fit:cover;border-radius:50%">';
+    } else if (u.premiumAvatar && window.PREMIUM_AVATARS) {
+      var pa = window.PREMIUM_AVATARS.find(function(a){return a.id===u.premiumAvatar;});
+      if (pa) av.innerHTML = pa.svg(36);
+    } else {
+      var colors = ['#fff7ed','#fce7f3','#fef3c7','#e0e7ff','#ecfdf5','#dbeafe'];
+      var animalPaths = [
+        '<circle cx="32" cy="36" r="20" fill="#fb923c"/><circle cx="32" cy="38" r="14" fill="#fff"/><polygon points="16,22 12,6 24,18" fill="#fb923c"/><polygon points="48,22 52,6 40,18" fill="#fb923c"/><circle cx="25" cy="34" r="2.8" fill="#1e293b"/><circle cx="39" cy="34" r="2.8" fill="#1e293b"/><ellipse cx="32" cy="39" rx="2.5" ry="2" fill="#1e293b"/>',
+        '<circle cx="32" cy="40" r="18" fill="#fef9c3"/><ellipse cx="25" cy="14" rx="5" ry="14" fill="#fef9c3"/><ellipse cx="39" cy="14" rx="5" ry="14" fill="#fef9c3"/><circle cx="26" cy="37" r="2.5" fill="#1e293b"/><circle cx="38" cy="37" r="2.5" fill="#1e293b"/><ellipse cx="32" cy="42" rx="2" ry="1.5" fill="#fda4af"/>',
+        '<circle cx="32" cy="36" r="20" fill="#d4a574"/><circle cx="20" cy="20" r="7" fill="#d4a574"/><circle cx="44" cy="20" r="7" fill="#d4a574"/><circle cx="20" cy="20" r="4" fill="#f5deb3"/><circle cx="44" cy="20" r="4" fill="#f5deb3"/><circle cx="26" cy="34" r="2.8" fill="#1e293b"/><circle cx="38" cy="34" r="2.8" fill="#1e293b"/>',
+        '<ellipse cx="32" cy="36" rx="18" ry="22" fill="#334155"/><ellipse cx="32" cy="40" rx="12" ry="14" fill="#fff"/><circle cx="25" cy="30" r="1.8" fill="#1e293b"/><circle cx="39" cy="30" r="1.8" fill="#1e293b"/><polygon points="32,35 28,39 36,39" fill="#fbbf24"/>',
+        '<circle cx="32" cy="38" r="19" fill="#86efac"/><circle cx="22" cy="22" r="9" fill="#86efac"/><circle cx="42" cy="22" r="9" fill="#86efac"/><circle cx="22" cy="22" r="5" fill="#fff"/><circle cx="42" cy="22" r="5" fill="#fff"/><circle cx="22" cy="22" r="2.5" fill="#1e293b"/><circle cx="42" cy="22" r="2.5" fill="#1e293b"/>',
+        '<circle cx="32" cy="38" r="19" fill="#94a3b8"/><circle cx="32" cy="40" r="13" fill="#e2e8f0"/><polygon points="16,24 12,6 24,22" fill="#94a3b8"/><polygon points="48,24 52,6 40,22" fill="#94a3b8"/><circle cx="25" cy="35" r="2.5" fill="#1e293b"/><circle cx="39" cy="35" r="2.5" fill="#1e293b"/>'
+      ];
+      var idx = (u.avatarIndex || 0) % colors.length;
+      av.innerHTML = '<svg viewBox="0 0 64 64" width="36" height="36" xmlns="http://www.w3.org/2000/svg" style="border-radius:50%"><rect width="64" height="64" rx="32" fill="' + colors[idx] + '"/>' + animalPaths[idx] + '</svg>';
+    }
+    if (nm && u.userName) nm.textContent = u.userName;
+  } catch(e) {}
+})();
+// 监听页面切换和storage变化，实时同步
+window.addEventListener('focus', function(){ try{ document.querySelector('[data-nav-sync]') && document.querySelector('[data-nav-sync]').dispatchEvent(new Event('sync')); } catch(e){} });
+window.addEventListener('pageshow', function(){
+  try {
+    var u = JSON.parse(localStorage.getItem('zhibanUser') || '{}');
+    var av = document.getElementById('navAvatar');
+    if (!av || !u.customAvatar) return;
+    av.innerHTML = '<img src="' + u.customAvatar + '" style="width:36px;height:36px;object-fit:cover;border-radius:50%">';
+  } catch(e) {}
+});
+window.addEventListener('storage', function(e){
+  if (e.key === 'zhibanUser') {
+    try {
+      var u = JSON.parse(e.newValue || '{}');
+      var av = document.getElementById('navAvatar');
+      var nm = document.getElementById('navUserName');
+      if (!av) return;
+      if (u.customAvatar) {
+        av.innerHTML = '<img src="' + u.customAvatar + '" style="width:36px;height:36px;object-fit:cover;border-radius:50%">';
+      }
+      if (nm && u.userName) nm.textContent = u.userName;
+    } catch(e) {}
+  }
+});
+</script>
+</body>
+</html>

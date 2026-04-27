@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- 防缓存:确保用户总是拿到最新版本 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知识图谱 — 灵犀伴学</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{ocean:{50:'#eef6ff',500:'#3385ff',700:'#1450e1',900:'#19398f',950:'#142557'},mint:{50:'#edfcf5',500:'#18b47d'},warm:{400:'#ff9f38',500:'#ff8211'}}}}};</script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans SC',system-ui,sans-serif;background:#04091e;min-height:100vh;color:#e2e8f0;overflow:hidden}
+
+/* Particle canvas background */
+#particleCanvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+#graphCanvas{position:relative;z-index:1;cursor:grab}
+#graphCanvas:active{cursor:grabbing}
+
+/* Glassmorphism navbar */
+#navbar{background:rgba(4,9,30,.75);backdrop-filter:blur(24px) saturate(1.6);border-bottom:1px solid rgba(80,140,255,.1);box-shadow:0 4px 30px rgba(0,0,0,.5)}
+
+/* Glass buttons */
+.glass-btn{padding:7px 18px;border-radius:24px;border:1.5px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#94a3b8;font-size:13px;cursor:pointer;transition:all .3s;font-family:inherit;font-weight:500;backdrop-filter:blur(8px)}
+.glass-btn:hover{border-color:rgba(51,133,255,.4);color:#93c5fd;background:rgba(51,133,255,.08)}
+.glass-btn.active{border-color:#3385ff;background:rgba(51,133,255,.12);color:#60a5fa;box-shadow:0 0 15px rgba(51,133,255,.15)}
+
+/* Glass info panel */
+#infoPanel{position:fixed;right:20px;top:80px;width:380px;max-height:calc(100vh - 100px);
+  background:rgba(15,23,42,.65);backdrop-filter:blur(28px) saturate(1.5);
+  border-radius:22px;padding:0;border:1px solid rgba(51,133,255,.1);
+  display:none;overflow:hidden;z-index:10;
+  box-shadow:0 20px 60px rgba(0,0,0,.4),0 0 40px rgba(51,133,255,.05)}
+#infoPanel.show{display:flex;flex-direction:column;animation:slideIn .35s ease-out}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+.panel-header{padding:24px 24px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
+.panel-body{padding:20px 24px;overflow-y:auto;flex:1}
+.panel-footer{padding:16px 24px 20px;border-top:1px solid rgba(255,255,255,.06)}
+
+/* Glow button */
+.glow-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px 20px;border-radius:14px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all .3s;font-family:inherit}
+.glow-btn-primary{background:linear-gradient(135deg,#3385ff,#18b47d);color:#fff;box-shadow:0 4px 20px rgba(51,133,255,.25)}
+.glow-btn-primary:hover{box-shadow:0 6px 30px rgba(51,133,255,.4);transform:translateY(-1px)}
+.glow-btn-secondary{background:rgba(255,255,255,.06);color:#93c5fd;border:1px solid rgba(51,133,255,.2)}
+.glow-btn-secondary:hover{background:rgba(51,133,255,.1);border-color:rgba(51,133,255,.4)}
+
+/* Mind map tree */
+.mind-map{padding:16px;background:rgba(255,255,255,.03);border-radius:16px;border:1px solid rgba(255,255,255,.05)}
+.mm-root{font-size:16px;font-weight:700;color:#60a5fa;margin-bottom:12px;padding-left:8px;border-left:3px solid #3385ff}
+.mm-branch{margin-left:20px;position:relative}
+.mm-branch::before{content:'';position:absolute;left:-12px;top:0;bottom:0;width:1px;background:rgba(255,255,255,.08)}
+.mm-item{position:relative;padding:6px 0 6px 16px;font-size:13px;color:#cbd5e1;line-height:1.6}
+.mm-item::before{content:'';position:absolute;left:0;top:14px;width:10px;height:1px;background:rgba(51,133,255,.3)}
+.mm-item .mm-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:8px}
+
+/* Glass legend */
+.glass-legend{position:fixed;left:16px;bottom:16px;z-index:10;
+  background:rgba(15,23,42,.55);backdrop-filter:blur(20px);
+  border-radius:16px;padding:16px 20px;border:1px solid rgba(255,255,255,.06);
+  font-size:12px;color:#94a3b8}
+.legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+
+/* Floating hint */
+.float-hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:10;
+  background:rgba(15,23,42,.6);backdrop-filter:blur(16px);
+  border-radius:24px;padding:8px 20px;border:1px solid rgba(255,255,255,.06);
+  font-size:12px;color:#64748b;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<!-- Particle background -->
+<canvas id="particleCanvas"></canvas>
+
+<!-- Navbar -->
+<nav id="navbar" class="fixed top-0 left-0 w-full z-50" style="height:64px">
+  <div class="max-w-7xl mx-auto flex items-center justify-between px-5 h-full">
+    <a href="home.html" class="flex items-center gap-2 text-white font-bold text-lg">
+      <svg class="w-8 h-8" viewBox="0 0 40 40" fill="none"><defs><linearGradient id="lxG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3385ff"/><stop offset="100%" stop-color="#18b47d"/></linearGradient></defs><circle cx="20" cy="20" r="19" fill="url(#lxG)" opacity=".12"/><circle cx="20" cy="20" r="19" stroke="url(#lxG)" stroke-width="1.5"/><path d="M12 26c0-4 2-7 5-9l1-3c0-1 1-1.5 2-1.5s1.5.8 1.5 1.5l-.5 2c2-1 4-1 5.5 0l1.5-1c.5-.5 1.2-.3 1.5.2s.1 1.2-.4 1.5L27 18c1 1.5 1.5 3.5 1 5.5-.5 2-2 3-4 3.5H16c-2-.5-3.5-2-4-4z" fill="url(#lxG)" opacity=".85"/><circle cx="23" cy="19" r="1.3" fill="white"/></svg>
+      <span style="font-family:'Noto Serif SC',serif">知识图谱</span>
+    </a>
+    <ul class="hidden md:flex items-center gap-1 text-sm font-medium"><li><a href="home.html" class="px-4 py-2 rounded-lg text-white/70 hover:bg-white/10 transition">首页</a></li><li><a href="ai-module.html" class="px-4 py-2 rounded-lg text-white/70 hover:bg-white/10 transition">AI伴学</a></li><li><a href="profile.html" class="px-4 py-2 rounded-lg text-white/70 hover:bg-white/10 transition">学习画像</a></li><li><a href="goals.html" class="px-4 py-2 rounded-lg text-white/70 hover:bg-white/10 transition">学习目标</a></li><li><a href="user.html" class="px-4 py-2 rounded-lg text-white/70 hover:bg-white/10 transition">用户中心</a></li></ul>
+    <div class="flex items-center gap-2">
+      <button class="glass-btn active" onclick="switchSubject('all',this)">全部</button>
+      <button class="glass-btn" onclick="switchSubject('语文',this)">语文</button>
+      <button class="glass-btn" onclick="switchSubject('数学',this)">数学</button>
+      <button class="glass-btn" onclick="switchSubject('英语',this)">英语</button>
+      <a href="user.html" class="ml-2"><div id="navAvatar" class="w-9 h-9 rounded-full bg-white/5 border border-white/10"></div></a>
+    </div>
+  </div>
+</nav>
+
+<!-- Legend -->
+<div class="glass-legend">
+  <p class="font-semibold text-white mb-2">图例</p>
+  <p><span class="legend-dot" style="background:#f5a623"></span>学科核心（金色大节点）</p>
+  <p><span class="legend-dot" style="background:#4fc3f7"></span>语文知识点</p>
+  <p><span class="legend-dot" style="background:#5b9bd5"></span>数学知识点</p>
+  <p><span class="legend-dot" style="background:#5ba87e"></span>英语知识点</p>
+</div>
+
+<!-- Float hint -->
+<div class="float-hint">点击节点查看思维导图 · 滚轮缩放 · 拖拽移动</div>
+
+<!-- Info Panel -->
+<div id="infoPanel">
+  <div class="panel-header">
+    <div class="flex justify-between items-start">
+      <div>
+        <h3 id="infoTitle" class="text-lg font-bold text-white mb-1"></h3>
+        <p id="infoSubject" class="text-xs text-slate-400"></p>
+      </div>
+      <button onclick="document.getElementById('infoPanel').classList.remove('show')" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition">&times;</button>
+    </div>
+  </div>
+  <div class="panel-body">
+    <p id="infoDesc" class="text-sm text-slate-300 leading-relaxed mb-4"></p>
+    <p id="infoRelated" class="text-xs text-slate-500 mb-5"></p>
+    
+    <!-- Mind Map -->
+    <div class="mind-map" id="mindMapArea">
+      <div class="mm-root" id="mmRoot"></div>
+      <div class="mm-branch" id="mmBranch"></div>
+    </div>
+  </div>
+  <div class="panel-footer" style="display:flex;flex-direction:column;gap:8px">
+    <button class="glow-btn glow-btn-primary" id="askAIBtn" onclick="askAI()">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+      还有不懂？向AI提问
+    </button>
+    <button class="glow-btn glow-btn-secondary" onclick="document.getElementById('infoPanel').classList.remove('show')">关闭</button>
+  </div>
+</div>
+
+<!-- Zoom controls -->
+<div style="position:fixed;bottom:24px;right:24px;z-index:100;display:flex;flex-direction:column;gap:8px">
+  <button onclick="zoomIn()" style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.12);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.18);color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s" onmouseover="this.style.background='rgba(51,133,255,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.12)'">+</button>
+  <button onclick="zoomOut()" style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.12);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.18);color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s" onmouseover="this.style.background='rgba(51,133,255,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.12)'">−</button>
+  <button onclick="resetView()" style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.12);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.18);color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s" onmouseover="this.style.background='rgba(51,133,255,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.12)'">⌂</button>
+</div>
+
+<!-- Graph canvas -->
+<canvas id="graphCanvas"></canvas>
+
+<script>
+/* === KNOWLEDGE DATA === */
+const KNOWLEDGE = {
+  '语文': [
+    {id:'yw1',name:'古诗词',desc:'唐诗宋词等古代诗歌作品的鉴赏与背诵',related:['yw2','yw3','yw7','yw9'],
+      mindmap:['诗歌体裁：绝句、律诗、词、曲','鉴赏方法：意象分析、情感把握、写作手法','重点作者：李白、杜甫、苏轼、辛弃疾','背诵技巧：理解意境、画面联想、反复诵读']},
+    {id:'yw2',name:'文言文',desc:'古代散文的阅读理解，包括虚词实词用法',related:['yw1','yw3','yw10'],
+      mindmap:['常见虚词：之、而、以、于、其、为','实词活用：名词作动词、形容词作名词','句式：判断句、省略句、倒装句、被动句','翻译方法：留、删、补、换、调']},
+    {id:'yw3',name:'修辞手法',desc:'比喻、拟人、夸张、排比、反问等修辞方法',related:['yw4','yw1','yw5'],
+      mindmap:['比喻：明喻、暗喻、借喻','拟人：赋予事物人的特征','夸张：扩大、缩小、超前夸张','排比：三个或以上结构相似的句子','反问：用疑问形式表达确定的意思']},
+    {id:'yw4',name:'阅读理解',desc:'现代文阅读的分析方法和答题技巧',related:['yw3','yw5','yw6','yw11'],
+      mindmap:['记叙文：六要素、中心思想、人物分析','说明文：说明方法、说明顺序、语言特点','议论文：论点、论据、论证方法','答题模板：总分总结构、关键词提取']},
+    {id:'yw5',name:'写作技巧',desc:'记叙文、议论文、说明文的写作方法',related:['yw4','yw3','yw12'],
+      mindmap:['开头方法：开门见山、设置悬念、引用名言','结构布局：总分总、并列式、递进式','语言润色：修辞运用、细节描写、感情表达','结尾技巧：总结升华、首尾呼应、留有余韵']},
+    {id:'yw6',name:'名著阅读',desc:'四大名著及中外经典文学作品赏析',related:['yw4','yw1','yw13'],
+      mindmap:['西游记：孙悟空、取经之路、反抗精神','三国演义：人物群像、历史智慧','水浒传：英雄好汉、社会矛盾','红楼梦：贾宝玉与林黛玉、封建社会缩影']},
+    {id:'yw7',name:'成语积累',desc:'常用成语的含义、出处与正确使用',related:['yw1','yw6','yw8'],
+      mindmap:['来源分类：历史故事、寓言故事、诗文典故','易错成语：望文生义、感情色彩误用','近义辨析：不以为然vs不以为意','积累方法：分类记忆、语境造句']},
+    {id:'yw8',name:'字词基础',desc:'汉字书写、拼音、多音字辨析',related:['yw7','yw2','yw14'],
+      mindmap:['易错字：形近字区分、易混笔顺','多音字：在不同语境中的读音变化','词语辨析：近义词和反义词的精确使用','标点符号：各类标点的正确使用场景']},
+    {id:'yw9',name:'古诗词鉴赏方法',desc:'从意象、情感、手法三维度鉴赏古诗词',related:['yw1','yw3'],
+      mindmap:['意象分析：月（思乡）、菊（隐逸）、梅（坚韧）','情感类型：思乡、爱国、离愁、壮志','表现手法：借景抒情、对比、烘托、用典','答题步骤：描画面、点手法、析情感']},
+    {id:'yw10',name:'文言文翻译',desc:'文言文直译与意译的规范方法',related:['yw2','yw8'],
+      mindmap:['直译为主：字字落实、句句对应','意译为辅：语义通顺为标准','特殊句式翻译：倒装恢复正序','易错词：古今异义、通假字']},
+    {id:'yw11',name:'说明文阅读',desc:'说明方法识别与说明语言分析',related:['yw4','yw3'],
+      mindmap:['说明方法：举例子、列数字、打比方、作比较','说明顺序：时间、空间、逻辑','语言特点：准确性、科学性','答题格式：方法+内容+效果']},
+    {id:'yw12',name:'议论文写作',desc:'论点、论据、论证的综合运用',related:['yw5','yw4'],
+      mindmap:['论点确立：旗帜鲜明、一句话表达','论据类型：事实论据、道理论据','论证方法：举例、对比、类比、引用','结构：提出—分析—解决问题']},
+    {id:'yw13',name:'现当代文学',desc:'五四以来现代文学作品赏析',related:['yw6','yw5'],
+      mindmap:['鲁迅作品：《朝花夕拾》《呐喊》','朱自清：《背影》《荷塘月色》','冰心：《繁星》《春水》','当代作家：莫言、余华代表作']},
+    {id:'yw14',name:'标点符号',desc:'各类标点符号的规范使用',related:['yw8','yw5'],
+      mindmap:['句号：陈述句结尾','问号：疑问句、反问句','感叹号：感叹、强烈语气','引号：引用、特殊含义、强调']},
+  ],
+  '数学': [
+    {id:'sx1',name:'代数运算',desc:'整数、分数、小数的四则运算与方程',related:['sx2','sx3','sx7','sx9'],
+      mindmap:['整数运算：加减乘除运算律','分数运算：通分、约分、混合运算','小数运算：对位计算、循环小数','运算律：交换律、结合律、分配律']},
+    {id:'sx2',name:'方程与不等式',desc:'一元一次/二次方程，不等式的解法',related:['sx1','sx3','sx10'],
+      mindmap:['一元一次方程：移项、合并同类项','一元二次方程：公式法、因式分解、配方法','不等式：不等号变向规则','应用题：设未知数、列方程、检验']},
+    {id:'sx3',name:'函数',desc:'一次函数、二次函数、反比例函数的图像与性质',related:['sx2','sx4','sx11'],
+      mindmap:['一次函数 y=kx+b：斜率、截距','二次函数 y=ax²+bx+c：开口方向、顶点、对称轴','反比例函数 y=k/x：双曲线、象限分布','图像变换：平移、对称、伸缩']},
+    {id:'sx4',name:'几何图形',desc:'三角形、四边形、圆的性质与面积计算',related:['sx5','sx3','sx6','sx12'],
+      mindmap:['三角形：内角和、相似、全等判定','四边形：平行四边形、矩形、菱形、正方形','圆：圆心角、弧、弦、切线','面积公式：各类图形面积计算']},
+    {id:'sx5',name:'空间几何',desc:'立体图形的表面积、体积计算',related:['sx4','sx6','sx13'],
+      mindmap:['长方体/正方体：表面积=2(ab+bc+ac)','圆柱：侧面积=2πrh，体积=πr²h','圆锥：体积=⅓πr²h','三视图：正视、侧视、俯视']},
+    {id:'sx6',name:'勾股定理',desc:'直角三角形三边关系及其应用',related:['sx4','sx5'],
+      mindmap:['定理：a²+b²=c²（c为斜边）','逆定理：判断是否为直角三角形','常见勾股数：3-4-5、5-12-13、8-15-17','应用：距离计算、建筑测量、坐标几何']},
+    {id:'sx7',name:'概率统计',desc:'数据分析、概率计算、统计图表',related:['sx1','sx8','sx14'],
+      mindmap:['平均数、中位数、众数','方差与标准差：数据波动程度','概率：古典概型、频率估计概率','统计图：条形图、折线图、扇形图、频率分布直方图']},
+    {id:'sx8',name:'数论基础',desc:'质数合数、最大公因数、最小公倍数',related:['sx1','sx7'],
+      mindmap:['质数：只能被1和自身整除的数','合数：除1和自身外还有其他因数','最大公因数(GCD)：辗转相除法','最小公倍数(LCM)：短除法']},
+    {id:'sx9',name:'有理数运算',desc:'正负数、绝对值、有理数的混合运算',related:['sx1','sx2'],
+      mindmap:['正负数：数轴上的方向','绝对值：到原点的距离，|a|≥0','有理数加减：同号相加、异号相减','有理数乘除：同号得正、异号得负']},
+    {id:'sx10',name:'因式分解',desc:'多项式因式分解的方法与技巧',related:['sx2','sx3'],
+      mindmap:['提公因式法：找最大公因式','公式法：平方差、完全平方','十字相乘法：二次三项式分解','分组分解法：四项以上多项式']},
+    {id:'sx11',name:'坐标系与图形',desc:'平面直角坐标系中图形的表示与变换',related:['sx3','sx4'],
+      mindmap:['坐标系：x轴、y轴、原点、四个象限','点的坐标：(x,y)的含义','图形平移：各点坐标统一加减','关于轴的对称：x轴对称y变负，y轴对称x变负']},
+    {id:'sx12',name:'相似与全等',desc:'三角形相似与全等的判定条件',related:['sx4','sx6'],
+      mindmap:['全等三角形：SSS、SAS、ASA、AAS、HL','相似三角形：AA、SAS、SSS','相似比：对应边之比','面积比：相似比的平方']},
+    {id:'sx13',name:'解析几何初步',desc:'直线方程与圆的方程',related:['sx5','sx3'],
+      mindmap:['直线斜截式：y=kx+b','点斜式：y-y₀=k(x-x₀)','两点式：(y-y₁)/(y₂-y₁)=(x-x₁)/(x₂-x₁)','圆的方程：(x-a)²+(y-b)²=r²']},
+    {id:'sx14',name:'组合计数',desc:'排列、组合、二项式定理',related:['sx7','sx8'],
+      mindmap:['加法原理：分类计数','乘法原理：分步计数','排列数A(n,m)=n!/(n-m)!','组合数C(n,m)=n!/(m!(n-m)!)']},
+  ],
+  '英语': [
+    {id:'yy1',name:'时态语法',desc:'一般现在时、过去时、进行时、完成时等',related:['yy2','yy3','yy8'],
+      mindmap:['一般现在时：主语+动词原形/三单','一般过去时：主语+动词过去式','现在进行时：am/is/are + doing','现在完成时：have/has + 过去分词','过去进行时：was/were + doing']},
+    {id:'yy2',name:'从句',desc:'定语从句、宾语从句、状语从句的用法',related:['yy1','yy3','yy9'],
+      mindmap:['定语从句：who/which/that引导，修饰名词','宾语从句：that/if/whether引导，做宾语','状语从句：when/because/if/although引导','注意：宾语从句用陈述语序']},
+    {id:'yy3',name:'词汇积累',desc:'核心词汇记忆、词根词缀、同义词辨析',related:['yy1','yy4','yy10'],
+      mindmap:['词根：port(搬运)、vis(看)、dict(说)','前缀：un-/dis-/re-/pre-','后缀：-tion/-ment/-ness/-able','记忆法：联想法、语境法、词根法']},
+    {id:'yy4',name:'阅读理解',desc:'英语文章的阅读策略与解题技巧',related:['yy3','yy5','yy11'],
+      mindmap:['略读：快速把握文章大意','精读：理解细节和推理判断','猜词：利用上下文推断词义','题型：主旨大意、细节理解、推理判断、词义猜测']},
+    {id:'yy5',name:'写作表达',desc:'英语作文的结构、句型与常用表达',related:['yy4','yy2','yy12'],
+      mindmap:['三段式：开头引入+主体论述+结尾总结','连接词：First/Moreover/However/In conclusion','高级句型：倒装句、强调句、非谓语','书信/通知/邀请函等应用文格式']},
+    {id:'yy6',name:'听力技巧',desc:'英语听力的练习方法与应试策略',related:['yy3','yy7'],
+      mindmap:['预读：提前浏览题目和选项','关键词：数字、时间、地点、人名','转折词：but/however/actually后面是重点','笔记法：速记关键信息']},
+    {id:'yy7',name:'口语交际',desc:'日常口语对话、发音技巧、口语表达',related:['yy6','yy3','yy13'],
+      mindmap:['发音规则：元音、辅音、重音、连读','日常对话：打招呼、问路、购物、看病','情境表达：表达观点、同意/反对、建议','练习方法：跟读模仿、情景对话、口语日记']},
+    {id:'yy8',name:'动词变形',desc:'动词的各种形式变化规则',related:['yy1','yy2'],
+      mindmap:['第三人称单数：规则+s/es，不规则变化','过去式：规则+ed，不规则变化表','现在分词：+ing（双写、去e）','过去分词：规则同过去式，不规则需记忆']},
+    {id:'yy9',name:'非谓语动词',desc:'不定式、动名词、分词的用法',related:['yy2','yy1'],
+      mindmap:['不定式(to do)：目的、主语、宾语','动名词(doing)：主语、宾语、介词后','现在分词(doing)：伴随、原因、结果','过去分词(done)：被动、完成含义']},
+    {id:'yy10',name:'介词与连词',desc:'常用介词和连词的搭配与用法',related:['yy3','yy2'],
+      mindmap:['时间介词：at/on/in的区别','地点介词：at/on/in/above/below','常用短语：look forward to/be used to','连词：并列(and/but/or)、从属(when/if/because)']},
+    {id:'yy11',name:'完形填空',desc:'完形填空的答题策略与技巧',related:['yy4','yy3'],
+      mindmap:['通读全文：了解文章主旨','逐题分析：结合上下文','词汇辨析：近义词区分','逻辑关系：转折、因果、递进']},
+    {id:'yy12',name:'翻译技巧',desc:'英汉互译的方法与常见句型',related:['yy5','yy2'],
+      mindmap:['直译为主：忠实原文','意译为辅：符合目的语习惯','长句处理：切分、重组、转换','固定表达：习语和固定搭配的处理']},
+    {id:'yy13',name:'英语文化背景',desc:'英语国家的文化、习俗与背景知识',related:['yy7','yy4'],
+      mindmap:['节假日：Christmas、Halloween、Thanksgiving','饮食文化：西餐礼仪、常见食物','地理文化：英美主要城市和地标','文学经典：Shakespeare、Dickens代表作']},
+  ],
+};
+
+const COLORS = {'语文':'#18b47d','数学':'#3385ff','英语':'#ff9f38'};
+// Hub = large gold; child nodes use per-subject palettes matching reference image
+const HUB_COLOR = '#f5a623';
+const SUBJECT_CHILD = {
+  '语文': {stroke:'#4fc3f7', fill:'#1a3a5c', text:'#a0d8ef'},
+  '数学': {stroke:'#5b9bd5', fill:'#1a2f4a', text:'#90c8ff'},
+  '英语': {stroke:'#5ba87e', fill:'#1a3530', text:'#90ddb0'},
+};
+let currentInfoNode = null;
+
+/* === PARTICLE SYSTEM === */
+let particles = [];
+const PARTICLE_COUNT = 80;
+
+function initParticles(w, h) {
+  particles = [];
+  for (var i = 0; i < PARTICLE_COUNT; i++) {
+    particles.push({
+      x: Math.random() * w, y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.25, vy: (Math.random() - 0.5) * 0.25,
+      r: Math.random() * 1.2 + 0.3, a: Math.random() * 0.18 + 0.04
+    });
+  }
+}
+
+function drawParticles(ctx, w, h) {
+  particles.forEach(function(p) {
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
+    if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(80,160,255,' + p.a + ')'; ctx.fill();
+  });
+  for (var i = 0; i < particles.length; i++) {
+    for (var j = i + 1; j < particles.length; j++) {
+      var dx=particles[i].x-particles[j].x, dy=particles[i].y-particles[j].y;
+      var dist=Math.sqrt(dx*dx+dy*dy);
+      if (dist < 100) {
+        ctx.beginPath(); ctx.moveTo(particles[i].x,particles[i].y); ctx.lineTo(particles[j].x,particles[j].y);
+        ctx.strokeStyle='rgba(80,160,255,'+(0.05*(1-dist/100))+')'; ctx.lineWidth=0.4; ctx.stroke();
+      }
+    }
+  }
+}
+
+/* === FORCE GRAPH === */
+let nodes = [], edges = [];
+let canvas, ctx, W, H;
+let pCanvas, pCtx;
+let offsetX = 0, offsetY = 0, scale = 1;
+let dragNode = null, panStart = null;
+let hoveredNode = null;
+// animation tick for pulsing
+let tick = 0;
+
+function buildGraph(subject) {
+  nodes = []; edges = [];
+  var subjects = subject === 'all' ? Object.keys(KNOWLEDGE) : [subject];
+
+  // Hub positions — spread wide to fill screen like reference
+  var cols = subjects.length;
+  var hubPos = {};
+  subjects.forEach(function(subj, i) {
+    var frac = cols === 1 ? 0.5 : (i / (cols - 1)) * 0.7 + 0.15;
+    hubPos[subj] = { x: W * frac, y: H * (0.35 + Math.sin(i * 1.2) * 0.08) };
+  });
+
+  subjects.forEach(function(subj) {
+    var hpos = hubPos[subj];
+    var sc = SUBJECT_CHILD[subj] || {stroke:'#5b9bd5',fill:'#1a2f4a',text:'#90c8ff'};
+
+    // Hub node
+    nodes.push({
+      id: 'hub_'+subj, name: subj, desc: subj+'核心知识体系',
+      subject: subj, isHub: true,
+      x: hpos.x + (Math.random()-0.5)*20,
+      y: hpos.y + (Math.random()-0.5)*20,
+      vx:0, vy:0, r: 48,
+      hubColor: HUB_COLOR, sc: sc, related:[], mindmap:[]
+    });
+
+    // Child nodes in orbit
+    var kids = KNOWLEDGE[subj];
+    kids.forEach(function(k, idx) {
+      var angle = (idx / kids.length) * Math.PI * 2 - Math.PI/2;
+      var dist = 160 + (idx % 3) * 30;
+      nodes.push({
+        id: k.id, name: k.name, desc: k.desc,
+        subject: subj, isHub: false,
+        x: hpos.x + Math.cos(angle)*dist + (Math.random()-0.5)*30,
+        y: hpos.y + Math.sin(angle)*dist + (Math.random()-0.5)*30,
+        vx:0, vy:0, r: 18,
+        sc: sc, related: k.related, mindmap: k.mindmap, hubId:'hub_'+subj
+      });
+      edges.push({a:'hub_'+subj, b:k.id, type:'hub'});
+    });
+  });
+
+  // Child-child related edges
+  nodes.forEach(function(n) {
+    if (n.isHub) return;
+    (n.related||[]).forEach(function(rid) {
+      var target = nodes.find(function(m){return m.id===rid;});
+      if (target && !edges.find(function(e){
+        return (e.a===n.id&&e.b===rid)||(e.a===rid&&e.b===n.id);
+      })) {
+        edges.push({a:n.id, b:rid, type:'related'});
+      }
+    });
+  });
+
+  // Cross-subject hub edges
+  var hubs = nodes.filter(function(n){return n.isHub;});
+  for (var i=0;i<hubs.length-1;i++) {
+    edges.push({a:hubs[i].id, b:hubs[i+1].id, type:'cross'});
+  }
+  if (hubs.length>2) edges.push({a:hubs[0].id, b:hubs[hubs.length-1].id, type:'cross'});
+
+  // Extra cross-subject child connections (make graph denser)
+  if (subjects.length > 1) {
+    var pairs = [
+      ['yw4','yy4'],['yw5','yy5'],['yw3','yy2'],['sx7','yw4'],
+      ['sx3','sx4'],['yy1','yy2'],['yw1','yw9'],['sx13','sx11'],
+      ['yy4','yy11'],['yw5','yw12'],['sx7','sx14']
+    ];
+    pairs.forEach(function(p) {
+      var na=nodes.find(function(n){return n.id===p[0];});
+      var nb=nodes.find(function(n){return n.id===p[1];});
+      if (na && nb && !edges.find(function(e){
+        return (e.a===p[0]&&e.b===p[1])||(e.a===p[1]&&e.b===p[0]);
+      })) {
+        edges.push({a:p[0], b:p[1], type:'cross'});
+      }
+    });
+  }
+}
+
+function simulate() {
+  tick++;
+  // Repulsion between all nodes
+  for (var i=0;i<nodes.length;i++) {
+    for (var j=i+1;j<nodes.length;j++) {
+      var dx=nodes[j].x-nodes[i].x, dy=nodes[j].y-nodes[i].y;
+      var dist=Math.sqrt(dx*dx+dy*dy)||1;
+      var minD=nodes[i].r+nodes[j].r+35;
+      if (dist < minD*2.5) {
+        var f=6000/(dist*dist);
+        var fx=dx/dist*f, fy=dy/dist*f;
+        nodes[i].vx-=fx; nodes[i].vy-=fy;
+        nodes[j].vx+=fx; nodes[j].vy+=fy;
+      }
+    }
+  }
+  // Spring forces along edges
+  edges.forEach(function(e) {
+    var a=nodes.find(function(n){return n.id===e.a;});
+    var b=nodes.find(function(n){return n.id===e.b;});
+    if(!a||!b) return;
+    var dx=b.x-a.x, dy=b.y-a.y, dist=Math.sqrt(dx*dx+dy*dy)||1;
+    var ideal = e.type==='hub' ? (a.r+b.r+80)
+               : e.type==='cross' ? (a.r+b.r+120)
+               : (a.r+b.r+70);
+    var f=(dist-ideal)*0.022;
+    a.vx+=dx/dist*f; a.vy+=dy/dist*f;
+    b.vx-=dx/dist*f; b.vy-=dy/dist*f;
+  });
+  // Gravity toward center
+  nodes.forEach(function(n) {
+    if (n.isHub) { n.vx*=0.72; n.vy*=0.72; }
+    else {
+      n.vx+=(W/2-n.x)*0.0004;
+      n.vy+=(H/2-n.y)*0.0004;
+    }
+    if(n!==dragNode){ n.x+=n.vx*0.28; n.y+=n.vy*0.28; }
+    n.vx*=0.84; n.vy*=0.84;
+    // Clamp to canvas bounds with padding
+    var pad=n.r+60;
+    if(n.x<pad)n.x=pad; if(n.x>W-pad)n.x=W-pad;
+    if(n.y<pad+64)n.y=pad+64; if(n.y>H-pad)n.y=H-pad;
+  });
+}
+
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  pCtx.clearRect(0,0,W,H);
+  drawParticles(pCtx,W,H);
+
+  ctx.save();
+  ctx.translate(offsetX,offsetY);
+  ctx.scale(scale,scale);
+
+  // ── Draw edges first ──
+  edges.forEach(function(e) {
+    var a=nodes.find(function(n){return n.id===e.a;});
+    var b=nodes.find(function(n){return n.id===e.b;});
+    if(!a||!b) return;
+    var hov=(hoveredNode===a||hoveredNode===b);
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+    if (e.type==='hub') {
+      ctx.strokeStyle = hov ? 'rgba(245,166,35,0.7)' : 'rgba(245,166,35,0.25)';
+      ctx.lineWidth = hov ? 2 : 1;
+      ctx.setLineDash([]);
+    } else if (e.type==='cross') {
+      ctx.strokeStyle = hov ? 'rgba(148,163,184,0.5)' : 'rgba(148,163,184,0.12)';
+      ctx.lineWidth = hov ? 1.5 : 0.8;
+      ctx.setLineDash([8,8]);
+    } else {
+      var sc=a.sc||{stroke:'#5b9bd5'};
+      ctx.strokeStyle = hov ? sc.stroke+'cc' : sc.stroke+'55';
+      ctx.lineWidth = hov ? 1.5 : 0.9;
+      ctx.setLineDash([4,5]);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // ── Draw nodes ──
+  nodes.forEach(function(n) {
+    var hov=(hoveredNode===n);
+    var pulse = Math.sin(tick*0.04)*0.5+0.5; // 0..1 oscillating
+
+    if (n.isHub) {
+      // ── LARGE GOLDEN HUB (like reference image) ──
+      var r=n.r;
+      // Outer ring pulse
+      ctx.beginPath(); ctx.arc(n.x,n.y,r+16+pulse*4,0,Math.PI*2);
+      ctx.strokeStyle='rgba(245,166,35,'+(0.15+pulse*0.1)+')';
+      ctx.lineWidth=1.5; ctx.stroke();
+      // Second ring
+      ctx.beginPath(); ctx.arc(n.x,n.y,r+8,0,Math.PI*2);
+      ctx.strokeStyle='rgba(245,166,35,0.35)'; ctx.lineWidth=1; ctx.stroke();
+      // Glow halo
+      var grd=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,r+40);
+      grd.addColorStop(0,'rgba(245,166,35,0.35)'); grd.addColorStop(1,'rgba(245,166,35,0)');
+      ctx.beginPath(); ctx.arc(n.x,n.y,r+40,0,Math.PI*2);
+      ctx.fillStyle=grd; ctx.fill();
+      // Body
+      ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2);
+      var bg=ctx.createRadialGradient(n.x-r*.3,n.y-r*.3,0,n.x,n.y,r);
+      bg.addColorStop(0,'#fff8e1'); bg.addColorStop(0.35,HUB_COLOR); bg.addColorStop(1,'#b45309');
+      ctx.fillStyle=bg; ctx.fill();
+      // Border
+      ctx.strokeStyle=hov?'#fff':'rgba(255,220,100,0.9)'; ctx.lineWidth=hov?3:2; ctx.stroke();
+      // Inner highlight
+      ctx.beginPath(); ctx.arc(n.x-r*.25,n.y-r*.28,r*.22,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,255,255,0.28)'; ctx.fill();
+      // Label — center of node
+      ctx.fillStyle='#fff';
+      ctx.font='bold 14px "Noto Sans SC",sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(n.name, n.x, n.y);
+
+    } else {
+      // ── SMALL CHILD NODE (blue, like reference) ──
+      var sc=n.sc||{stroke:'#5b9bd5',fill:'#1a2f4a',text:'#90c8ff'};
+      var r=n.r;
+      // Hover glow
+      if (hov) {
+        var hgrd=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,r+22);
+        hgrd.addColorStop(0,sc.stroke+'88'); hgrd.addColorStop(1,sc.stroke+'00');
+        ctx.beginPath(); ctx.arc(n.x,n.y,r+22,0,Math.PI*2);
+        ctx.fillStyle=hgrd; ctx.fill();
+      }
+      // Body fill — dark navy with colored border (like reference)
+      ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2);
+      var nbg=ctx.createRadialGradient(n.x-r*.3,n.y-r*.3,0,n.x,n.y,r);
+      nbg.addColorStop(0,'rgba(255,255,255,0.18)');
+      nbg.addColorStop(0.4,sc.fill);
+      nbg.addColorStop(1,'rgba(10,20,40,0.9)');
+      ctx.fillStyle=nbg; ctx.fill();
+      // Border — bright colored
+      ctx.strokeStyle=hov?'#fff':sc.stroke+'dd'; ctx.lineWidth=hov?2:1.2; ctx.stroke();
+      // Inner glow dot
+      ctx.beginPath(); ctx.arc(n.x-r*.3,n.y-r*.3,r*.2,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,255,255,0.32)'; ctx.fill();
+      // Label OUTSIDE node (below, like reference image)
+      ctx.fillStyle=hov?'#ffffff':sc.text;
+      var fs=n.name.length>5?'10px':'11px';
+      ctx.font=(hov?'bold ':'')+fs+' "Noto Sans SC",sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='top';
+      // Short label inside circle, full name below
+      var shortLabel=n.name.length>4?n.name.slice(0,4):n.name;
+      ctx.fillStyle='rgba(255,255,255,0.9)';
+      ctx.font='bold 9px "Noto Sans SC",sans-serif';
+      ctx.textBaseline='middle';
+      ctx.fillText(shortLabel, n.x, n.y);
+      // Full label below node
+      ctx.fillStyle=hov?'#ffffff':sc.text;
+      ctx.font=(hov?'bold ':'')+fs+' "Noto Sans SC",sans-serif';
+      ctx.textBaseline='top';
+      var fullLabel=n.name.length>8?n.name.slice(0,7)+'…':n.name;
+      ctx.shadowColor=sc.stroke; ctx.shadowBlur=4;
+      ctx.fillText(fullLabel, n.x, n.y+r+4);
+      ctx.shadowBlur=0;
+    }
+  });
+
+  ctx.restore();
+}
+
+function loop(){simulate();draw();requestAnimationFrame(loop);}
+
+function switchSubject(subj,btn){
+  document.querySelectorAll('.glass-btn').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  buildGraph(subj);
+}
+
+function getNodeAt(mx,my){
+  var x=(mx-offsetX)/scale, y=(my-offsetY)/scale;
+  for(var i=nodes.length-1;i>=0;i--){
+    var n=nodes[i], dx=x-n.x, dy=y-n.y;
+    if(dx*dx+dy*dy<=n.r*n.r) return n;
+  }
+  return null;
+}
+
+function showInfo(node){
+  currentInfoNode = node;
+  document.getElementById('infoTitle').textContent=node.name;
+  document.getElementById('infoSubject').textContent=node.subject+' · 知识点';
+  document.getElementById('infoDesc').textContent=node.desc;
+  var related=(node.related||[]).map(function(rid){var n=nodes.find(function(m){return m.id===rid});return n?n.name:''}).filter(Boolean);
+  document.getElementById('infoRelated').textContent='关联知识点：'+(related.join('、')||'无');
+  
+  // Build mind map
+  document.getElementById('mmRoot').textContent=node.name+' 思维导图';
+  var branch=document.getElementById('mmBranch');
+  branch.innerHTML='';
+  var dotColor = COLORS[node.subject] || '#3385ff';
+  (node.mindmap||[]).forEach(function(item){
+    var div=document.createElement('div');
+    div.className='mm-item';
+    div.innerHTML='<span class="mm-dot" style="background:'+dotColor+'"></span>'+item;
+    branch.appendChild(div);
+  });
+  
+  document.getElementById('infoPanel').classList.add('show');
+}
+
+function askAI(){
+  if(!currentInfoNode) return;
+  var q = '请详细讲解'+currentInfoNode.subject+'中的「'+currentInfoNode.name+'」知识点，包括核心概念、重要公式和解题技巧';
+  window.location.href = 'ai-module.html?prompt='+encodeURIComponent(q);
+}
+
+let _pinchDist=null,_pinchScale=1;
+function zoomIn(){scale=Math.min(4,scale*1.2);}
+function zoomOut(){scale=Math.max(0.2,scale/1.2);}
+function resetView(){scale=1;offsetX=0;offsetY=0;}
+
+// Init
+window.addEventListener('load',function(){
+  canvas=document.getElementById('graphCanvas');
+  ctx=canvas.getContext('2d');
+  pCanvas=document.getElementById('particleCanvas');
+  pCtx=pCanvas.getContext('2d');
+  W=canvas.width=pCanvas.width=window.innerWidth;
+  H=canvas.height=pCanvas.height=window.innerHeight;
+  
+  initParticles(W,H);
+  buildGraph('all');
+  loop();
+  
+  var _dragged=false;
+  canvas.addEventListener('mousedown',function(e){
+    var n=getNodeAt(e.clientX,e.clientY);
+    if(n){dragNode=n;_dragged=false;}
+    else{panStart={x:e.clientX-offsetX,y:e.clientY-offsetY};}
+  });
+  canvas.addEventListener('mousemove',function(e){
+    hoveredNode=getNodeAt(e.clientX,e.clientY);
+    canvas.style.cursor=hoveredNode?'pointer':(panStart?'grabbing':'grab');
+    if(dragNode){
+      dragNode.x=(e.clientX-offsetX)/scale;
+      dragNode.y=(e.clientY-offsetY)/scale;
+      _dragged=true;
+    }
+    if(panStart){offsetX=e.clientX-panStart.x;offsetY=e.clientY-panStart.y;}
+  });
+  canvas.addEventListener('mouseup',function(e){
+    if(dragNode&&!_dragged){var n=getNodeAt(e.clientX,e.clientY);if(n)showInfo(n);}
+    if(!dragNode&&!panStart){var n2=getNodeAt(e.clientX,e.clientY);if(n2)showInfo(n2);}
+    dragNode=null;panStart=null;
+  });
+  canvas.addEventListener('wheel',function(e){
+    e.preventDefault();
+    scale*=e.deltaY>0?0.92:1.08;
+    scale=Math.max(0.3,Math.min(3,scale));
+  });
+  canvas.addEventListener('touchstart',function(e){
+    if(e.touches.length===2){
+      _pinchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+      _pinchScale=scale;
+      return;
+    }
+    var t=e.touches[0];var n=getNodeAt(t.clientX,t.clientY);
+    if(n){dragNode=n;showInfo(n);}
+    else{panStart={x:t.clientX-offsetX,y:t.clientY-offsetY};}
+  });
+  canvas.addEventListener('touchmove',function(e){
+    e.preventDefault();
+    if(e.touches.length===2&&_pinchDist){
+      var dist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+      scale=Math.max(0.2,Math.min(4,_pinchScale*(dist/_pinchDist)));
+      return;
+    }
+    if(dragNode&&e.touches[0]){
+      dragNode.x=(e.touches[0].clientX-offsetX)/scale;
+      dragNode.y=(e.touches[0].clientY-offsetY)/scale;
+    }
+    if(panStart&&e.touches[0]){offsetX=e.touches[0].clientX-panStart.x;offsetY=e.touches[0].clientY-panStart.y;}
+  },{passive:false});
+  canvas.addEventListener('touchend',function(){dragNode=null;panStart=null;_pinchDist=null;});
+  window.addEventListener('resize',function(){
+    W=canvas.width=pCanvas.width=window.innerWidth;
+    H=canvas.height=pCanvas.height=window.innerHeight;
+    initParticles(W,H);
+  });
+});
+</script>
+<script>
+/* ── Navbar 头像同步（通用版，支持全部三种头像类型） ── */
+(function syncNav(){
+  try {
+    var u = JSON.parse(localStorage.getItem('zhibanUser') || '{}');
+    var av = document.getElementById('navAvatar');
+    var nm = document.getElementById('navUserName');
+    if (!av) return;
+    if (u.customAvatar) {
+      av.innerHTML = '<img src="' + u.customAvatar + '" style="width:36px;height:36px;object-fit:cover;border-radius:50%">';
+    } else if (u.premiumAvatar && window.PREMIUM_AVATARS) {
+      var pa = window.PREMIUM_AVATARS.find(function(a){return a.id===u.premiumAvatar;});
+      if (pa) av.innerHTML = pa.svg(36);
+    } else {
+      var colors = ['#fff7ed','#fce7f3','#fef3c7','#e0e7ff','#ecfdf5','#dbeafe'];
+      var animalPaths = [
+        '<circle cx="32" cy="36" r="20" fill="#fb923c"/><circle cx="32" cy="38" r="14" fill="#fff"/><polygon points="16,22 12,6 24,18" fill="#fb923c"/><polygon points="48,22 52,6 40,18" fill="#fb923c"/><circle cx="25" cy="34" r="2.8" fill="#1e293b"/><circle cx="39" cy="34" r="2.8" fill="#1e293b"/><ellipse cx="32" cy="39" rx="2.5" ry="2" fill="#1e293b"/>',
+        '<circle cx="32" cy="40" r="18" fill="#fef9c3"/><ellipse cx="25" cy="14" rx="5" ry="14" fill="#fef9c3"/><ellipse cx="39" cy="14" rx="5" ry="14" fill="#fef9c3"/><circle cx="26" cy="37" r="2.5" fill="#1e293b"/><circle cx="38" cy="37" r="2.5" fill="#1e293b"/><ellipse cx="32" cy="42" rx="2" ry="1.5" fill="#fda4af"/>',
+        '<circle cx="32" cy="36" r="20" fill="#d4a574"/><circle cx="20" cy="20" r="7" fill="#d4a574"/><circle cx="44" cy="20" r="7" fill="#d4a574"/><circle cx="20" cy="20" r="4" fill="#f5deb3"/><circle cx="44" cy="20" r="4" fill="#f5deb3"/><circle cx="26" cy="34" r="2.8" fill="#1e293b"/><circle cx="38" cy="34" r="2.8" fill="#1e293b"/>',
+        '<ellipse cx="32" cy="36" rx="18" ry="22" fill="#334155"/><ellipse cx="32" cy="40" rx="12" ry="14" fill="#fff"/><circle cx="25" cy="30" r="1.8" fill="#1e293b"/><circle cx="39" cy="30" r="1.8" fill="#1e293b"/><polygon points="32,35 28,39 36,39" fill="#fbbf24"/>',
+        '<circle cx="32" cy="38" r="19" fill="#86efac"/><circle cx="22" cy="22" r="9" fill="#86efac"/><circle cx="42" cy="22" r="9" fill="#86efac"/><circle cx="22" cy="22" r="5" fill="#fff"/><circle cx="42" cy="22" r="5" fill="#fff"/><circle cx="22" cy="22" r="2.5" fill="#1e293b"/><circle cx="42" cy="22" r="2.5" fill="#1e293b"/>',
+        '<circle cx="32" cy="38" r="19" fill="#94a3b8"/><circle cx="32" cy="40" r="13" fill="#e2e8f0"/><polygon points="16,24 12,6 24,22" fill="#94a3b8"/><polygon points="48,24 52,6 40,22" fill="#94a3b8"/><circle cx="25" cy="35" r="2.5" fill="#1e293b"/><circle cx="39" cy="35" r="2.5" fill="#1e293b"/>'
+      ];
+      var idx = (u.avatarIndex || 0) % colors.length;
+      av.innerHTML = '<svg viewBox="0 0 64 64" width="36" height="36" xmlns="http://www.w3.org/2000/svg" style="border-radius:50%"><rect width="64" height="64" rx="32" fill="' + colors[idx] + '"/>' + animalPaths[idx] + '</svg>';
+    }
+    if (nm && u.userName) nm.textContent = u.userName;
+  } catch(e) {}
+})();
+// 监听页面切换和storage变化，实时同步
+window.addEventListener('focus', function(){ try{ document.querySelector('[data-nav-sync]') && document.querySelector('[data-nav-sync]').dispatchEvent(new Event('sync')); } catch(e){} });
+window.addEventListener('pageshow', function(){
+  try {
+    var u = JSON.parse(localStorage.getItem('zhibanUser') || '{}');
+    var av = document.getElementById('navAvatar');
+    if (!av || !u.customAvatar) return;
+    av.innerHTML = '<img src="' + u.customAvatar + '" style="width:36px;height:36px;object-fit:cover;border-radius:50%">';
+  } catch(e) {}
+});
+window.addEventListener('storage', function(e){
+  if (e.key === 'zhibanUser') {
+    try {
+      var u = JSON.parse(e.newValue || '{}');
+      var av = document.getElementById('navAvatar');
+      var nm = document.getElementById('navUserName');
+      if (!av) return;
+      if (u.customAvatar) {
+        av.innerHTML = '<img src="' + u.customAvatar + '" style="width:36px;height:36px;object-fit:cover;border-radius:50%">';
+      }
+      if (nm && u.userName) nm.textContent = u.userName;
+    } catch(e) {}
+  }
+});
+</script>
+</body>
+</html>

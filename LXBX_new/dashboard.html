@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- 防缓存:确保用户总是拿到最新版本 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>学情分析仪表盘 — 灵犀伴学</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{ocean:{50:'#eef6ff',100:'#d9ecff',200:'#bcdeff',300:'#8ec9ff',400:'#59a9ff',500:'#3385ff',600:'#1a65f5',700:'#1450e1',800:'#1741b6',900:'#19398f',950:'#142557'},mint:{50:'#edfcf5',100:'#d3f8e6',200:'#aaf0d1',300:'#73e2b5',400:'#3acd95',500:'#18b47d',600:'#0f9165',700:'#0e7453'},warm:{50:'#fff8ed',100:'#fff0d4',200:'#ffdda8',300:'#ffc371',400:'#ff9f38',500:'#ff8211',600:'#f06807',700:'#c74e08'}},fontFamily:{display:['"Noto Serif SC"','serif'],body:['"Noto Sans SC"','sans-serif']}}}};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="supabase-sync.js"></script>
+<script>
+/* ── Navbar 头像同步 ── */
+(function _syncNav(){
+  try {
+    var u = JSON.parse(localStorage.getItem('zhibanUser') || '{}');
+    var av = document.getElementById('navAvatar');
+    var nm = document.getElementById('navUserName');
+    if (!av) return;
+    if (u.customAvatar) {
+      av.innerHTML = '<img src="' + u.customAvatar + '" style="width:36px;height:36px;object-fit:cover;border-radius:50%">';
+    } else {
+      var colors = ['#fff7ed','#fce7f3','#fef3c7','#e0e7ff','#ecfdf5','#dbeafe'];
+      var animals = [
+        '<circle cx="32" cy="36" r="20" fill="#fb923c"/><circle cx="32" cy="38" r="14" fill="#fff"/><polygon points="16,22 12,6 24,18" fill="#fb923c"/><polygon points="48,22 52,6 40,18" fill="#fb923c"/><circle cx="25" cy="34" r="2.8" fill="#1e293b"/><circle cx="39" cy="34" r="2.8" fill="#1e293b"/><ellipse cx="32" cy="39" rx="2.5" ry="2" fill="#1e293b"/>',
+        '<circle cx="32" cy="40" r="18" fill="#fef9c3"/><ellipse cx="25" cy="14" rx="5" ry="14" fill="#fef9c3" stroke="#fde047" stroke-width=".5"/><ellipse cx="39" cy="14" rx="5" ry="14" fill="#fef9c3" stroke="#fde047" stroke-width=".5"/><circle cx="26" cy="37" r="2.5" fill="#1e293b"/><circle cx="38" cy="37" r="2.5" fill="#1e293b"/><ellipse cx="32" cy="42" rx="2" ry="1.5" fill="#fda4af"/>',
+        '<circle cx="32" cy="36" r="20" fill="#d4a574"/><circle cx="20" cy="20" r="7" fill="#d4a574"/><circle cx="44" cy="20" r="7" fill="#d4a574"/><circle cx="20" cy="20" r="4" fill="#f5deb3"/><circle cx="44" cy="20" r="4" fill="#f5deb3"/><circle cx="32" cy="40" r="10" fill="#f5deb3"/><circle cx="26" cy="34" r="2.8" fill="#1e293b"/><circle cx="38" cy="34" r="2.8" fill="#1e293b"/>',
+        '<ellipse cx="32" cy="36" rx="18" ry="22" fill="#334155"/><ellipse cx="32" cy="40" rx="12" ry="14" fill="#fff"/><circle cx="25" cy="30" r="3.5" fill="#fff"/><circle cx="39" cy="30" r="3.5" fill="#fff"/><circle cx="25" cy="30" r="1.8" fill="#1e293b"/><circle cx="39" cy="30" r="1.8" fill="#1e293b"/><polygon points="32,35 28,39 36,39" fill="#fbbf24"/>',
+        '<circle cx="32" cy="38" r="19" fill="#86efac"/><circle cx="22" cy="22" r="9" fill="#86efac"/><circle cx="42" cy="22" r="9" fill="#86efac"/><circle cx="22" cy="22" r="5" fill="#fff"/><circle cx="42" cy="22" r="5" fill="#fff"/><circle cx="22" cy="22" r="2.5" fill="#1e293b"/><circle cx="42" cy="22" r="2.5" fill="#1e293b"/>',
+        '<circle cx="32" cy="38" r="19" fill="#94a3b8"/><circle cx="32" cy="40" r="13" fill="#e2e8f0"/><polygon points="16,24 12,6 24,22" fill="#94a3b8"/><polygon points="48,24 52,6 40,22" fill="#94a3b8"/><circle cx="25" cy="35" r="2.5" fill="#1e293b"/><circle cx="39" cy="35" r="2.5" fill="#1e293b"/><ellipse cx="32" cy="40" rx="2" ry="1.5" fill="#fda4af"/>'
+      ];
+      var idx = u.avatarIndex || 0;
+      var bg = colors[idx % colors.length];
+      var body = animals[idx % animals.length];
+      av.innerHTML = '<svg viewBox="0 0 64 64" width="36" height="36" xmlns="http://www.w3.org/2000/svg" style="border-radius:50%"><rect width="64" height="64" rx="32" fill="' + bg + '"/>' + body + '</svg>';
+    }
+    if (nm && u.userName) nm.textContent = u.userName;
+  } catch(e) {}
+})();
+</script>
+<script src="ai-character.js"></script>
+<style>
+:root {
+  --nav-h: 64px;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Noto Sans SC',sans-serif;color:#1e293b;background:#f8faff;overflow-x:hidden;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse 80% 50% at 20% 10%,rgba(51,133,255,.06) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 80%,rgba(24,180,125,.05) 0%,transparent 60%)}
+#navbar{background:rgba(255,255,255,.82);backdrop-filter:blur(16px) saturate(1.4);box-shadow:0 1px 24px rgba(20,37,87,.07)}
+#mobileMenu{transition:max-height .35s ease,opacity .3s;max-height:0;opacity:0;overflow:hidden}
+#mobileMenu.open{max-height:400px;opacity:1}
+.avatar-svg{border-radius:50%}
+
+.page-header {
+  text-align: center;
+  padding: 32px 0 24px;
+}
+.page-header h1 {
+  font-family: 'Noto Serif SC', serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+.page-header p {
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* Stat cards */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(20,37,87,.06);
+  border: 1px solid rgba(51,133,255,.06);
+  position: relative;
+  overflow: hidden;
+  transition: transform .25s, box-shadow .25s;
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px rgba(51,133,255,.12);
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  border-radius: 16px 16px 0 0;
+}
+.stat-card:nth-child(1)::before { background: linear-gradient(90deg, #3385ff, #59a9ff); }
+.stat-card:nth-child(2)::before { background: linear-gradient(90deg, #18b47d, #3acd95); }
+.stat-card:nth-child(3)::before { background: linear-gradient(90deg, #ff9f38, #ffc371); }
+.stat-card:nth-child(4)::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+
+.stat-icon {
+  width: 42px; height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 12px;
+}
+.stat-number {
+  font-size: 28px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.stat-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+.stat-change {
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.stat-change.up { background: #edfcf5; color: #0f9165; }
+.stat-change.down { background: #fff8ed; color: #c74e08; }
+
+/* Chart panels */
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.chart-panel {
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 4px 20px rgba(20,37,87,.06);
+  border: 1px solid rgba(51,133,255,.06);
+}
+.chart-panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.chart-panel-title svg {
+  width: 18px; height: 18px;
+  color: #3385ff;
+}
+
+/* Full width panel */
+.full-panel {
+  grid-column: 1 / -1;
+}
+
+/* Weak points */
+.weak-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.weak-item {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(51,133,255,.08);
+  background: #f8faff;
+  transition: all .2s;
+}
+.weak-item:hover {
+  border-color: #3385ff;
+  box-shadow: 0 0 0 2px rgba(51,133,255,.08);
+}
+.weak-subject {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+.weak-topic {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+.weak-score {
+  font-size: 11px;
+  color: #64748b;
+}
+.weak-bar {
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 99px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+.weak-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 1s cubic-bezier(.4,0,.2,1);
+}
+
+/* Activity heatmap */
+.heatmap-row {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 3px;
+}
+.heatmap-cell {
+  width: 14px; height: 14px;
+  border-radius: 3px;
+  background: #eef6ff;
+  transition: all .2s;
+  cursor: default;
+}
+.heatmap-cell:hover {
+  transform: scale(1.3);
+  box-shadow: 0 2px 8px rgba(51,133,255,.2);
+}
+.heatmap-cell.l1 { background: #bcdeff; }
+.heatmap-cell.l2 { background: #59a9ff; }
+.heatmap-cell.l3 { background: #3385ff; }
+.heatmap-cell.l4 { background: #1450e1; }
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 10px;
+  color: #94a3b8;
+}
+.heatmap-legend span {
+  width: 10px; height: 10px;
+  border-radius: 2px;
+}
+
+/* Recent sessions */
+.session-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  transition: background .2s;
+  cursor: pointer;
+}
+.session-item:hover { background: #f0f5ff; }
+.session-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+.session-info { flex: 1; min-width: 0; }
+.session-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.session-meta {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+.session-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: #3385ff;
+  background: #eef6ff;
+  padding: 2px 10px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+
+/* AI advice box */
+.ai-advice {
+  background: linear-gradient(135deg, rgba(51,133,255,.04), rgba(24,180,125,.04));
+  border: 1px solid rgba(51,133,255,.1);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-top: 16px;
+}
+.ai-advice-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3385ff;
+  margin-bottom: 10px;
+}
+.ai-advice-text {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.75;
+}
+.ai-advice-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 8px 20px;
+  background: linear-gradient(135deg, #3385ff, #1450e1);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .25s;
+  font-family: inherit;
+}
+.ai-advice-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(51,133,255,.3);
+}
+
+/* Animations */
+@keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+.fade-up { animation: fadeUp .5s ease both; }
+.fd1 { animation-delay: .05s; }
+.fd2 { animation-delay: .1s; }
+.fd3 { animation-delay: .15s; }
+.fd4 { animation-delay: .2s; }
+.fd5 { animation-delay: .25s; }
+.fd6 { animation-delay: .3s; }
+
+@media (max-width: 768px) {
+  .stat-row { grid-template-columns: repeat(2, 1fr); }
+  .chart-grid { grid-template-columns: 1fr; }
+  .weak-grid { grid-template-columns: 1fr; }
+  .page-header h1 { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════ NAVBAR ══════════ -->
+<nav id="navbar" class="fixed top-0 left-0 w-full z-50" style="height:var(--nav-h)">
+  <div class="max-w-7xl mx-auto flex items-center justify-between px-5 md:px-8 h-full">
+    <a href="home.html" class="flex items-center gap-2 text-ocean-700 font-bold text-lg select-none">
+      <svg class="w-8 h-8" viewBox="0 0 40 40" fill="none"><defs><linearGradient id="lxGdb" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3385ff"/><stop offset="100%" stop-color="#18b47d"/></linearGradient></defs><circle cx="20" cy="20" r="19" fill="url(#lxGdb)" opacity=".12"/><circle cx="20" cy="20" r="19" stroke="url(#lxGdb)" stroke-width="1.5"/><path d="M12 26c0-4 2-7 5-9l1-3c0-1 1-1.5 2-1.5s1.5.8 1.5 1.5l-.5 2c2-1 4-1 5.5 0l1.5-1c.5-.5 1.2-.3 1.5.2s.1 1.2-.4 1.5L27 18c1 1.5 1.5 3.5 1 5.5-.5 2-2 3-4 3.5H16c-2-.5-3.5-2-4-4z" fill="url(#lxGdb)" opacity=".85"/><circle cx="23" cy="19" r="1.3" fill="white"/></svg>
+      <span class="hidden sm:inline" style="font-family:'Noto Serif SC',serif">灵犀伴学</span>
+    </a>
+    <ul class="hidden md:flex items-center gap-1 text-sm font-medium">
+      <li><a href="home.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">首页</a></li>
+      <li><a href="ai-module.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">AI 伴学</a></li>
+      <li><a href="user.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">用户中心</a></li>
+      <li><a href="dashboard.html" class="px-4 py-2 rounded-lg text-ocean-600 bg-ocean-50 font-semibold transition">学情分析</a></li>
+    
+      <li><a href="profile.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习画像</a></li>
+      <li><a href="goals.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习目标</a></li>
+    </ul>
+    <div class="flex items-center gap-3">
+      <a href="user.html" class="flex items-center gap-2 hover:opacity-80 transition">
+        <div id="navAvatar" class="w-9 h-9 rounded-full bg-ocean-100 flex items-center justify-center overflow-hidden"></div>
+        <span id="navUserName" class="hidden sm:inline text-sm font-medium text-ocean-700"></span>
+      </a>
+      <button onclick="document.getElementById('mobileMenu').classList.toggle('open')" class="md:hidden w-9 h-9 rounded-lg flex items-center justify-center hover:bg-ocean-50 transition">
+        <svg class="w-5 h-5 text-ocean-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="mobileMenu" class="md:hidden bg-white/95 backdrop-blur-md border-t border-ocean-100">
+    <ul class="flex flex-col py-2 px-5 text-sm font-medium">
+      <li><a href="home.html" class="block py-3 text-ocean-800">首页</a></li>
+      <li><a href="ai-module.html" class="block py-3 text-ocean-800">AI 伴学</a></li>
+      <li><a href="user.html" class="block py-3 text-ocean-800">用户中心</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ══════════ MAIN CONTENT ══════════ -->
+<main class="pt-20 pb-16 px-4 md:px-8 max-w-6xl mx-auto">
+
+  <!-- Header -->
+  <div class="page-header fade-up">
+    <h1>学情分析仪表盘</h1>
+    <p>基于 AI 多智能体实时分析的个性化学习数据报告</p>
+  </div>
+
+  <!-- Stat Cards -->
+  <div class="stat-row fade-up fd1">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#eef6ff">
+        <svg style="width:20px;height:20px;color:#3385ff" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg>
+      </div>
+      <div class="stat-number" style="color:#3385ff" id="statSessions">0</div>
+      <div class="stat-label">总对话数</div>
+      <div class="stat-change up" id="statSessionsChange">↑ 本周活跃</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#edfcf5">
+        <svg style="width:20px;height:20px;color:#18b47d" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"/></svg>
+      </div>
+      <div class="stat-number" style="color:#18b47d" id="statQuestions">0</div>
+      <div class="stat-label">提问总数</div>
+      <div class="stat-change up" id="statQuestionsChange">↑ 持续提问</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fff8ed">
+        <svg style="width:20px;height:20px;color:#ff9f38" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div class="stat-number" style="color:#ff9f38" id="statDays">0</div>
+      <div class="stat-label">活跃天数</div>
+      <div class="stat-change up" id="statDaysChange">学习中</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#ede9fe">
+        <svg style="width:20px;height:20px;color:#8b5cf6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
+      </div>
+      <div class="stat-number" style="color:#8b5cf6" id="statScore">0</div>
+      <div class="stat-label">学习参与度</div>
+      <div class="stat-change up" id="statScoreChange">继续加油</div>
+    </div>
+  </div>
+
+  <!-- Charts Row 1 -->
+  <div class="chart-grid fade-up fd2">
+    <!-- Subject Distribution -->
+    <div class="chart-panel">
+      <div class="chart-panel-title">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z"/><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z"/></svg>
+        学科分布
+      </div>
+      <div style="position:relative;height:220px">
+        <canvas id="subjectChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Knowledge Mastery Radar -->
+    <div class="chart-panel">
+      <div class="chart-panel-title">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5"/></svg>
+        知识掌握度
+      </div>
+      <div style="position:relative;height:220px">
+        <canvas id="radarChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 2: Activity Trend (full width) -->
+  <div class="chart-grid fade-up fd3">
+    <div class="chart-panel full-panel">
+      <div class="chart-panel-title">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+        近7天学习活动趋势
+      </div>
+      <div style="position:relative;height:200px">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 3 -->
+  <div class="chart-grid fade-up fd4">
+    <!-- Activity Heatmap -->
+    <div class="chart-panel">
+      <div class="chart-panel-title">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
+        学习活跃热力图（近4周）
+      </div>
+      <div id="heatmapContainer"></div>
+      <div class="heatmap-legend">
+        少 <span style="background:#eef6ff"></span>
+        <span style="background:#bcdeff"></span>
+        <span style="background:#59a9ff"></span>
+        <span style="background:#3385ff"></span>
+        <span style="background:#1450e1"></span> 多
+      </div>
+    </div>
+
+    <!-- Recent Sessions -->
+    <div class="chart-panel">
+      <div class="chart-panel-title">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        最近对话记录
+      </div>
+      <div id="recentSessions" style="max-height:230px;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- Weak Points -->
+  <div class="chart-grid fade-up fd5">
+    <div class="chart-panel full-panel">
+      <div class="chart-panel-title">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+        AI 识别的薄弱知识点
+      </div>
+      <div class="weak-grid" id="weakGrid"></div>
+
+      <!-- AI Advice -->
+      <div class="ai-advice">
+        <div class="ai-advice-header">
+          <svg style="width:16px;height:16px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+          AI 个性化学习建议
+        </div>
+        <div class="ai-advice-text" id="aiAdviceText">正在根据你的学情数据生成建议…</div>
+        <button class="ai-advice-btn" onclick="goToAI()">
+          <svg style="width:14px;height:14px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+          与 AI 助手深入讨论
+        </button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   DATA COLLECTION FROM LOCALSTORAGE
+   ═══════════════════════════════════════════════════════ */
+const HISTORY_KEY = 'zhibanChatHistory';
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+}
+
+function analyzeData() {
+  const all = loadHistory();
+  // errorBook
+  let errorBook = [];
+  try { errorBook = JSON.parse(localStorage.getItem('zhibanErrorBook') || '[]'); } catch {}
+  // timerStats
+  let timerStats = {};
+  try { timerStats = JSON.parse(localStorage.getItem('zhibanTimerStats') || '{}'); } catch {}
+
+  let totalSessions = all.length;
+  let userMessages = 0;
+  let botMessages = 0;
+  const topicCounts = {};
+  const dateCounts = {};
+  const subjectData = { '数学':0, '语文':0, '英语':0, '物理':0, '化学':0, '其他':0 };
+  const keywordMap = {
+    '数学':['数学','计算','方程','几何','算术','加减乘除','分数','面积','周长','三角'],
+    '语文':['语文','作文','阅读','成语','诗词','写作','朗读','汉字','拼音','课文'],
+    '英语':['英语','单词','语法','句型','翻译','听力','口语','English'],
+    '物理':['物理','力学','浮力','电路','光学','运动','速度','能量'],
+    '化学':['化学','元素','分子','反应','酸碱','实验'],
+  };
+
+  all.forEach(session => {
+    // Support both array of sessions with messages, and flat message arrays
+    const msgs = Array.isArray(session.messages) ? session.messages : (Array.isArray(session) ? session : []);
+    
+    msgs.forEach(m => {
+      if (m.role === 'user') {
+        userMessages++;
+        // Extract date from message time
+        const msgTime = m.time || '';
+        if (msgTime) {
+          // Parse formats like "4/9 14:30" or "2026/4/9" or "09:30"
+          const dateMatch = msgTime.match(/(\d+)[\/\-](\d+)/);
+          if (dateMatch) {
+            const key = String(dateMatch[1]).padStart(2,'0') + '/' + String(dateMatch[2]).padStart(2,'0');
+            dateCounts[key] = (dateCounts[key] || 0) + 1;
+          }
+        }
+        let matched = false;
+        for (const [subj, keywords] of Object.entries(keywordMap)) {
+          for (const kw of keywords) {
+            if (m.content && m.content.includes(kw)) {
+              subjectData[subj]++;
+              topicCounts[kw] = (topicCounts[kw] || 0) + 1;
+              matched = true;
+              break;
+            }
+          }
+          if (matched) break;
+        }
+        if (!matched) subjectData['其他']++;
+      } else {
+        botMessages++;
+      }
+    });
+
+    // Also try session-level time
+    if (session.time) {
+      const dateMatch = String(session.time).match(/(\d+)[\/\-](\d+)/);
+      if (dateMatch) {
+        const key = String(dateMatch[1]).padStart(2,'0') + '/' + String(dateMatch[2]).padStart(2,'0');
+        dateCounts[key] = (dateCounts[key] || 0) + 1;
+      }
+    }
+  });
+
+  // Add errorBook data to subject counts
+  errorBook.forEach(e => {
+    const subj = e.subject || '';
+    if (subjectData[subj] !== undefined) subjectData[subj] += 0.5; // weight errors
+  });
+
+  // Timer stats — total focus minutes and sessions
+  let totalFocusMinutes = 0, totalFocusSessions = 0;
+  for (const day in timerStats) {
+    totalFocusMinutes += timerStats[day].minutes || 0;
+    totalFocusSessions += timerStats[day].sessions || 0;
+    // Count timer days in dateCounts for heatmap
+    const dateMatch = day.match(/(\d+)[\/\-](\d+)/);
+    if (dateMatch) {
+      const key = String(dateMatch[1]).padStart(2,'0') + '/' + String(dateMatch[2]).padStart(2,'0');
+      dateCounts[key] = (dateCounts[key] || 0) + (timerStats[day].sessions || 0);
+    }
+  }
+
+  const activeDays = Object.keys(dateCounts).length;
+  const totalErrors = errorBook.length;
+  const masteredErrors = errorBook.filter(e => e.mastered).length;
+
+  const engagementScore = Math.min(100, Math.round(
+    (totalSessions * 6) + (userMessages * 2) + (activeDays * 8) +
+    (totalFocusSessions * 4) + (masteredErrors * 5)
+  ));
+
+  return {
+    all, totalSessions, userMessages, botMessages, topicCounts, dateCounts,
+    subjectData, activeDays, engagementScore,
+    errorBook, totalErrors, masteredErrors, totalFocusMinutes, totalFocusSessions,
+  };
+}
+
+/* ═══════════════════════════════════════════════════════
+   RENDER DASHBOARD
+   ═══════════════════════════════════════════════════════ */
+function renderDashboard() {
+  const data = analyzeData();
+
+  // Stat cards
+  document.getElementById('statSessions').textContent = data.totalSessions;
+  document.getElementById('statQuestions').textContent = data.userMessages;
+  document.getElementById('statDays').textContent = data.activeDays;
+  document.getElementById('statScore').textContent = data.engagementScore;
+
+  // Session change label
+  if (data.totalSessions === 0) {
+    document.getElementById('statSessionsChange').textContent = '去开始第一次对话';
+    document.getElementById('statSessionsChange').className = 'stat-change';
+  } else {
+    document.getElementById('statSessionsChange').textContent = '↑ 本周活跃';
+  }
+
+  // Questions change
+  if (data.userMessages === 0) {
+    document.getElementById('statQuestionsChange').textContent = '快去提问吧';
+    document.getElementById('statQuestionsChange').className = 'stat-change';
+  }
+
+  // Days change
+  if (data.activeDays > 0) {
+    document.getElementById('statDaysChange').textContent = '坚持学习中';
+  }
+
+  if (data.engagementScore >= 80) {
+    document.getElementById('statScoreChange').textContent = '🌟 优秀';
+  } else if (data.engagementScore >= 50) {
+    document.getElementById('statScoreChange').textContent = '💪 良好';
+  } else if (data.engagementScore >= 20) {
+    document.getElementById('statScoreChange').textContent = '📚 加油';
+  } else {
+    document.getElementById('statScoreChange').textContent = '🚀 刚起步';
+  }
+
+  // Subject distribution doughnut
+  const subjectLabels = Object.keys(data.subjectData);
+  const subjectValues = Object.values(data.subjectData).map(v => Math.max(0, v));
+  const hasSubjectData = subjectValues.some(v => v > 0);
+
+  const subjectChartEl = document.getElementById('subjectChart');
+  if (!hasSubjectData) {
+    subjectChartEl.parentElement.innerHTML += '<p style="text-align:center;color:#94a3b8;font-size:13px;margin-top:12px">开始学习后显示学科分布</p>';
+  }
+  new Chart(subjectChartEl, {
+    type: 'doughnut',
+    data: {
+      labels: hasSubjectData ? subjectLabels : ['暂无数据'],
+      datasets: [{
+        data: hasSubjectData ? subjectValues : [1],
+        backgroundColor: hasSubjectData
+          ? ['#3385ff','#18b47d','#ff9f38','#8b5cf6','#ec4899','#94a3b8']
+          : ['#e2e8f0'],
+        borderWidth: 0,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '62%',
+      plugins: {
+        legend: { position:'bottom', labels: { padding:12, usePointStyle:true, pointStyleWidth:8, font:{size:11,family:'Noto Sans SC'} } }
+      }
+    }
+  });
+
+  // Radar chart (knowledge mastery — simulated from topic frequency)
+  const radarLabels = ['数学思维','语文素养','英语能力','理科逻辑','学习主动性','知识广度'];
+  const maxQ = Math.max(1, data.userMessages);
+  const radarValues = [
+    Math.min(100, Math.round((data.subjectData['数学']/maxQ)*300 + 20)),
+    Math.min(100, Math.round((data.subjectData['语文']/maxQ)*300 + 15)),
+    Math.min(100, Math.round((data.subjectData['英语']/maxQ)*300 + 10)),
+    Math.min(100, Math.round(((data.subjectData['物理']+data.subjectData['化学'])/maxQ)*300 + 12)),
+    Math.min(100, Math.round(data.engagementScore * 0.9 + 10)),
+    Math.min(100, Math.round(Object.keys(data.topicCounts).length * 8 + 15)),
+  ];
+
+  new Chart(document.getElementById('radarChart'), {
+    type: 'radar',
+    data: {
+      labels: radarLabels,
+      datasets: [{
+        label: '掌握度',
+        data: radarValues,
+        fill: true,
+        backgroundColor: 'rgba(51,133,255,.12)',
+        borderColor: '#3385ff',
+        borderWidth: 2,
+        pointBackgroundColor: '#3385ff',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        r: {
+          beginAtZero: true,
+          max: 100,
+          ticks: { stepSize: 25, font:{size:10}, backdropColor:'transparent' },
+          pointLabels: { font: {size:11, family:'Noto Sans SC'} },
+          grid: { color: 'rgba(51,133,255,.08)' },
+          angleLines: { color: 'rgba(51,133,255,.08)' },
+        }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  // Trend chart (last 7 days)
+  const today = new Date();
+  const trendLabels = [];
+  const trendQ = [];
+  const trendTimer = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    const key = mm + '/' + dd;
+    trendLabels.push((d.getMonth()+1) + '/' + d.getDate());
+    // Count user messages on this day
+    let qCount = 0;
+    data.all.forEach(session => {
+      const msgs = Array.isArray(session.messages) ? session.messages : [];
+      msgs.forEach(m => {
+        if (m.role === 'user' && m.time && m.time.includes(key)) qCount++;
+      });
+      if (session.time && String(session.time).includes(key)) qCount++;
+    });
+    // Timer sessions on this day
+    let timerCount = 0;
+    try {
+      const ts = JSON.parse(localStorage.getItem('zhibanTimerStats') || '{}');
+      for (const day in ts) {
+        if (day.includes(key) || day.includes(mm + '-' + dd)) timerCount += ts[day].sessions || 0;
+      }
+    } catch {}
+    trendQ.push(qCount);
+    trendTimer.push(timerCount);
+  }
+
+  new Chart(document.getElementById('trendChart'), {
+    type: 'bar',
+    data: {
+      labels: trendLabels,
+      datasets: [
+        { label:'提问数', data:trendQ, backgroundColor:'rgba(51,133,255,.7)', borderRadius:6, barPercentage:.35 },
+        { label:'专注次数', data:trendTimer, backgroundColor:'rgba(24,180,125,.5)', borderRadius:6, barPercentage:.35 },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { grid:{display:false}, ticks:{font:{size:11,family:'Noto Sans SC'}} },
+        y: { beginAtZero:true, grid:{color:'rgba(51,133,255,.06)'}, ticks:{font:{size:11}, stepSize:1} }
+      },
+      plugins: {
+        legend: { position:'top', align:'end', labels:{usePointStyle:true,pointStyleWidth:8,padding:16,font:{size:11,family:'Noto Sans SC'}} }
+      }
+    }
+  });
+
+  // Heatmap (4 weeks)
+  const container = document.getElementById('heatmapContainer');
+  container.innerHTML = '';
+  for (let week = 0; week < 4; week++) {
+    const row = document.createElement('div');
+    row.className = 'heatmap-row';
+    for (let day = 0; day < 7; day++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - (3 - week) * 7 - (6 - day));
+      const key = `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+      let count = 0;
+      data.all.forEach(s => { if (s.time && s.time.includes(key)) count += (s.messages||[]).length; });
+      const cell = document.createElement('div');
+      cell.className = 'heatmap-cell' + (count > 15 ? ' l4' : count > 8 ? ' l3' : count > 3 ? ' l2' : count > 0 ? ' l1' : '');
+      cell.title = `${key}: ${count} 条消息`;
+      row.appendChild(cell);
+    }
+    container.appendChild(row);
+  }
+
+  // Recent sessions
+  const recentEl = document.getElementById('recentSessions');
+  recentEl.innerHTML = '';
+  const recent = data.all.slice(0, 6);
+  if (recent.length === 0) {
+    recentEl.innerHTML = '<div style="text-align:center;padding:30px 0;color:#94a3b8;font-size:13px">暂无对话记录<br><span style="font-size:11px">去 AI 伴学页面开始你的第一次对话吧</span></div>';
+  }
+  const sessionIcons = ['💬','📐','📖','🔬','💡','🎯'];
+  const sessionColors = ['#eef6ff','#edfcf5','#fff8ed','#ede9fe','#fce7f3','#fff1f2'];
+  recent.forEach((s, i) => {
+    const msgCount = (s.messages||[]).length;
+    const div = document.createElement('div');
+    div.className = 'session-item';
+    div.onclick = () => { window.location.href = 'ai-module.html'; };
+    div.innerHTML = `
+      <div class="session-icon" style="background:${sessionColors[i%6]}">${sessionIcons[i%6]}</div>
+      <div class="session-info">
+        <div class="session-title">${escHTML(s.title || '新对话')}</div>
+        <div class="session-meta">${s.time || '未知时间'}</div>
+      </div>
+      <div class="session-count">${msgCount} 条</div>`;
+    recentEl.appendChild(div);
+  });
+
+  // Weak points — 只显示有真实数据的学科
+  const weakPoints = generateWeakPoints(data);
+  const weakGrid = document.getElementById('weakGrid');
+  weakGrid.innerHTML = '';
+  const subjectColors = { '数学':'#3385ff', '语文':'#18b47d', '英语':'#ff9f38', '物理':'#8b5cf6', '化学':'#ec4899', '综合':'#64748b' };
+
+  if (weakPoints.length === 0) {
+    weakGrid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:32px 0;color:#94a3b8;font-size:13px">暂无数据<br><span style="font-size:11px;display:block;margin-top:4px">在 AI 伴学中提问或完成题目后，薄弱知识点将在此显示</span></div>';
+  } else {
+    weakPoints.forEach(wp => {
+      const div = document.createElement('div');
+      div.className = 'weak-item';
+      div.innerHTML = `
+        <div class="weak-subject" style="background:${subjectColors[wp.subject]||'#64748b'}">${wp.subject}</div>
+        <div class="weak-topic">${wp.topic}</div>
+        <div class="weak-score">掌握度 ${wp.score}%</div>
+        <div class="weak-bar"><div class="weak-bar-fill" style="width:0%;background:${subjectColors[wp.subject]||'#64748b'}"></div></div>`;
+      weakGrid.appendChild(div);
+    });
+    setTimeout(() => {
+      weakGrid.querySelectorAll('.weak-bar-fill').forEach((bar, i) => {
+        bar.style.width = weakPoints[i].score + '%';
+      });
+    }, 200);
+  }
+
+  // AI Advice
+  generateAdvice(data);
+}
+
+function generateWeakPoints(data) {
+  const points = [];
+  const subjects = ['数学','语文','英语','物理','化学'];
+  const topicMap = {
+    '数学': ['分数运算','几何图形面积','方程应用题','数据统计','比例问题','计算速度'],
+    '语文': ['阅读理解','作文结构','成语运用','古诗词鉴赏','修辞手法','文言文翻译'],
+    '英语': ['语法时态','词汇量','阅读理解','听力理解','写作表达','口语发音'],
+    '物理': ['浮力计算','电路分析','力学平衡','光学反射','速度与加速度'],
+    '化学': ['化学方程式','元素周期表','酸碱反应','实验操作','溶解度'],
+  };
+
+  // 错题本按学科统计
+  const errorBySubj = {};
+  const masteredBySubj = {};
+  (data.errorBook || []).forEach(e => {
+    const s = e.subject || '其他';
+    errorBySubj[s] = (errorBySubj[s] || 0) + 1;
+    if (e.mastered) masteredBySubj[s] = (masteredBySubj[s] || 0) + 1;
+  });
+
+  subjects.forEach(subj => {
+    const chatCount = Math.floor(data.subjectData[subj] || 0); // AI提问次数
+    const errCount = errorBySubj[subj] || 0;                   // 错题数
+    const mastCount = masteredBySubj[subj] || 0;               // 已掌握错题数
+
+    // 只有该学科有真实数据才显示
+    if (chatCount === 0 && errCount === 0) return;
+
+    const topics = topicMap[subj] || [];
+    // 从错题本找该学科最近错的知识点，优先展示
+    const errTopics = (data.errorBook || [])
+      .filter(e => e.subject === subj && !e.mastered)
+      .slice(0, 3)
+      .map(e => e.question ? e.question.slice(0, 10) + '…' : null)
+      .filter(Boolean);
+
+    const topic = errTopics[0] || topics[Math.floor(Math.random() * topics.length)];
+
+    // 掌握度：有错题时基于掌握率，纯提问时基于提问频率
+    let score = 0;
+    if (errCount > 0) {
+      score = Math.round((mastCount / errCount) * 100);
+    } else if (chatCount > 0) {
+      // 提问越多，说明该科越活跃，掌握度根据提问量估算（上限70%）
+      score = Math.min(70, Math.round(chatCount * 10));
+    }
+
+    points.push({ subject: subj, topic, score });
+  });
+
+  // 掌握度从低到高排列（最弱的在前）
+  points.sort((a, b) => a.score - b.score);
+  return points.slice(0, 6);
+}
+
+function generateAdvice(data) {
+  const el = document.getElementById('aiAdviceText');
+  const weakSubjects = [];
+  const subjects = ['数学','语文','英语','物理','化学'];
+
+  subjects.forEach(subj => {
+    if ((data.subjectData[subj] || 0) < 2) weakSubjects.push(subj);
+  });
+
+  let advice = '';
+  if (data.totalSessions === 0) {
+    advice = '你还没有开始使用 AI 伴学助手。建议从你最薄弱的科目开始，每天至少和 AI 进行一次学习对话，持续一周就能看到明显提升！';
+  } else if (data.engagementScore >= 80) {
+    advice = `太棒了！你已经进行了 ${data.totalSessions} 次学习对话，学习参与度达到 ${data.engagementScore} 分。建议接下来重点突破薄弱知识点，可以让 AI 针对性地出题测试，巩固已学内容。`;
+  } else if (data.engagementScore >= 40) {
+    advice = `不错的学习节奏！目前参与度 ${data.engagementScore} 分。${weakSubjects.length > 0 ? '建议多和 AI 讨论 ' + weakSubjects.join('、') + ' 方面的问题，' : ''}保持每天提问的习惯，重点关注学科薄弱环节。`;
+  } else {
+    advice = `你刚开始使用 AI 伴学系统，建议每天花 15-20 分钟与 AI 对话学习。${weakSubjects.length > 0 ? '可以从 ' + weakSubjects.slice(0,2).join('、') + ' 开始，' : ''}让 AI 帮你制定系统的学习计划。`;
+  }
+  el.textContent = advice;
+}
+
+function goToAI() {
+  const data = analyzeData();
+  const prompt = `根据我的学情数据（${data.totalSessions}次对话，${data.userMessages}次提问，参与度${data.engagementScore}分），请分析我的学习情况并给出具体的改进建议和下周学习规划。`;
+  sessionStorage.setItem('zhibanAIPrompt', prompt);
+  window.location.href = 'ai-module.html';
+}
+
+function escHTML(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* ═══ NAV USER SYNC ═══ */
+const _avatarColors=[{bg:'#dbeafe',face:'#3b82f6',hair:'#1e40af',acc:'#60a5fa'},{bg:'#d1fae5',face:'#10b981',hair:'#065f46',acc:'#6ee7b7'},{bg:'#fef3c7',face:'#f59e0b',hair:'#92400e',acc:'#fcd34d'},{bg:'#fce7f3',face:'#ec4899',hair:'#9d174d',acc:'#f9a8d4'},{bg:'#e0e7ff',face:'#6366f1',hair:'#3730a3',acc:'#a5b4fc'},{bg:'#ffedd5',face:'#f97316',hair:'#9a3412',acc:'#fdba74'}];
+function _genAvatar(idx,size){const c=_avatarColors[idx%6];const st=[`<circle cx="32" cy="34" r="18" fill="${c.face}"/><ellipse cx="32" cy="20" rx="16" ry="12" fill="${c.hair}"/><circle cx="26" cy="33" r="2" fill="#fff"/><circle cx="38" cy="33" r="2" fill="#fff"/><path d="M28 40 Q32 44 36 40" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>`,`<rect x="16" y="24" width="32" height="28" rx="10" fill="${c.face}"/><rect x="14" y="18" width="36" height="14" rx="7" fill="${c.hair}"/><rect x="18" y="14" width="28" height="8" rx="4" fill="${c.acc}"/><circle cx="26" cy="36" r="2" fill="#fff"/><circle cx="38" cy="36" r="2" fill="#fff"/>`,`<ellipse cx="32" cy="36" rx="16" ry="18" fill="${c.face}"/><ellipse cx="32" cy="22" rx="14" ry="10" fill="${c.hair}"/><circle cx="26" cy="35" r="5" stroke="#fff" stroke-width="1.5" fill="none"/><circle cx="38" cy="35" r="5" stroke="#fff" stroke-width="1.5" fill="none"/><circle cx="26" cy="35" r="1.5" fill="#fff"/><circle cx="38" cy="35" r="1.5" fill="#fff"/>`,`<circle cx="32" cy="36" r="16" fill="${c.face}"/><polygon points="18,24 14,10 26,20" fill="${c.hair}"/><polygon points="46,24 50,10 38,20" fill="${c.hair}"/><circle cx="26" cy="34" r="2" fill="#fff"/><circle cx="38" cy="34" r="2" fill="#fff"/>`,`<circle cx="32" cy="36" r="17" fill="${c.face}"/><ellipse cx="32" cy="22" rx="15" ry="10" fill="${c.hair}"/><polygon points="26,33 24,31 22,33 24,35" fill="#fff"/><polygon points="38,33 36,31 40,31 42,33 40,35 36,35" fill="#fff"/>`,`<rect x="16" y="22" width="32" height="30" rx="6" fill="${c.face}"/><rect x="20" y="16" width="24" height="10" rx="3" fill="${c.hair}"/><rect x="22" y="32" width="8" height="5" rx="2" fill="#fff"/><rect x="34" y="32" width="8" height="5" rx="2" fill="#fff"/>`];return`<svg viewBox="0 0 64 64" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" class="avatar-svg"><rect width="64" height="64" rx="32" fill="${c.bg}"/>${st[idx%6]}</svg>`}
+
+const PREMIUM_AVATARS=[{id:'p0',svg:s=>`<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#0f172a"/><circle cx="32" cy="32" r="28" fill="#1e293b"/><circle cx="32" cy="35" r="14" fill="#3b82f6"/><rect x="20" y="20" width="24" height="12" rx="6" fill="#60a5fa"/><circle cx="28" cy="26" r="2" fill="#22d3ee"/><circle cx="36" cy="26" r="2" fill="#22d3ee"/></svg>`}];
+function _renderPremiumAvatar(id,size){const a=PREMIUM_AVATARS.find(x=>x.id===id);return a?a.svg(size):''}
+
+function _syncNavUser(){
+  try{
+    const u=JSON.parse(localStorage.getItem('zhibanUser')||'{}');
+    const av=document.getElementById('navAvatar'),nm=document.getElementById('navUserName');
+    if(!av)return;
+    if(u.isLoggedIn){
+      if(u.customAvatar){av.innerHTML=`<img src="${u.customAvatar}" style="width:36px;height:36px;object-fit:cover;border-radius:50%">`;}
+      else if(u.premiumAvatar){av.innerHTML=_renderPremiumAvatar(u.premiumAvatar,36);}
+      else{av.innerHTML=_genAvatar(u.avatarIndex||0,36);}
+      if(nm)nm.textContent=u.userName||'';
+    }else{
+      av.innerHTML='<svg class="w-5 h-5 text-ocean-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a8.25 8.25 0 0115 0"/></svg>';
+      if(nm)nm.textContent='登录';
+    }
+  }catch(e){}
+}
+
+// INIT — sync cloud then render dashboard
+if(window.sbInit){
+  sbInit().then(function(){_syncNavUser();renderDashboard();}).catch(function(){_syncNavUser();renderDashboard();});
+} else {
+  _syncNavUser();
+  renderDashboard();
+}
+window.addEventListener('focus', _syncNavUser);
+</script>
+</body>
+</html>

@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- 防缓存:确保用户总是拿到最新版本 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>用户中心 — 灵犀伴学</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="ai-character.js"></script>
+<script src="supabase-sync.js"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{ocean:{50:'#eef6ff',100:'#d9ecff',200:'#bcdeff',300:'#8ec9ff',400:'#59a9ff',500:'#3385ff',600:'#1a65f5',700:'#1450e1',800:'#1741b6',900:'#19398f',950:'#142557'},mint:{50:'#edfcf5',100:'#d3f8e6',200:'#aaf0d1',300:'#73e2b5',400:'#3acd95',500:'#18b47d',600:'#0f9165',700:'#0e7453'},warm:{50:'#fff8ed',100:'#fff0d4',200:'#ffdda8',300:'#ffc371',400:'#ff9f38',500:'#ff8211',600:'#f06807',700:'#c74e08'}},fontFamily:{display:['"Noto Serif SC"','serif'],body:['"Noto Sans SC"','sans-serif']}}}};
+</script>
+<!-- EmailJS SDK -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--nav-h:64px}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Noto Sans SC',sans-serif;color:#1e293b;background:#f8faff;overflow-x:hidden;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse 80% 50% at 20% 10%,rgba(51,133,255,.06) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 80%,rgba(24,180,125,.05) 0%,transparent 60%)}
+#navbar{background:rgba(255,255,255,.82);backdrop-filter:blur(16px) saturate(1.4);box-shadow:0 1px 24px rgba(20,37,87,.07)}
+#mobileMenu{transition:max-height .35s ease,opacity .3s;max-height:0;opacity:0;overflow:hidden}
+#mobileMenu.open{max-height:400px;opacity:1}
+.btn-primary{display:inline-flex;align-items:center;gap:6px;padding:10px 28px;background:linear-gradient(135deg,#3385ff,#1450e1);color:#fff;border-radius:12px;font-weight:600;font-size:.95rem;transition:transform .25s,box-shadow .25s;border:none;cursor:pointer}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(51,133,255,.35)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.card{background:#fff;border-radius:18px;box-shadow:0 8px 32px rgba(20,37,87,.08);transition:transform .3s,box-shadow .3s}
+.card:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(51,133,255,.12)}
+.avatar-svg{border-radius:50%}
+.avatar-option{width:72px;height:72px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:border-color .2s,transform .2s;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.avatar-option:hover,.avatar-option.selected{border-color:#3385ff;transform:scale(1.1)}
+.stat-card{text-align:center;padding:20px 16px;background:linear-gradient(135deg,#eef6ff,#fff);border-radius:16px;border:1px solid rgba(51,133,255,.1)}
+.input-field{width:100%;padding:12px 16px;border:2px solid #bcdeff;border-radius:12px;font-size:.95rem;font-family:'Noto Sans SC',sans-serif;transition:all .2s;outline:none;background:#fff}
+.input-field:focus{border-color:#3385ff;box-shadow:0 0 0 3px rgba(51,133,255,.12)}
+.section-title{font-family:'Noto Serif SC',serif;font-weight:700;position:relative;display:inline-block;padding-bottom:12px}
+.section-title::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:48px;height:4px;border-radius:2px;background:linear-gradient(90deg,#3385ff,#18b47d)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp .5s ease both}
+.fade-up-d1{animation-delay:.1s}
+.fade-up-d2{animation-delay:.2s}
+.fade-up-d3{animation-delay:.3s}
+
+/* Auth tabs */
+.auth-tab{padding:10px 24px;font-size:.95rem;font-weight:600;border-radius:10px 10px 0 0;cursor:pointer;transition:all .2s;border:none;background:transparent;color:#94a3b8;font-family:inherit}
+.auth-tab.active{background:#fff;color:#3385ff;box-shadow:0 -2px 10px rgba(51,133,255,.08)}
+
+/* Verification code input */
+.code-input-row{display:flex;gap:10px;align-items:center}
+.code-input-row .input-field{flex:1}
+.send-code-btn{white-space:nowrap;padding:12px 20px;background:linear-gradient(135deg,#18b47d,#0f9165);color:#fff;border:none;border-radius:12px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit}
+.send-code-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(24,180,125,.3)}
+.send-code-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* Step indicator */
+.step-bar{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:28px}
+.step-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;transition:all .3s;background:#e2e8f0;color:#94a3b8}
+.step-dot.active{background:linear-gradient(135deg,#3385ff,#1450e1);color:#fff;box-shadow:0 4px 12px rgba(51,133,255,.3)}
+.step-dot.done{background:#18b47d;color:#fff}
+.step-line{width:40px;height:3px;background:#e2e8f0;border-radius:2px;transition:background .3s}
+.step-line.done{background:#18b47d}
+
+/* Auto-login toggle */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0}
+.toggle-switch{position:relative;width:44px;height:24px;border-radius:12px;background:#cbd5e1;cursor:pointer;transition:background .2s;border:none}
+.toggle-switch.on{background:#3385ff}
+.toggle-switch .dot{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15);transition:transform .2s}
+.toggle-switch.on .dot{transform:translateX(20px)}
+
+/* Toast */
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);padding:12px 24px;border-radius:12px;font-size:.9rem;font-weight:500;z-index:9999;opacity:0;transition:all .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.success{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}
+.toast.error{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+.toast.info{background:#dbeafe;color:#1e40af;border:1px solid #93c5fd}
+
+/* Password strength */
+.strength-bar{height:4px;border-radius:2px;background:#e2e8f0;margin-top:6px;overflow:hidden}
+.strength-fill{height:100%;border-radius:2px;transition:width .3s,background .3s}
+
+/* Auth card no hover lift */
+.auth-card{background:#fff;border-radius:18px;box-shadow:0 8px 32px rgba(20,37,87,.08)}
+
+/* Achievement badges */
+.achievement-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(51,133,255,.06);
+  background: #f8faff;
+  transition: all .25s;
+  cursor: default;
+  text-align: center;
+}
+.achievement-badge.unlocked {
+  background: linear-gradient(135deg, #fff8ed, #fff0d4);
+  border-color: rgba(255,159,56,.15);
+}
+.achievement-badge.unlocked:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255,159,56,.15);
+}
+.achievement-badge .ab-icon {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  background: #e2e8f0;
+  transition: all .3s;
+}
+.achievement-badge.unlocked .ab-icon {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  box-shadow: 0 3px 10px rgba(245,158,11,.25);
+}
+.achievement-badge .ab-icon.locked {
+  filter: grayscale(1);
+  opacity: .3;
+}
+.achievement-badge .ab-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  line-height: 1.3;
+}
+.achievement-badge.unlocked .ab-name {
+  color: #92400e;
+}
+
+/* Subject tags */
+.subject-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* 4-col stat grid */
+@media (max-width: 640px) {
+  .grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- Toast notification -->
+<div id="toast" class="toast"></div>
+
+<!-- ══════════ NAVBAR ══════════ -->
+<nav id="navbar" class="fixed top-0 left-0 w-full z-50" style="height:var(--nav-h)">
+  <div class="max-w-7xl mx-auto flex items-center justify-between px-5 md:px-8 h-full">
+    <a href="home.html" class="flex items-center gap-2 text-ocean-700 font-bold text-lg select-none">
+      <svg class="w-8 h-8" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lxG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3385ff"/><stop offset="100%" stop-color="#18b47d"/></linearGradient></defs><circle cx="20" cy="20" r="19" fill="url(#lxG)" opacity=".1"/><circle cx="20" cy="20" r="19" stroke="url(#lxG)" stroke-width="1.5"/><path d="M12 26c0-4 2-7 5-9l1-3c0-1 1-1.5 2-1.5s1.5.8 1.5 1.5l-.5 2c2-1 4-1 5.5 0l1.5-1c.5-.5 1.2-.3 1.5.2.3.5.1 1.2-.4 1.5L27 18c1 1.5 1.5 3.5 1 5.5-.5 2-2 3-4 3.5H16c-2-.5-3.5-2-4-4z" fill="url(#lxG)" opacity=".85"/><circle cx="23" cy="19" r="1.3" fill="white"/><path d="M8 11l1.2 2.4 2.7.4-2 1.9.5 2.7L8 16.8l-2.4 1.6.5-2.7-2-1.9 2.7-.4L8 11z" fill="#fbbf24" opacity=".8"/><path d="M32 8l.8 1.6 1.8.3-1.3 1.3.3 1.8-1.6-.8-1.6.8.3-1.8-1.3-1.3 1.8-.3L32 8z" fill="#3385ff" opacity=".6"/><circle cx="33" cy="28" r="1.5" fill="#18b47d" opacity=".5"/></svg>
+      <span class="hidden sm:inline" style="font-family:'Noto Serif SC',serif">灵犀伴学</span>
+    </a>
+    <ul class="hidden md:flex items-center gap-1 text-sm font-medium">
+      <li><a href="home.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">首页</a></li>
+      <li><a href="home.html#plan" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习计划</a></li>
+      <li><a href="home.html#about" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">关于我们</a></li>
+      <li><a href="home.html#footer" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">联系我们</a></li>
+      <li><a href="user.html" class="px-4 py-2 rounded-lg text-ocean-600 bg-ocean-50 font-semibold transition">用户中心</a></li>
+      <li><a href="dashboard.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学情分析</a></li>
+    </ul>
+    <div class="flex items-center gap-3">
+      <div id="navUserInfo" class="flex items-center gap-2 cursor-pointer" onclick="location.href='user.html'">
+        <div id="navAvatar" class="w-9 h-9 rounded-full bg-ocean-100 flex items-center justify-center overflow-hidden ring-2 ring-ocean-300"></div>
+        <span id="navUserName" class="hidden sm:inline text-sm font-medium text-ocean-700"></span>
+      </div>
+      <button onclick="document.getElementById('mobileMenu').classList.toggle('open')" class="md:hidden w-9 h-9 rounded-lg flex items-center justify-center hover:bg-ocean-50 transition">
+        <svg class="w-5 h-5 text-ocean-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="mobileMenu" class="md:hidden bg-white/95 backdrop-blur-md border-t border-ocean-100">
+    <ul class="flex flex-col py-2 px-5 text-sm font-medium">
+      <li><a href="home.html" class="block py-3 text-ocean-800">首页</a></li>
+      <li><a href="home.html#plan" class="block py-3 text-ocean-800">学习计划</a></li>
+      <li><a href="home.html#about" class="block py-3 text-ocean-800">关于我们</a></li>
+      <li><a href="home.html#footer" class="block py-3 text-ocean-800">联系我们</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ══════════ MAIN CONTENT ══════════ -->
+<main class="pt-24 pb-16 px-4 max-w-3xl mx-auto">
+
+  <!-- ══════════ AUTH SECTION (未登录) ══════════ -->
+  <div id="authSection" class="hidden">
+
+    <!-- Tab switcher -->
+    <div class="flex justify-center mb-0 fade-up">
+      <div class="inline-flex bg-ocean-50 rounded-t-xl p-1 gap-1">
+        <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">登录</button>
+        <button class="auth-tab" id="tabRegister" onclick="switchTab('register')">注册</button>
+      </div>
+    </div>
+
+    <!-- ── LOGIN FORM ── -->
+    <div id="loginForm" class="auth-card p-8 md:p-10 max-w-md mx-auto fade-up">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-ocean-400 to-ocean-600 flex items-center justify-center shadow-lg">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a8.25 8.25 0 0115 0"/></svg>
+        </div>
+        <h2 class="text-xl font-bold text-ocean-900">欢迎回来</h2>
+        <p class="text-sm text-ocean-400 mt-1">登录后同步你的学习数据</p>
+      </div>
+      <!-- Login mode toggle -->
+      <div class="flex justify-center mb-5">
+        <div class="inline-flex bg-ocean-50 rounded-xl p-1 gap-1">
+          <button id="loginModeEmail" class="auth-tab active" onclick="switchLoginMode('email')">邮箱登录</button>
+          <button id="loginModePhone" class="auth-tab" onclick="switchLoginMode('phone')">手机号登录</button>
+        </div>
+      </div>
+      <div class="space-y-4">
+        <div id="loginEmailField">
+          <label class="block text-xs font-medium text-ocean-600 mb-1.5">邮箱地址</label>
+          <input id="loginEmail" type="email" placeholder="请输入注册时使用的邮箱" class="input-field">
+        </div>
+        <div id="loginPhoneField" style="display:none">
+          <label class="block text-xs font-medium text-ocean-600 mb-1.5">手机号</label>
+          <input id="loginPhone" type="tel" placeholder="请输入注册时使用的手机号" class="input-field" maxlength="11">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-ocean-600 mb-1.5">密码</label>
+          <input id="loginPwd" type="password" placeholder="请输入密码" class="input-field">
+        </div>
+        <div class="toggle-row">
+          <span class="text-sm text-ocean-500">自动登录</span>
+          <button id="autoLoginToggle" class="toggle-switch on" onclick="toggleAutoLogin()">
+            <span class="dot"></span>
+          </button>
+        </div>
+        <button onclick="handleLogin()" class="btn-primary w-full justify-center py-3 text-base">登 录</button>
+      </div>
+      <p class="text-center text-xs text-ocean-300 mt-5">还没有账号？<a href="javascript:switchTab('register')" class="text-ocean-500 font-semibold hover:underline">立即注册</a></p>
+    </div>
+
+    <!-- ── REGISTER FORM ── -->
+    <div id="registerForm" class="auth-card p-8 md:p-10 max-w-md mx-auto fade-up" style="display:none">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-mint-400 to-mint-600 flex items-center justify-center shadow-lg">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z"/></svg>
+        </div>
+        <h2 class="text-xl font-bold text-ocean-900">创建账号</h2>
+        <p class="text-sm text-ocean-400 mt-1">开启你的智能伴学之旅</p>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-ocean-600 mb-1.5">你的昵称</label>
+          <input id="regNickname" type="text" placeholder="给自己起个学习名吧" class="input-field" maxlength="12">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-ocean-600 mb-1.5">邮箱地址</label>
+          <input id="regEmail" type="email" placeholder="请输入邮箱（用于登录）" class="input-field">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-ocean-600 mb-1.5">手机号 <span class="text-ocean-300 font-normal">(选填)</span></label>
+          <input id="regPhone" type="tel" placeholder="请输入手机号（也可用于登录）" class="input-field" maxlength="11">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-ocean-600 mb-1.5">设置密码</label>
+          <input id="regPwd" type="password" placeholder="至少6位，包含字母和数字" class="input-field" oninput="checkPasswordStrength()">
+          <div class="strength-bar"><div id="strengthFill" class="strength-fill" style="width:0"></div></div>
+          <p id="strengthText" class="text-xs mt-1 text-ocean-400"></p>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-ocean-600 mb-1.5">确认密码</label>
+          <input id="regPwdConfirm" type="password" placeholder="再次输入密码" class="input-field">
+        </div>
+        <button onclick="handleRegister()" class="btn-primary w-full justify-center py-3 text-base">立即注册</button>
+      </div>
+
+      <p class="text-center text-xs text-ocean-300 mt-5">已有账号？<a href="javascript:switchTab('login')" class="text-ocean-500 font-semibold hover:underline">立即登录</a></p>
+    </div>
+  </div>
+
+  <!-- ══════════ PROFILE SECTION (已登录) ══════════ -->
+  <div id="profileSection" class="hidden">
+    <div class="text-center mb-8 fade-up">
+      <h1 class="section-title text-2xl md:text-3xl text-ocean-900">个人中心</h1>
+    </div>
+
+    <!-- 用户信息卡 -->
+    <div class="card p-8 md:p-10 mb-8 fade-up fade-up-d1">
+      <div class="flex flex-col sm:flex-row items-center gap-6">
+        <div class="relative flex-shrink-0">
+          <div id="profileAvatar" class="w-24 h-24 rounded-full bg-ocean-50 flex items-center justify-center overflow-hidden ring-4 ring-ocean-100"></div>
+          <label class="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-ocean-500 hover:bg-ocean-600 flex items-center justify-center cursor-pointer transition shadow-lg" title="上传自定义头像">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"/><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"/></svg>
+            <input type="file" accept="image/*" onchange="uploadCustomAvatar(event)" class="hidden">
+          </label>
+        </div>
+        <div class="text-center sm:text-left flex-1">
+          <h2 id="profileName" class="text-xl font-bold text-ocean-900 mb-1">学习者</h2>
+          <p id="profileEmail" class="text-ocean-400 text-sm mb-1"></p>
+          <p class="text-ocean-500 text-sm">欢迎回来，继续你的学习之旅吧！</p>
+        </div>
+        <button onclick="handleLogout()" class="text-sm text-red-400 hover:text-red-500 transition border border-red-200 rounded-lg px-4 py-2 hover:bg-red-50 flex-shrink-0">退出登录</button>
+      </div>
+    </div>
+
+    <!-- 学习数据 -->
+    <div class="grid grid-cols-4 gap-4 mb-8 fade-up fade-up-d2">
+      <div class="stat-card">
+        <div class="flex justify-center mb-2">
+          <div style="width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#dbeafe,#eff6ff);display:flex;align-items:center;justify-content:center">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.5" stroke="#3b82f6" stroke-width="1.5"/><path d="M12 7v5.5l3.5 2" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.5" fill="#3b82f6"/></svg>
+          </div>
+        </div>
+        <p class="text-2xl font-bold text-ocean-700" style="font-family:'JetBrains Mono',monospace" id="statHours">0</p>
+        <p class="text-xs text-ocean-400 mt-1">累计学习(时)</p>
+      </div>
+      <div class="stat-card">
+        <div class="flex justify-center mb-2">
+          <div style="width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#ffedd5,#fff7ed);display:flex;align-items:center;justify-content:center">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="3" stroke="#ea580c" stroke-width="1.5"/><path d="M3 9h18" stroke="#ea580c" stroke-width="1.5"/><path d="M8 2v4M16 2v4" stroke="#ea580c" stroke-width="1.5" stroke-linecap="round"/><path d="M8 13l2.5 2.5L15 11" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <p class="text-2xl font-bold text-warm-600" style="font-family:'JetBrains Mono',monospace" id="statDays">0</p>
+        <p class="text-xs text-ocean-400 mt-1">连续学习(天)</p>
+      </div>
+      <div class="stat-card">
+        <div class="flex justify-center mb-2">
+          <div style="width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#fef3c7,#fffbeb);display:flex;align-items:center;justify-content:center">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.5" stroke="#d97706" stroke-width="1.5"/><path d="M12 6v12M8.5 9.5L12 6l3.5 3.5M8.5 14.5L12 18l3.5-3.5" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <p class="text-2xl font-bold" style="color:#d97706;font-family:'JetBrains Mono',monospace" id="statPoints">0</p>
+        <p class="text-xs text-ocean-400 mt-1">总积分</p>
+      </div>
+      <div class="stat-card">
+        <div class="flex justify-center mb-2">
+          <div style="width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#d1fae5,#ecfdf5);display:flex;align-items:center;justify-content:center">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" stroke="#059669" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 12h.01M12 12h.01M15 12h.01" stroke="#10b981" stroke-width="2.5" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+        <p class="text-2xl font-bold" style="color:#059669;font-family:'JetBrains Mono',monospace" id="statChats">0</p>
+        <p class="text-xs text-ocean-400 mt-1">AI 对话数</p>
+      </div>
+    </div>
+
+    <!-- ═══ 我的等级 ═══ -->
+    <div class="card p-8 mb-8 fade-up fade-up-d2" id="myLevelCard" style="background:linear-gradient(135deg,#fff,#fefce8);border:1px solid rgba(245,158,11,.15);position:relative;overflow:hidden">
+      <div id="lvCardBg" style="position:absolute;inset:0;opacity:.04;pointer-events:none"></div>
+      <div class="flex items-center justify-between mb-4 relative">
+        <h3 class="font-semibold text-ocean-800 flex items-center gap-2">
+          <svg class="w-5 h-5 text-warm-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172"/></svg>
+          我的等级
+        </h3>
+        <span class="text-xs text-ocean-400" id="lvHintText">积分累计不消耗，升级永久保留</span>
+      </div>
+      <div class="flex items-center gap-5 relative">
+        <div id="lvIconBox" style="width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:40px;flex-shrink:0;box-shadow:0 8px 24px rgba(0,0,0,.1)"></div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-baseline gap-2 mb-1">
+            <span id="lvName" class="text-2xl font-bold" style="background:linear-gradient(135deg,#f59e0b,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent">学徒</span>
+            <span class="text-xs text-ocean-400">Lv.<span id="lvNum">1</span></span>
+          </div>
+          <p id="lvDesc" class="text-xs text-ocean-500 mb-3">踏上学习之路的新手</p>
+          <div class="flex items-center justify-between text-xs text-ocean-500 mb-1.5">
+            <span>距离「<span id="lvNextName">书童</span>」</span>
+            <span><span id="lvCurrent" class="font-semibold text-warm-600">0</span> / <span id="lvTarget">500</span> 积分</span>
+          </div>
+          <div style="height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden">
+            <div id="lvProgress" style="height:100%;width:0%;background:linear-gradient(90deg,#f59e0b,#ef4444);border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1)"></div>
+          </div>
+        </div>
+      </div>
+      <!-- 等级阶梯 -->
+      <div class="mt-5 pt-5 border-t border-ocean-100 relative">
+        <div class="flex justify-between text-xs" id="lvLadder"></div>
+      </div>
+    </div>
+
+    <!-- ═══ 徽章墙（替换原有"学习成就"区块的内容） ═══ -->
+    <div class="card p-8 mb-8 fade-up fade-up-d2" id="badgeWallCard">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="font-semibold text-ocean-800 flex items-center gap-2">
+          <svg class="w-5 h-5 text-warm-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z"/></svg>
+          成就徽章墙
+        </h3>
+        <div class="flex items-center gap-3">
+          <span class="text-xs text-ocean-500">已解锁 <span id="badgeCountText" class="font-bold text-warm-600">0/15</span></span>
+          <div style="width:80px;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden">
+            <div id="badgeProgressBar" style="height:100%;width:0%;background:linear-gradient(90deg,#f59e0b,#ef4444);transition:width .6s"></div>
+          </div>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 sm:grid-cols-5 gap-3" id="badgeWallGrid"></div>
+      <p class="text-xs text-ocean-400 text-center mt-4">💡 点击徽章查看解锁条件 · 自动触发,无需手动领取</p>
+    </div>
+
+    <!-- 学情数据快览 + 仪表盘入口 -->
+    <div class="card p-8 mb-8 fade-up fade-up-d2" style="background:linear-gradient(135deg,#f0f5ff,#edfcf5);border:1px solid rgba(51,133,255,.08)">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold text-ocean-800 flex items-center gap-2">
+          <svg class="w-5 h-5 text-ocean-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+          我的学情概览
+        </h3>
+        <a href="dashboard.html" class="inline-flex items-center gap-1 text-xs font-semibold text-ocean-500 hover:text-ocean-700 transition px-3 py-1.5 rounded-lg bg-white/70 hover:bg-white border border-ocean-200">
+          查看完整报告
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+        </a>
+      </div>
+      <div class="grid grid-cols-3 gap-3" id="learningQuickStats">
+        <div class="bg-white/80 rounded-xl p-4 text-center">
+          <div class="text-lg font-bold text-ocean-600" style="font-family:'JetBrains Mono',monospace" id="qsQuestions">0</div>
+          <div class="text-xs text-ocean-400 mt-1">提问次数</div>
+        </div>
+        <div class="bg-white/80 rounded-xl p-4 text-center">
+          <div class="text-lg font-bold text-mint-600" style="font-family:'JetBrains Mono',monospace" id="qsActiveDays">0</div>
+          <div class="text-xs text-ocean-400 mt-1">活跃天数</div>
+        </div>
+        <div class="bg-white/80 rounded-xl p-4 text-center">
+          <div class="text-lg font-bold text-warm-600" style="font-family:'JetBrains Mono',monospace" id="qsScore">0</div>
+          <div class="text-xs text-ocean-400 mt-1">参与度评分</div>
+        </div>
+      </div>
+      <div class="mt-3 flex flex-wrap gap-2" id="topSubjectTags"></div>
+    </div>
+
+    <!-- 头像选择 -->
+    <div class="card p-8 mb-8 fade-up fade-up-d3">
+      <h3 class="font-semibold text-ocean-800 mb-4 text-center">选择你的头像</h3>
+      <div id="avatarGrid" class="flex flex-wrap justify-center gap-4"></div>
+    </div>
+
+    <!-- 已拥有的高级头像 -->
+    <div class="card p-8 mb-8 fade-up fade-up-d3" id="premiumSection" style="display:none">
+      <h3 class="font-semibold text-ocean-800 mb-4 text-center">我的专属头像</h3>
+      <div id="premiumGrid" class="flex flex-wrap justify-center gap-4"></div>
+    </div>
+
+    <!-- Live2D 小人设置 -->
+    <div class="card p-8 mb-8 fade-up fade-up-d3">
+      <h3 class="font-semibold text-ocean-800 mb-1 text-center">AI 小人设置</h3>
+      <p class="text-xs text-center text-ocean-400 mb-6">基于 Live2D · 右下角实时生效</p>
+      <div class="flex justify-center mb-6">
+        <div id="live2dPreview" style="width:180px;height:280px;position:relative;border-radius:16px;overflow:hidden;background:linear-gradient(135deg,#eef6ff,#f0fdf4);box-shadow:0 4px 20px rgba(51,133,255,.1)">
+          <canvas id="previewCanvas" width="180" height="280" style="display:block"></canvas>
+          <div id="previewFallback" style="display:none;width:100%;height:100%;align-items:center;justify-content:center">
+            <svg viewBox="0 0 100 100" width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="45" fill="#e3f2fd"/><circle cx="35" cy="40" r="5" fill="#1976d2"/><circle cx="65" cy="40" r="5" fill="#1976d2"/><path d="M35 60 Q50 70 65 60" stroke="#1976d2" stroke-width="3" fill="none"/><rect x="30" y="70" width="40" height="15" rx="5" fill="#2196f3"/></svg>
+          </div>
+          <div id="previewLoading" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:12px;color:#64748b">
+            <svg class="animate-spin" style="width:24px;height:24px" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#bcdeff" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#3385ff" stroke-width="3" stroke-linecap="round"/></svg>
+            加载模型中…
+          </div>
+        </div>
+      </div>
+      <div class="mb-5">
+        <label class="block text-xs font-medium text-ocean-600 mb-2">选择模型</label>
+        <div id="modelGrid" class="grid grid-cols-3 gap-2"></div>
+      </div>
+      <div class="mb-5">
+        <label class="block text-xs font-medium text-ocean-600 mb-2">显示位置</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="setLive2DPos('right')" id="posRight" class="live2d-pos-btn px-3 py-2 rounded-xl text-xs font-medium border-2 border-ocean-200 text-ocean-600 hover:border-ocean-400 transition">右下角</button>
+          <button onclick="setLive2DPos('left')" id="posLeft" class="live2d-pos-btn px-3 py-2 rounded-xl text-xs font-medium border-2 border-ocean-200 text-ocean-600 hover:border-ocean-400 transition">左下角</button>
+        </div>
+      </div>
+      <div class="flex items-center justify-between mb-6 p-3 rounded-xl bg-ocean-50">
+        <span class="text-xs font-medium text-ocean-700">显示 AI 小人</span>
+        <button id="live2dToggle" onclick="toggleLive2DVisible()" class="relative w-11 h-6 rounded-full transition-colors duration-200 bg-ocean-400 focus:outline-none">
+          <span id="live2dToggleDot" class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 translate-x-5"></span>
+        </button>
+      </div>
+      <button onclick="saveLive2DSettings()" class="btn-primary w-full justify-center">保存设置</button>
+    </div>
+
+    <!-- 快捷入口 -->
+    <div class="card p-8 fade-up fade-up-d3">
+      <h3 class="font-semibold text-ocean-800 mb-4 text-center">快捷入口</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <a href="dashboard.html" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-ocean-50 hover:bg-ocean-100 transition text-center ring-2 ring-ocean-200">
+          <span class="text-2xl">📊</span>
+          <span class="text-xs font-medium text-ocean-700">学情分析</span>
+        </a>
+        <a href="ai-module.html" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-mint-50 hover:bg-mint-100 transition text-center">
+          <span class="text-2xl">🤖</span>
+          <span class="text-xs font-medium text-mint-700">AI 伴学</span>
+        </a>
+        <a href="math.html" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-warm-50 hover:bg-warm-100 transition text-center">
+          <span class="text-2xl">📐</span>
+          <span class="text-xs font-medium text-warm-700">数学速算</span>
+        </a>
+        <a href="idiom.html" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-ocean-50 hover:bg-ocean-100 transition text-center">
+          <span class="text-2xl">📜</span>
+          <span class="text-xs font-medium text-ocean-700">成语冒险</span>
+        </a>
+        <a href="farm.html" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-mint-50 hover:bg-mint-100 transition text-center">
+          <span class="text-2xl">🌾</span>
+          <span class="text-xs font-medium text-mint-700">知识农场</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ══════════ FOOTER ══════════ -->
+<footer class="bg-ocean-950 text-white/60 py-6 text-center text-xs mt-auto">
+  © 2026 基于多智能体的个性化伴学系统 · 灵犀 Lab · 燕京理工学院
+</footer>
+
+<script>
+let _autoLogin = true;
+
+/* ═══════════════════════════════════════
+   TOAST NOTIFICATIONS
+   ═══════════════════════════════════════ */
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function() { t.classList.remove('show'); }, 3000);
+}
+
+/* ═══════════════════════════════════════
+   TAB SWITCHING
+   ═══════════════════════════════════════ */
+function switchTab(tab) {
+  if (tab === 'login') {
+    document.getElementById('tabLogin').classList.add('active');
+    document.getElementById('tabRegister').classList.remove('active');
+    document.getElementById('loginForm').style.display = '';
+    document.getElementById('registerForm').style.display = 'none';
+  } else {
+    document.getElementById('tabLogin').classList.remove('active');
+    document.getElementById('tabRegister').classList.add('active');
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('registerForm').style.display = '';
+  }
+}
+
+/* ═══════════════════════════════════════
+   PASSWORD STRENGTH
+   ═══════════════════════════════════════ */
+function checkPasswordStrength() {
+  var pwd = document.getElementById('regPwd').value;
+  var fill = document.getElementById('strengthFill');
+  var text = document.getElementById('strengthText');
+  var score = 0;
+  if (pwd.length >= 6) score++;
+  if (pwd.length >= 10) score++;
+  if (/[a-zA-Z]/.test(pwd) && /[0-9]/.test(pwd)) score++;
+  if (/[^a-zA-Z0-9]/.test(pwd)) score++;
+
+  var levels = [
+    { w: '0%', c: '#e2e8f0', t: '' },
+    { w: '25%', c: '#ef4444', t: '密码强度：弱' },
+    { w: '50%', c: '#f59e0b', t: '密码强度：中' },
+    { w: '75%', c: '#3b82f6', t: '密码强度：较强' },
+    { w: '100%', c: '#10b981', t: '密码强度：强' },
+  ];
+  var l = levels[score];
+  fill.style.width = l.w;
+  fill.style.background = l.c;
+  text.textContent = l.t;
+  text.style.color = l.c;
+}
+
+/* ═══════════════════════════════════════
+   REGISTRATION
+   ═══════════════════════════════════════ */
+async function handleRegister() {
+  var nickname = document.getElementById('regNickname').value.trim();
+  var email = document.getElementById('regEmail').value.trim();
+  var pwd = document.getElementById('regPwd').value;
+  var confirm = document.getElementById('regPwdConfirm').value;
+
+  if (!nickname) { showToast('请输入昵称', 'error'); return; }
+  if (!email || email.indexOf('@') === -1) { showToast('请输入有效的邮箱地址', 'error'); return; }
+  if (pwd.length < 6) { showToast('密码至少需要6位', 'error'); return; }
+  if (pwd !== confirm) { showToast('两次输入的密码不一致', 'error'); return; }
+
+  var btn = document.querySelector('#registerForm .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '注册中…'; }
+
+  try {
+    // 真实 Supabase 注册
+    var result = await sbAuth.signUp(email, pwd, nickname);
+    var uid = result.user && result.user.id;
+
+    // 同步到 userState
+    userState.isLoggedIn = true;
+    userState.userName = nickname;
+    userState.email = email;
+    userState.studyHours = 0;
+    userState.studyDays = 0;
+    userState.points = 0;
+    saveUser();
+
+    // 更新 Supabase users 表昵称
+    if (uid) {
+      await sbUsers.update({ userName: nickname });
+    }
+
+    showToast('注册成功，欢迎 ' + nickname + '！', 'success');
+    // 保存手机号与邮箱的映射，供手机号登录使用
+    var phone = document.getElementById('regPhone').value.trim();
+    if (phone && phone.length === 11) {
+      var phoneMap = JSON.parse(localStorage.getItem('zhibanPhoneMap') || '{}');
+      phoneMap[phone] = email;
+      localStorage.setItem('zhibanPhoneMap', JSON.stringify(phoneMap));
+      // 同步到 Supabase users 表
+      try { await sbUsers.update({ phone: phone }); } catch(e) {}
+    }
+    syncNavbar();
+    showView();
+    afterShowView();
+  } catch (err) {
+    var msg = err.message || '注册失败';
+    if (msg.indexOf('already') >= 0 || msg.indexOf('exists') >= 0) {
+      showToast('该邮箱已注册，请直接登录', 'error');
+    } else {
+      showToast('注册失败：' + msg, 'error');
+    }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '立即注册'; }
+  }
+}
+
+/* ═══════════════════════════════════════
+   LOGIN
+   ═══════════════════════════════════════ */
+var _loginMode = 'email';
+function switchLoginMode(mode) {
+  _loginMode = mode;
+  document.getElementById('loginModeEmail').className = 'auth-tab' + (mode === 'email' ? ' active' : '');
+  document.getElementById('loginModePhone').className = 'auth-tab' + (mode === 'phone' ? ' active' : '');
+  document.getElementById('loginEmailField').style.display = mode === 'email' ? '' : 'none';
+  document.getElementById('loginPhoneField').style.display = mode === 'phone' ? '' : 'none';
+}
+
+async function handleLogin() {
+  var email = '';
+  if (_loginMode === 'email') {
+    email = document.getElementById('loginEmail').value.trim();
+    if (!email) { showToast('请输入邮箱', 'error'); return; }
+  } else {
+    // 手机号登录：先查 users 表找到对应邮箱，再用邮箱登录
+    var phone = document.getElementById('loginPhone').value.trim();
+    if (!phone || phone.length < 11) { showToast('请输入正确的手机号', 'error'); return; }
+    var btn2 = document.querySelector('#loginForm .btn-primary');
+    if (btn2) { btn2.disabled = true; btn2.textContent = '查询中…'; }
+    try {
+      // 从 localStorage 查找绑定该手机号的账号（注册时已存储）
+      var allUsers = JSON.parse(localStorage.getItem('zhibanPhoneMap') || '{}');
+      email = allUsers[phone] || '';
+      if (!email) {
+        // 尝试从 Supabase users 表查询
+        var SURL = 'https://ixwvbwwielgtytjriofy.supabase.co';
+        var SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4d3Zid3dpZWxndHl0anJpb2Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyODgzMzIsImV4cCI6MjA5MDg2NDMzMn0.uAYEeLwEql9h9xlP82JDTus2YhZpRbgLiz-R4x5nBxQ';
+        var resp = await fetch(SURL + '/rest/v1/users?phone=eq.' + encodeURIComponent(phone) + '&select=email', {
+          headers: { 'apikey': SKEY, 'Authorization': 'Bearer ' + SKEY }
+        });
+        var rows = await resp.json();
+        if (rows && rows.length > 0 && rows[0].email) {
+          email = rows[0].email;
+          // 缓存到本地
+          allUsers[phone] = email;
+          localStorage.setItem('zhibanPhoneMap', JSON.stringify(allUsers));
+        }
+      }
+      if (!email) {
+        showToast('未找到该手机号对应的账号，请检查手机号或使用邮箱登录', 'error');
+        if (btn2) { btn2.disabled = false; btn2.textContent = '登 录'; }
+        return;
+      }
+    } catch(e) {
+      showToast('手机号查询失败，请使用邮箱登录', 'error');
+      if (btn2) { btn2.disabled = false; btn2.textContent = '登 录'; }
+      return;
+    }
+    if (btn2) { btn2.textContent = '登录中…'; }
+  }
+  var pwd = document.getElementById('loginPwd').value;
+  if (!pwd) { showToast('请输入密码', 'error'); return; }
+
+  var btn = document.querySelector('#loginForm .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '登录中…'; }
+
+  try {
+    // 真实 Supabase 登录
+    var result = await sbAuth.signIn(email, pwd);
+
+    // 拉取用户资料
+    var profile = await sbUsers.get();
+
+    userState.isLoggedIn = true;
+    userState.email = email;
+    userState.userName = (profile && (profile.user_name || profile.userName)) || email.split('@')[0] || '同学';
+    // 确保不显示默认值"学习者"
+    if (!userState.userName || userState.userName === '学习者') userState.userName = email.split('@')[0] || '同学';
+    userState.points = (profile && profile.points) || 0;
+    userState.studyDays = (profile && profile.study_days) || (profile && profile.studyDays) || 0;
+    userState.avatarIndex = (profile && profile.avatar_index) !== undefined ? profile.avatar_index : (profile && profile.avatarIndex) || 0;
+    userState.ownedAvatars = (profile && (profile.owned_avatars || profile.ownedAvatars)) || [0];
+    userState.premiumAvatar = (profile && (profile.premium_avatar || profile.premiumAvatar)) || '';
+    userState.customAvatar = (profile && (profile.custom_avatar || profile.customAvatar)) || '';
+    userState.studyHours = 0;
+    saveUser();
+
+    showToast('登录成功，欢迎回来！', 'success');
+    syncNavbar();
+    showView();
+    afterShowView();
+  } catch (err) {
+    var msg = err.message || '登录失败';
+    if (msg.indexOf('Invalid') >= 0 || msg.indexOf('invalid') >= 0 || msg.indexOf('credentials') >= 0) {
+      showToast('邮箱或密码错误', 'error');
+    } else {
+      showToast('登录失败：' + msg, 'error');
+    }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '登 录'; }
+  }
+}
+
+async function handleLogout() {
+  await sbAuth.signOut();
+  userState = { isLoggedIn: false, avatarIndex: 0, userName: '学习者', studyHours: 0, studyDays: 0, badges: 0 };
+  saveUser();
+  syncNavbar();
+  showView();
+  afterShowView();
+}
+
+/* ═══════════════════════════════════════
+   AUTO LOGIN
+   ═══════════════════════════════════════ */
+function toggleAutoLogin() {
+  _autoLogin = !_autoLogin;
+  var btn = document.getElementById('autoLoginToggle');
+  btn.className = 'toggle-switch' + (_autoLogin ? ' on' : '');
+}
+
+function toggleRegAutoLogin() {
+  _regAutoLogin = !_regAutoLogin;
+  var btn = document.getElementById('regAutoLoginToggle');
+  btn.className = 'toggle-switch' + (_regAutoLogin ? ' on' : '');
+}
+
+async function tryAutoLogin() {
+  try {
+    var { data: session } = await sbAuth.getSession();
+    if (!session || !session.user) return false;
+    var profile = await sbUsers.get();
+    userState.isLoggedIn = true;
+    userState.email = session.user.email;
+    userState.userName = (profile && (profile.user_name || profile.userName)) || (session.user.raw_user_meta_data && session.user.raw_user_meta_data.user_name) || session.user.email.split('@')[0] || '同学';
+    if (!userState.userName || userState.userName === '学习者') userState.userName = session.user.email.split('@')[0] || '同学';
+    userState.points = (profile && profile.points) || 0;
+    userState.studyDays = (profile && profile.study_days) || (profile && profile.studyDays) || 0;
+    userState.avatarIndex = (profile && profile.avatar_index) !== undefined ? profile.avatar_index : (profile && profile.avatarIndex) || 0;
+    userState.ownedAvatars = (profile && (profile.owned_avatars || profile.ownedAvatars)) || [0];
+    userState.premiumAvatar = (profile && (profile.premium_avatar || profile.premiumAvatar)) || '';
+    userState.customAvatar = (profile && (profile.custom_avatar || profile.customAvatar)) || '';
+    saveUser();
+    return true;
+  } catch (e) {
+    // 降级：检查本地缓存
+    var local = JSON.parse(localStorage.getItem('zhibanUser') || '{}');
+    if (local.isLoggedIn) { userState = local; return true; }
+    return false;
+  }
+}
+
+/* ═══════════════════════════════════════
+   AVATAR GENERATION (shared)
+   ═══════════════════════════════════════ */
+const avatarColors = [
+  {bg:'#fff7ed'}, // fox
+  {bg:'#fce7f3'}, // bunny
+  {bg:'#fef3c7'}, // bear
+  {bg:'#e0e7ff'}, // penguin
+  {bg:'#ecfdf5'}, // frog
+  {bg:'#dbeafe'}, // cat
+];
+
+function generateAvatarSVG(idx, size) {
+  size = size || 64;
+  var c = avatarColors[idx % avatarColors.length];
+  var animals = [
+    // 0: Fox 小狐狸
+    '<circle cx="32" cy="36" r="20" fill="#fb923c"/><circle cx="32" cy="38" r="14" fill="#fff"/><polygon points="16,22 12,6 24,18" fill="#fb923c"/><polygon points="48,22 52,6 40,18" fill="#fb923c"/><polygon points="16,22 14,10 22,18" fill="#fff" opacity=".5"/><polygon points="48,22 50,10 42,18" fill="#fff" opacity=".5"/><circle cx="25" cy="34" r="2.8" fill="#1e293b"/><circle cx="39" cy="34" r="2.8" fill="#1e293b"/><circle cx="26" cy="33" r="1" fill="#fff"/><circle cx="40" cy="33" r="1" fill="#fff"/><ellipse cx="32" cy="39" rx="2.5" ry="2" fill="#1e293b"/><ellipse cx="23" cy="40" rx="4" ry="2" fill="#fca5a5" opacity=".25"/><ellipse cx="41" cy="40" rx="4" ry="2" fill="#fca5a5" opacity=".25"/>',
+    // 1: Bunny 小兔子
+    '<circle cx="32" cy="40" r="18" fill="#fef9c3"/><circle cx="32" cy="40" r="18" fill="#fff" opacity=".5"/><ellipse cx="25" cy="14" rx="5" ry="14" fill="#fef9c3" stroke="#fde047" stroke-width=".5"/><ellipse cx="25" cy="14" rx="3" ry="10" fill="#fda4af" opacity=".4"/><ellipse cx="39" cy="14" rx="5" ry="14" fill="#fef9c3" stroke="#fde047" stroke-width=".5"/><ellipse cx="39" cy="14" rx="3" ry="10" fill="#fda4af" opacity=".4"/><circle cx="26" cy="37" r="2.5" fill="#1e293b"/><circle cx="38" cy="37" r="2.5" fill="#1e293b"/><circle cx="27" cy="36" r="1" fill="#fff"/><circle cx="39" cy="36" r="1" fill="#fff"/><ellipse cx="32" cy="42" rx="2" ry="1.5" fill="#fda4af"/><ellipse cx="24" cy="43" rx="4" ry="2" fill="#fca5a5" opacity=".2"/><ellipse cx="40" cy="43" rx="4" ry="2" fill="#fca5a5" opacity=".2"/>',
+    // 2: Bear 小熊
+    '<circle cx="32" cy="36" r="20" fill="#d4a574"/><circle cx="20" cy="20" r="7" fill="#d4a574" stroke="#c09060" stroke-width=".5"/><circle cx="44" cy="20" r="7" fill="#d4a574" stroke="#c09060" stroke-width=".5"/><circle cx="20" cy="20" r="4" fill="#f5deb3"/><circle cx="44" cy="20" r="4" fill="#f5deb3"/><circle cx="32" cy="40" r="10" fill="#f5deb3"/><circle cx="26" cy="34" r="2.8" fill="#1e293b"/><circle cx="38" cy="34" r="2.8" fill="#1e293b"/><circle cx="27" cy="33" r="1" fill="#fff"/><circle cx="39" cy="33" r="1" fill="#fff"/><ellipse cx="32" cy="39" rx="3.5" ry="2.5" fill="#1e293b"/><path d="M30.5 39 L33.5 39" stroke="#d4a574" stroke-width=".6"/><ellipse cx="24" cy="42" rx="4" ry="2" fill="#fca5a5" opacity=".2"/><ellipse cx="40" cy="42" rx="4" ry="2" fill="#fca5a5" opacity=".2"/>',
+    // 3: Penguin 小企鹅
+    '<ellipse cx="32" cy="36" rx="18" ry="22" fill="#334155"/><ellipse cx="32" cy="40" rx="12" ry="14" fill="#fff"/><circle cx="25" cy="30" r="3.5" fill="#fff"/><circle cx="39" cy="30" r="3.5" fill="#fff"/><circle cx="25" cy="30" r="1.8" fill="#1e293b"/><circle cx="39" cy="30" r="1.8" fill="#1e293b"/><circle cx="26" cy="29" r=".7" fill="#fff"/><circle cx="40" cy="29" r=".7" fill="#fff"/><polygon points="32,35 28,39 36,39" fill="#fbbf24"/><ellipse cx="23" cy="36" rx="3" ry="1.8" fill="#fca5a5" opacity=".3"/><ellipse cx="41" cy="36" rx="3" ry="1.8" fill="#fca5a5" opacity=".3"/><ellipse cx="14" cy="40" rx="5" ry="2.5" fill="#334155" transform="rotate(-15 14 40)"/><ellipse cx="50" cy="40" rx="5" ry="2.5" fill="#334155" transform="rotate(15 50 40)"/>',
+    // 4: Frog 小青蛙
+    '<circle cx="32" cy="38" r="19" fill="#86efac"/><circle cx="22" cy="22" r="9" fill="#86efac" stroke="#4ade80" stroke-width=".5"/><circle cx="42" cy="22" r="9" fill="#86efac" stroke="#4ade80" stroke-width=".5"/><circle cx="22" cy="22" r="5" fill="#fff"/><circle cx="42" cy="22" r="5" fill="#fff"/><circle cx="22" cy="22" r="2.5" fill="#1e293b"/><circle cx="42" cy="22" r="2.5" fill="#1e293b"/><circle cx="23" cy="21" r="1" fill="#fff"/><circle cx="43" cy="21" r="1" fill="#fff"/><path d="M24 42 Q32 48 40 42" stroke="#1e293b" stroke-width="1.5" fill="none" stroke-linecap="round"/><ellipse cx="24" cy="38" rx="4" ry="2" fill="#fca5a5" opacity=".2"/><ellipse cx="40" cy="38" rx="4" ry="2" fill="#fca5a5" opacity=".2"/>',
+    // 5: Cat 小猫咪
+    '<circle cx="32" cy="38" r="19" fill="#94a3b8"/><circle cx="32" cy="40" r="13" fill="#e2e8f0"/><polygon points="16,24 12,6 24,22" fill="#94a3b8" stroke="#64748b" stroke-width=".3"/><polygon points="48,24 52,6 40,22" fill="#94a3b8" stroke="#64748b" stroke-width=".3"/><polygon points="16,24 14,10 22,20" fill="#fda4af" opacity=".3"/><polygon points="48,24 50,10 42,20" fill="#fda4af" opacity=".3"/><circle cx="25" cy="35" r="2.5" fill="#1e293b"/><circle cx="39" cy="35" r="2.5" fill="#1e293b"/><circle cx="26" cy="34" r="1" fill="#fff"/><circle cx="40" cy="34" r="1" fill="#fff"/><ellipse cx="32" cy="40" rx="2" ry="1.5" fill="#fda4af"/><line x1="14" y1="36" x2="23" y2="37" stroke="#94a3b8" stroke-width=".6" opacity=".4"/><line x1="14" y1="39" x2="23" y2="39" stroke="#94a3b8" stroke-width=".6" opacity=".4"/><line x1="41" y1="37" x2="50" y2="36" stroke="#94a3b8" stroke-width=".6" opacity=".4"/><line x1="41" y1="39" x2="50" y2="39" stroke="#94a3b8" stroke-width=".6" opacity=".4"/><ellipse cx="24" cy="43" rx="4" ry="2" fill="#fca5a5" opacity=".2"/><ellipse cx="40" cy="43" rx="4" ry="2" fill="#fca5a5" opacity=".2"/>',
+  ];
+  return '<svg viewBox="0 0 64 64" width="' + size + '" height="' + size + '" xmlns="http://www.w3.org/2000/svg" class="avatar-svg"><rect width="64" height="64" rx="32" fill="' + c.bg + '"/>' + animals[idx % animals.length] + '</svg>';
+}
+
+/* ═══════════════════════════════════════
+   USER STATE
+   ═══════════════════════════════════════ */
+var userState = { isLoggedIn: false, avatarIndex: 0, userName: '学习者', studyHours: 0, studyDays: 0, badges: 0 };
+
+function loadUser() {
+  try { var s = localStorage.getItem('zhibanUser'); if (s) userState = JSON.parse(s); } catch (e) {}
+}
+function saveUser() {
+  try { localStorage.setItem('zhibanUser', JSON.stringify(userState)); } catch (e) {}
+}
+// 同步头像/积分到 Supabase（防抖，500ms）
+var _syncTimer = null;
+function syncUserToCloud() {
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(async function() {
+    try {
+      await sbUsers.update({
+        userName: userState.userName,
+        avatarIndex: userState.avatarIndex,
+        points: userState.points,
+        studyDays: userState.studyDays,
+        ownedAvatars: userState.ownedAvatars,
+        premiumAvatar: userState.premiumAvatar || null,
+        customAvatar: userState.customAvatar || null,
+      });
+    } catch(e) {}
+  }, 500);
+}
+loadUser();
+
+/* ═══════════════════════════════════════
+   NAVBAR SYNC
+   ═══════════════════════════════════════ */
+function syncNavbar() {
+  var av = document.getElementById('navAvatar');
+  var nm = document.getElementById('navUserName');
+  if (userState.isLoggedIn) {
+    var u = _getUser();
+    if (u.customAvatar) {
+      av.innerHTML = '<img src="' + u.customAvatar + '" style="width:36px;height:36px;object-fit:cover;border-radius:50%">';
+    } else if (userState.premiumAvatar) {
+      var pa = PREMIUM_AVATARS.find(function(a) { return a.id === userState.premiumAvatar; });
+      av.innerHTML = pa ? pa.svg(36) : generateAvatarSVG(userState.avatarIndex, 36);
+    } else {
+      av.innerHTML = generateAvatarSVG(userState.avatarIndex, 36);
+    }
+    nm.textContent = userState.userName;
+  } else {
+    av.innerHTML = '<svg class="w-5 h-5 text-ocean-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a8.25 8.25 0 0115 0"/></svg>';
+    nm.textContent = '登录';
+  }
+  // 触发等级徽章重绘 + 通知其他打开的标签页（storage 事件会同步）
+  try{
+    if(window.LevelSystem){
+      LevelSystem.updateNavBadge();
+    }
+    // 重写一次 zhibanUser 触发其他标签页的 storage 事件
+    var u2=_getUser();
+    if(u2.isLoggedIn) localStorage.setItem('zhibanUser', JSON.stringify(u2));
+  }catch(e){}
+}
+
+// 暴露给 level-system.js 调用，确保其他页面返回 user.html 时头像渲染使用完整逻辑（含 PREMIUM_AVATARS）
+window._syncNavUser = syncNavbar;
+
+/* ═══════════════════════════════════════
+   VIEW TOGGLE
+   ═══════════════════════════════════════ */
+function showView() {
+  if (userState.isLoggedIn) {
+    document.getElementById('authSection').classList.add('hidden');
+    document.getElementById('profileSection').classList.remove('hidden');
+    document.getElementById('profileName').textContent = (userState.userName && userState.userName !== '学习者') ? userState.userName : (userState.email ? userState.email.split('@')[0] : '同学');
+    document.getElementById('profileEmail').textContent = userState.email || '';
+    var u = _getUser();
+    if (u.customAvatar) {
+      document.getElementById('profileAvatar').innerHTML = '<img src="' + u.customAvatar + '" style="width:96px;height:96px;object-fit:cover;border-radius:50%">';
+    } else if (userState.premiumAvatar) {
+      var pa = PREMIUM_AVATARS.find(function(a) { return a.id === userState.premiumAvatar; });
+      document.getElementById('profileAvatar').innerHTML = pa ? pa.svg(96) : generateAvatarSVG(userState.avatarIndex, 96);
+    } else {
+      document.getElementById('profileAvatar').innerHTML = generateAvatarSVG(userState.avatarIndex, 96);
+    }
+    // 从 localStorage 读计时器数据（Supabase 过期后兜底）
+    var _timerStats = (function(){
+      var keys = ['zhibanTimerStats','zhibanTimer','timerStats'];
+      for(var ki=0;ki<keys.length;ki++){
+        try { var d=JSON.parse(localStorage.getItem(keys[ki])||'null'); if(d) return d; } catch(e){}
+      }
+      return null;
+    })();
+    var _studyHours = userState.studyHours || 0;
+    if(_timerStats && (_timerStats.totalFocusSecs || _timerStats.totalSeconds || _timerStats.focusSecs)){
+      _studyHours = Math.floor((_timerStats.totalFocusSecs || _timerStats.totalSeconds || _timerStats.focusSecs || 0) / 3600) || _studyHours;
+    }
+    document.getElementById('statHours').textContent = _studyHours;
+    // 从打卡日志推算连续天数（Supabase 过期后兜底）
+    var _studyDays = userState.studyDays || 0;
+    try {
+      var _log = JSON.parse(localStorage.getItem('zhibanPointsLog') || '[]');
+      var _daySet = {};
+      _log.forEach(function(e){ if(e && e.date) _daySet[e.date]=1; });
+      var _logDays = Object.keys(_daySet).length;
+      if(_logDays > _studyDays) _studyDays = _logDays;
+    } catch(e){}
+    document.getElementById('statDays').textContent = _studyDays;
+    document.getElementById('statPoints').textContent = _getUser().points || userState.points || 0;
+    document.querySelectorAll('.avatar-option').forEach(function(el, i) { el.classList.toggle('selected', i === userState.avatarIndex); });
+    initLive2DPreview();
+  } else {
+    document.getElementById('authSection').classList.remove('hidden');
+    document.getElementById('profileSection').classList.add('hidden');
+  }
+}
+
+/* ═══════════════════════════════════════
+   AVATAR PICKER
+   ═══════════════════════════════════════ */
+var avatarGrid = document.getElementById('avatarGrid');
+avatarColors.forEach(function(_, i) {
+  var div = document.createElement('div');
+  div.className = 'avatar-option' + (i === userState.avatarIndex ? ' selected' : '');
+  div.innerHTML = generateAvatarSVG(i, 64);
+  div.onclick = function() {
+    userState.avatarIndex = i;
+    saveUser();
+    syncUserToCloud();
+    syncNavbar();
+    showView();
+    afterShowView();
+  };
+  avatarGrid.appendChild(div);
+});
+
+function afterShowView() { try { renderPremiumOwned(); renderAchievements(); renderLearningQuickStats(); } catch (e) {} }
+
+/* Enter key handlers */
+document.getElementById('loginPwd').addEventListener('keydown', function(e) { if (e.key === 'Enter') handleLogin(); });
+document.getElementById('loginEmail').addEventListener('keydown', function(e) { if (e.key === 'Enter') document.getElementById('loginPwd').focus(); });
+
+/* ═══════════════════════════════════════
+   LIVE2D SETTINGS (preserved from original)
+   ═══════════════════════════════════════ */
+var LIVE2D_MODELS = [
+  { id: 'chitose', name: '千岁（学生）' },
+  { id: 'nico', name: '尼可（学生）' },
+  { id: 'miku', name: '初音（制服）' },
+  { id: 'wanko', name: '汪子（学生）' },
+  { id: 'tororo', name: '托罗（学生）' },
+  { id: 'hijiki', name: '海吉（学生）' },
+];
+
+var _previewApp = null;
+var _selectedModelId = 'haru';
+
+function initLive2DPreview() {
+  var u = _getUser();
+  _selectedModelId = (u.live2d && u.live2d.modelId) || 'haru';
+  renderModelGrid();
+  updatePosButtons((u.live2d && u.live2d.pos) || 'right');
+  setToggleUI(!(u.live2d && u.live2d.visible === false));
+  if (typeof _loadLive2DScripts === 'function') {
+    _loadLive2DScripts(function() { loadPreviewModel(_selectedModelId); });
+  }
+}
+
+function renderModelGrid() {
+  var grid = document.getElementById('modelGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  LIVE2D_MODELS.forEach(function(m) {
+    var btn = document.createElement('button');
+    btn.className = 'p-2 rounded-xl border-2 text-xs font-medium transition ' +
+      (m.id === _selectedModelId ? 'border-ocean-500 bg-ocean-50 text-ocean-700' : 'border-ocean-100 text-ocean-500 hover:border-ocean-300');
+    btn.textContent = m.name;
+    btn.onclick = function() {
+      _selectedModelId = m.id;
+      renderModelGrid();
+      loadPreviewModel(m.id);
+    };
+    grid.appendChild(btn);
+  });
+}
+
+function loadPreviewModel(modelId) {
+  var canvas = document.getElementById('previewCanvas');
+  var fallback = document.getElementById('previewFallback');
+  var loading = document.getElementById('previewLoading');
+  if (!canvas) return;
+  var MODELS_MAP = {
+    chitose: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-chitose@1.0.5/assets/chitose.model.json',
+    nico: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-nico@1.0.5/assets/nico.model.json',
+    miku: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-miku@1.0.5/assets/miku.model.json',
+    wanko: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-wanko@1.0.5/assets/wanko.model.json',
+    tororo: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-tororo@1.0.5/assets/tororo.model.json',
+    hijiki: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-hijiki@1.0.5/assets/hijiki.model.json',
+  };
+  var url = MODELS_MAP[modelId];
+  if (!url || typeof PIXI === 'undefined' || typeof PIXI.live2d === 'undefined') {
+    canvas.style.display = 'none';
+    fallback.style.display = 'flex';
+    if (loading) loading.style.display = 'none';
+    return;
+  }
+  loading.style.display = 'flex';
+  canvas.style.display = 'block';
+  fallback.style.display = 'none';
+  if (_previewApp) { _previewApp.destroy(true); }
+  _previewApp = new PIXI.Application({ view: canvas, width: 180, height: 280, transparent: true, backgroundAlpha: 0 });
+  PIXI.live2d.Live2DModel.from(url).then(function(model) {
+    _previewApp.stage.addChild(model);
+    model.x = 90; model.y = 280; model.anchor.set(0.5, 1);
+    var scale = Math.min(180 / model.internalModel.originalWidth, 280 / model.internalModel.originalHeight) * 1.1;
+    model.scale.set(scale);
+    loading.style.display = 'none';
+  }).catch(function() {
+    canvas.style.display = 'none';
+    fallback.style.display = 'flex';
+    loading.style.display = 'none';
+  });
+}
+
+function setLive2DPos(pos) { updatePosButtons(pos); }
+function updatePosButtons(pos) {
+  var r = document.getElementById('posRight'), l = document.getElementById('posLeft');
+  if (r) r.className = 'live2d-pos-btn px-3 py-2 rounded-xl text-xs font-medium border-2 transition ' + (pos === 'right' ? 'border-ocean-500 bg-ocean-50 text-ocean-700' : 'border-ocean-200 text-ocean-600 hover:border-ocean-400');
+  if (l) l.className = 'live2d-pos-btn px-3 py-2 rounded-xl text-xs font-medium border-2 transition ' + (pos === 'left' ? 'border-ocean-500 bg-ocean-50 text-ocean-700' : 'border-ocean-200 text-ocean-600 hover:border-ocean-400');
+}
+function toggleLive2DVisible() {
+  var tog = document.getElementById('live2dToggle'), dot = document.getElementById('live2dToggleDot');
+  var isOn = tog.classList.contains('bg-ocean-400');
+  tog.className = 'relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ' + (isOn ? 'bg-gray-300' : 'bg-ocean-400');
+  dot.className = 'absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ' + (isOn ? '' : 'translate-x-5');
+}
+function setToggleUI(isOn) {
+  var tog = document.getElementById('live2dToggle'), dot = document.getElementById('live2dToggleDot');
+  if (!tog || !dot) return;
+  tog.className = 'relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ' + (isOn ? 'bg-ocean-400' : 'bg-gray-300');
+  dot.className = 'absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ' + (isOn ? 'translate-x-5' : '');
+}
+
+function saveLive2DSettings() {
+  var pos = document.querySelector('.live2d-pos-btn.border-ocean-500');
+  pos = pos && pos.textContent.indexOf('左') >= 0 ? 'left' : 'right';
+  var visible = document.getElementById('live2dToggle').classList.contains('bg-ocean-400');
+  var u = _getUser();
+  u.live2d = { modelId: _selectedModelId, pos: pos, visible: visible };
+  _saveUser(u);
+  showToast('AI 小人设置已保存，刷新页面后生效', 'success');
+}
+
+/* ═══════════════════════════════════════
+   PREMIUM AVATARS (preserved from original)
+   ═══════════════════════════════════════ */
+const PREMIUM_AVATARS = [
+  {id:'p0',name:'小白团子',price:100,svg:function(s){return '<svg viewBox="0 0 64 64" width="'+s+'" height="'+s+'" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#fef3c7"/><ellipse cx="32" cy="37" rx="21" ry="20" fill="#fff" stroke="#d1d5db" stroke-width=".5"/><circle cx="24" cy="34" r="3" fill="#1e293b"/><circle cx="40" cy="34" r="3" fill="#1e293b"/><circle cx="25.5" cy="32.5" r="1.3" fill="#fff"/><circle cx="41.5" cy="32.5" r="1.3" fill="#fff"/><ellipse cx="18" cy="39" rx="5" ry="3" fill="#fca5a5" opacity=".25"/><ellipse cx="46" cy="39" rx="5" ry="3" fill="#fca5a5" opacity=".25"/><path d="M28 41 Q32 45 36 41" stroke="#1e293b" stroke-width="1.5" fill="none" stroke-linecap="round"/><ellipse cx="23" cy="20" rx="6" ry="9" fill="#fff" stroke="#d1d5db" stroke-width=".5" transform="rotate(-12 23 20)"/><ellipse cx="41" cy="20" rx="6" ry="9" fill="#fff" stroke="#d1d5db" stroke-width=".5" transform="rotate(12 41 20)"/><circle cx="23" cy="17" r="2" fill="#fca5a5" opacity=".3"/><circle cx="41" cy="17" r="2" fill="#fca5a5" opacity=".3"/></svg>'}},
+  {id:'p1',name:'粉耳兔兔',price:120,svg:function(s){return '<svg viewBox="0 0 64 64" width="'+s+'" height="'+s+'" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#fce7f3"/><ellipse cx="32" cy="40" rx="19" ry="18" fill="#fff" stroke="#f9a8d4" stroke-width=".6"/><circle cx="24" cy="37" r="2.8" fill="#1e293b"/><circle cx="40" cy="37" r="2.8" fill="#1e293b"/><circle cx="25.3" cy="35.5" r="1.2" fill="#fff"/><circle cx="41.3" cy="35.5" r="1.2" fill="#fff"/><path d="M29 43 Q32 46 35 43" stroke="#1e293b" stroke-width="1.3" fill="none" stroke-linecap="round"/><ellipse cx="21" cy="43" rx="4.5" ry="2.5" fill="#fca5a5" opacity=".2"/><ellipse cx="43" cy="43" rx="4.5" ry="2.5" fill="#fca5a5" opacity=".2"/><ellipse cx="24" cy="14" rx="5" ry="14" fill="#fff" stroke="#f9a8d4" stroke-width=".6" transform="rotate(-6 24 14)"/><ellipse cx="24" cy="14" rx="3" ry="10" fill="#fbcfe8" transform="rotate(-6 24 14)"/><ellipse cx="40" cy="14" rx="5" ry="14" fill="#fff" stroke="#f9a8d4" stroke-width=".6" transform="rotate(6 40 14)"/><ellipse cx="40" cy="14" rx="3" ry="10" fill="#fbcfe8" transform="rotate(6 40 14)"/><circle cx="32" cy="40" r="1.8" fill="#fda4af"/></svg>'}},
+  {id:'p2',name:'蓝莓小熊',price:80,svg:function(s){return '<svg viewBox="0 0 64 64" width="'+s+'" height="'+s+'" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#dbeafe"/><circle cx="32" cy="38" r="20" fill="#93c5fd" stroke="#60a5fa" stroke-width=".6"/><circle cx="20" cy="22" r="8" fill="#93c5fd" stroke="#60a5fa" stroke-width=".6"/><circle cx="44" cy="22" r="8" fill="#93c5fd" stroke="#60a5fa" stroke-width=".6"/><circle cx="20" cy="22" r="4.5" fill="#bfdbfe"/><circle cx="44" cy="22" r="4.5" fill="#bfdbfe"/><circle cx="25" cy="35" r="3" fill="#1e3a5f"/><circle cx="39" cy="35" r="3" fill="#1e3a5f"/><circle cx="26.2" cy="33.5" r="1.2" fill="#fff"/><circle cx="40.2" cy="33.5" r="1.2" fill="#fff"/><ellipse cx="32" cy="40" rx="3.5" ry="2.5" fill="#1e3a5f"/><path d="M30.5 40 L33.5 40" stroke="#93c5fd" stroke-width=".8"/><ellipse cx="22" cy="42" rx="5" ry="2.5" fill="#fca5a5" opacity=".2"/><ellipse cx="42" cy="42" rx="5" ry="2.5" fill="#fca5a5" opacity=".2"/></svg>'}},
+  {id:'p3',name:'蜜桃猫咪',price:150,svg:function(s){return '<svg viewBox="0 0 64 64" width="'+s+'" height="'+s+'" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#fff1f2"/><ellipse cx="32" cy="39" rx="20" ry="19" fill="#fff" stroke="#fecdd3" stroke-width=".6"/><polygon points="15,26 11,8 23,21" fill="#fff" stroke="#fecdd3" stroke-width=".6" stroke-linejoin="round"/><polygon points="49,26 53,8 41,21" fill="#fff" stroke="#fecdd3" stroke-width=".6" stroke-linejoin="round"/><polygon points="15,26 12,10 22,21" fill="#fecdd3" opacity=".4"/><polygon points="49,26 52,10 42,21" fill="#fecdd3" opacity=".4"/><circle cx="24" cy="36" r="2.5" fill="#1e293b"/><circle cx="40" cy="36" r="2.5" fill="#1e293b"/><circle cx="25.2" cy="34.8" r="1" fill="#fff"/><circle cx="41.2" cy="34.8" r="1" fill="#fff"/><ellipse cx="32" cy="40" rx="2.5" ry="1.8" fill="#fda4af"/><line x1="12" y1="37" x2="21" y2="38" stroke="#fda4af" stroke-width=".5" opacity=".6"/><line x1="12" y1="40" x2="21" y2="40" stroke="#fda4af" stroke-width=".5" opacity=".6"/><line x1="43" y1="38" x2="52" y2="37" stroke="#fda4af" stroke-width=".5" opacity=".6"/><line x1="43" y1="40" x2="52" y2="40" stroke="#fda4af" stroke-width=".5" opacity=".6"/><ellipse cx="21" cy="43" rx="5" ry="2.5" fill="#fca5a5" opacity=".18"/><ellipse cx="43" cy="43" rx="5" ry="2.5" fill="#fca5a5" opacity=".18"/></svg>'}},
+  {id:'p4',name:'抹茶小龟',price:100,svg:function(s){return '<svg viewBox="0 0 64 64" width="'+s+'" height="'+s+'" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#d1fae5"/><ellipse cx="32" cy="42" rx="20" ry="15" fill="#86efac" stroke="#4ade80" stroke-width=".6"/><path d="M18 36 Q21 28 27 31 Q32 23 37 31 Q43 28 46 36" fill="#4ade80"/><path d="M26 40 L32 36 L38 40" stroke="#22c55e" stroke-width=".8" fill="none"/><path d="M32 36 L32 46" stroke="#22c55e" stroke-width=".8"/><circle cx="32" cy="36" r="15" fill="#fef9c3" stroke="#fde047" stroke-width=".6"/><circle cx="26" cy="34" r="2.5" fill="#1e293b"/><circle cx="38" cy="34" r="2.5" fill="#1e293b"/><circle cx="27.2" cy="32.8" r="1" fill="#fff"/><circle cx="39.2" cy="32.8" r="1" fill="#fff"/><path d="M29 39 Q32 42 35 39" stroke="#1e293b" stroke-width="1.2" fill="none" stroke-linecap="round"/><ellipse cx="23" cy="38" rx="4" ry="2" fill="#fca5a5" opacity=".2"/><ellipse cx="41" cy="38" rx="4" ry="2" fill="#fca5a5" opacity=".2"/></svg>'}},
+  {id:'p5',name:'云朵绵羊',price:130,svg:function(s){return '<svg viewBox="0 0 64 64" width="'+s+'" height="'+s+'" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#f0f9ff"/><circle cx="20" cy="22" r="9" fill="#fff" stroke="#e2e8f0" stroke-width=".5"/><circle cx="44" cy="22" r="9" fill="#fff" stroke="#e2e8f0" stroke-width=".5"/><circle cx="32" cy="18" r="10" fill="#fff" stroke="#e2e8f0" stroke-width=".5"/><circle cx="18" cy="33" r="8" fill="#fff" stroke="#e2e8f0" stroke-width=".5"/><circle cx="46" cy="33" r="8" fill="#fff" stroke="#e2e8f0" stroke-width=".5"/><circle cx="32" cy="40" r="9" fill="#fff" stroke="#e2e8f0" stroke-width=".5"/><ellipse cx="32" cy="40" rx="14" ry="13" fill="#fef9c3" stroke="#fde047" stroke-width=".6"/><circle cx="26" cy="37" r="2.8" fill="#1e293b"/><circle cx="38" cy="37" r="2.8" fill="#1e293b"/><circle cx="27.3" cy="35.5" r="1.1" fill="#fff"/><circle cx="39.3" cy="35.5" r="1.1" fill="#fff"/><path d="M30 43 Q32 46 34 43" stroke="#1e293b" stroke-width="1.2" fill="none" stroke-linecap="round"/><ellipse cx="23" cy="42" rx="4" ry="2" fill="#fca5a5" opacity=".2"/><ellipse cx="41" cy="42" rx="4" ry="2" fill="#fca5a5" opacity=".2"/></svg>'}},
+  {id:'p6',name:'橘子仓鼠',price:200,svg:function(s){return '<svg viewBox="0 0 64 64" width="'+s+'" height="'+s+'" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#fff7ed"/><circle cx="32" cy="37" r="22" fill="#fed7aa" stroke="#fdba74" stroke-width=".6"/><circle cx="18" cy="23" r="7" fill="#fed7aa" stroke="#fdba74" stroke-width=".6"/><circle cx="46" cy="23" r="7" fill="#fed7aa" stroke="#fdba74" stroke-width=".6"/><circle cx="18" cy="23" r="4" fill="#fef3c7"/><circle cx="46" cy="23" r="4" fill="#fef3c7"/><circle cx="25" cy="34" r="3" fill="#1e293b"/><circle cx="39" cy="34" r="3" fill="#1e293b"/><circle cx="26.3" cy="32.5" r="1.2" fill="#fff"/><circle cx="40.3" cy="32.5" r="1.2" fill="#fff"/><ellipse cx="32" cy="40" rx="4" ry="2.5" fill="#fb923c"/><path d="M30 39.5 L34 39.5" stroke="#fed7aa" stroke-width=".6"/><ellipse cx="20" cy="41" rx="6" ry="3.5" fill="#fca5a5" opacity=".22"/><ellipse cx="44" cy="41" rx="6" ry="3.5" fill="#fca5a5" opacity=".22"/><ellipse cx="32" cy="50" rx="12" ry="4" fill="#fff" opacity=".3"/></svg>'}},
+  {id:'p7',name:'薄荷企鹅',price:90,svg:function(s){return '<svg viewBox="0 0 64 64" width="'+s+'" height="'+s+'" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#ecfdf5"/><ellipse cx="32" cy="37" rx="20" ry="22" fill="#334155" stroke="#1e293b" stroke-width=".5"/><ellipse cx="32" cy="40" rx="13" ry="16" fill="#fff"/><circle cx="25" cy="32" r="3" fill="#fff"/><circle cx="39" cy="32" r="3" fill="#fff"/><circle cx="25" cy="32" r="1.5" fill="#1e293b"/><circle cx="39" cy="32" r="1.5" fill="#1e293b"/><circle cx="25.8" cy="31" r=".7" fill="#fff"/><circle cx="39.8" cy="31" r=".7" fill="#fff"/><polygon points="32,37 28,41 36,41" fill="#f59e0b" stroke="#d97706" stroke-width=".3"/><ellipse cx="23" cy="38" rx="4" ry="2" fill="#fca5a5" opacity=".25"/><ellipse cx="41" cy="38" rx="4" ry="2" fill="#fca5a5" opacity=".25"/><ellipse cx="14" cy="40" rx="6" ry="3" fill="#334155" transform="rotate(-20 14 40)"/><ellipse cx="50" cy="40" rx="6" ry="3" fill="#334155" transform="rotate(20 50 40)"/></svg>'}},
+  {id:'p8',name:'星空小鲸',price:180,svg:function(s){return '<svg viewBox="0 0 64 64" width="'+s+'" height="'+s+'" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#e0e7ff"/><ellipse cx="32" cy="36" rx="24" ry="18" fill="#a5b4fc" stroke="#818cf8" stroke-width=".6"/><ellipse cx="32" cy="42" rx="14" ry="7" fill="#c7d2fe"/><circle cx="20" cy="33" r="3" fill="#312e81"/><circle cx="21.2" cy="31.5" r="1.2" fill="#fff"/><circle cx="44" cy="33" r="2.5" fill="#312e81"/><circle cx="44.8" cy="32" r=".8" fill="#fff"/><path d="M27 42 Q32 46 37 42" stroke="#312e81" stroke-width="1.2" fill="none" stroke-linecap="round"/><path d="M8 30 Q12 25 14 30" stroke="#818cf8" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M50 30 Q52 25 56 30" stroke="#818cf8" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="16" cy="20" r="1.5" fill="#fbbf24" opacity=".7"/><circle cx="48" cy="18" r="2" fill="#fbbf24" opacity=".6"/><circle cx="38" cy="14" r="1" fill="#fbbf24" opacity=".5"/><circle cx="26" cy="16" r="1.2" fill="#fbbf24" opacity=".4"/></svg>'}},
+  {id:'p9',name:'皇冠小鸡',price:250,svg:function(s){return '<svg viewBox="0 0 64 64" width="'+s+'" height="'+s+'" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#fefce8"/><circle cx="32" cy="39" r="20" fill="#fef08a" stroke="#fde047" stroke-width=".6"/><path d="M20 26 L24 18 L29 23 L32 12 L35 23 L40 18 L44 26" fill="#fbbf24" stroke="#f59e0b" stroke-width=".6" stroke-linejoin="round"/><circle cx="32" cy="16" r="2.5" fill="#f59e0b"/><circle cx="24" cy="20" r="1.5" fill="#f59e0b" opacity=".6"/><circle cx="40" cy="20" r="1.5" fill="#f59e0b" opacity=".6"/><circle cx="26" cy="37" r="3" fill="#1e293b"/><circle cx="38" cy="37" r="3" fill="#1e293b"/><circle cx="27.2" cy="35.5" r="1.2" fill="#fff"/><circle cx="39.2" cy="35.5" r="1.2" fill="#fff"/><polygon points="32,42 28,46 36,46" fill="#fb923c" stroke="#ea580c" stroke-width=".3"/><ellipse cx="22" cy="42" rx="5" ry="2.5" fill="#fca5a5" opacity=".2"/><ellipse cx="42" cy="42" rx="5" ry="2.5" fill="#fca5a5" opacity=".2"/></svg>'}},
+];
+function _getUser() { try { return JSON.parse(localStorage.getItem('zhibanUser') || '{}'); } catch (e) { return {}; } }
+function _saveUser(u) { try { localStorage.setItem('zhibanUser', JSON.stringify(u)); } catch (e) {} }
+function _renderPremiumAvatar(id, size) { var a = PREMIUM_AVATARS.find(function(x) { return x.id === id; }); return a ? a.svg(size) : ''; }
+
+function renderPremiumOwned() {
+  var u = _getUser();
+  var owned = u.ownedAvatars || [];
+  var section = document.getElementById('premiumSection');
+  var grid = document.getElementById('premiumGrid');
+  if (!owned.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  grid.innerHTML = '';
+  owned.forEach(function(id) {
+    var av = PREMIUM_AVATARS.find(function(x) { return x.id === id; });
+    if (!av) return;
+    var isActive = (u.premiumAvatar === id);
+    var div = document.createElement('div');
+    div.className = 'text-center cursor-pointer';
+    div.innerHTML = '<div class="avatar-option mx-auto ' + (isActive ? 'selected' : '') + '" style="width:72px;height:72px">' + av.svg(64) + '</div><p class="text-xs mt-1 font-medium ' + (isActive ? 'text-ocean-600' : 'text-ocean-400') + '">' + av.name + '</p>';
+    div.onclick = function() {
+      var uu = _getUser();
+      uu.premiumAvatar = (uu.premiumAvatar === id) ? '' : id;
+      _saveUser(uu);
+      syncNavbar(); showView(); renderPremiumOwned();
+    };
+    grid.appendChild(div);
+  });
+}
+
+/* ═══════════════════════════════════════
+   CUSTOM AVATAR UPLOAD
+   ═══════════════════════════════════════ */
+function uploadCustomAvatar(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { showToast('图片不能超过2MB', 'error'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var dataUrl = e.target.result;
+    var u = _getUser();
+    u.customAvatar = dataUrl;
+    u.premiumAvatar = ''; // clear premium selection
+    _saveUser(u);
+    userState.customAvatar = dataUrl;
+    userState.premiumAvatar = ''; // 同步到 userState，防止 saveUser() 恢复旧值
+    saveUser();
+    syncUserToCloud();
+    syncNavbar();
+    showView();
+    afterShowView();
+    showToast('头像上传成功！', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ═══════════════════════════════════════
+   ACHIEVEMENT SYSTEM
+   ═══════════════════════════════════════ */
+var ACHIEVEMENTS = [
+  { id:'first_chat', name:'初次问答', icon:'💬', desc:'完成第一次AI对话', check: function(d){ return d.sessions >= 1; } },
+  { id:'chatter',    name:'好奇宝宝', icon:'❓', desc:'提问达到10次', check: function(d){ return d.questions >= 10; } },
+  { id:'scholar',    name:'小小学者', icon:'🎓', desc:'提问达到50次', check: function(d){ return d.questions >= 50; } },
+  { id:'streak3',    name:'三日连学', icon:'🔥', desc:'连续学习3天', check: function(d){ return d.days >= 3; } },
+  { id:'streak7',    name:'周学不辍', icon:'⭐', desc:'连续学习7天', check: function(d){ return d.days >= 7; } },
+  { id:'math_fan',   name:'数学达人', icon:'📐', desc:'数学相关提问达10次', check: function(d){ return d.math >= 10; } },
+  { id:'chinese_fan',name:'语文之星', icon:'📖', desc:'语文相关提问达10次', check: function(d){ return d.chinese >= 10; } },
+  { id:'english_fan',name:'英语先锋', icon:'🔤', desc:'英语相关提问达10次', check: function(d){ return d.english >= 10; } },
+  { id:'rich',       name:'积分大亨', icon:'💰', desc:'积分达到100', check: function(d){ return d.points >= 100; } },
+  { id:'collector',  name:'头像收藏', icon:'🖼️', desc:'解锁3个高级头像', check: function(d){ return d.avatars >= 3; } },
+  { id:'explorer',   name:'全面探索', icon:'🧭', desc:'使用过3个以上学科', check: function(d){ return d.subjectCount >= 3; } },
+  { id:'master',     name:'学神降临', icon:'👑', desc:'参与度评分达80', check: function(d){ return d.score >= 80; } },
+];
+
+function getAchievementData() {
+  var chatHistory = [];
+  try { chatHistory = JSON.parse(localStorage.getItem('zhibanChatHistory') || '[]'); } catch(e){}
+  var u = _getUser();
+  var questions = 0, math = 0, chinese = 0, english = 0;
+  var subjectSet = {};
+  var keywordMap = {
+    '数学':['数学','计算','方程','几何','加减乘除','分数'],
+    '语文':['语文','作文','阅读','成语','诗词','写作'],
+    '英语':['英语','单词','语法','句型','翻译'],
+  };
+  chatHistory.forEach(function(s){
+    (s.messages||[]).forEach(function(m){
+      if(m.role==='user'){
+        questions++;
+        for(var subj in keywordMap){
+          for(var k=0;k<keywordMap[subj].length;k++){
+            if(m.content && m.content.indexOf(keywordMap[subj][k])>=0){
+              if(subj==='数学') math++;
+              if(subj==='语文') chinese++;
+              if(subj==='英语') english++;
+              subjectSet[subj]=true;
+              break;
+            }
+          }
+        }
+      }
+    });
+  });
+  var score = Math.min(100, Math.round(chatHistory.length*8 + questions*2 + (u.studyDays||0)*10));
+  return {
+    sessions: chatHistory.length,
+    questions: questions,
+    days: u.studyDays || 0,
+    points: u.points || 0,
+    avatars: (u.ownedAvatars||[]).length,
+    math: math,
+    chinese: chinese,
+    english: english,
+    subjectCount: Object.keys(subjectSet).length,
+    score: score,
+    subjectSet: subjectSet,
+  };
+}
+
+function renderAchievements() {
+  // 委托给新的等级+徽章渲染
+  renderMyLevel();
+  renderBadgeWall();
+}
+
+/* ═══ 我的等级卡渲染 ═══ */
+function renderMyLevel() {
+  // 优先从 localStorage 读积分，不依赖 LevelSystem 时序
+  var _lsUser = _getUser();
+  var _pts = _lsUser.points || 0;
+  // 同步更新统计卡积分
+  var sp = document.getElementById('statPoints');
+  if (sp) sp.textContent = _pts;
+  if (!window.LevelSystem) return;
+  // LevelSystem.getUser() points 可能为0，强制用localStorage值覆盖
+  var u = LevelSystem.getUser();
+  u.points = _pts;
+  var info = LevelSystem.getLevelInfo(_pts);
+  var iconBox = document.getElementById('lvIconBox');
+  var bgEl = document.getElementById('lvCardBg');
+  if (iconBox) {
+    iconBox.style.background = info.gradient;
+    iconBox.textContent = info.icon;
+  }
+  if (bgEl) bgEl.style.background = info.gradient;
+  var nm = document.getElementById('lvName'); if (nm) { nm.textContent = info.name; nm.style.background = info.gradient; nm.style.webkitBackgroundClip = 'text'; nm.style.webkitTextFillColor = 'transparent'; }
+  var num = document.getElementById('lvNum'); if (num) num.textContent = info.idx + 1;
+  var desc = document.getElementById('lvDesc'); if (desc) desc.textContent = info.desc;
+  var nnm = document.getElementById('lvNextName');
+  var cur = document.getElementById('lvCurrent');
+  var tar = document.getElementById('lvTarget');
+  var bar = document.getElementById('lvProgress');
+  var hint = document.getElementById('lvHintText');
+  if (info.next) {
+    if (nnm) nnm.textContent = info.next.name;
+    if (cur) cur.textContent = _pts;
+    if (tar) tar.textContent = info.next.min;
+    if (bar) bar.style.width = info.progress + '%';
+  } else {
+    // 已达最高
+    var wrap = document.querySelector('#myLevelCard .flex-1');
+    if (wrap) wrap.innerHTML = '<div class="flex items-baseline gap-2 mb-1"><span class="text-2xl font-bold" style="background:'+info.gradient+';-webkit-background-clip:text;-webkit-text-fill-color:transparent">'+info.name+'</span><span class="text-xs text-ocean-400">Lv.6 · MAX</span></div><p class="text-xs text-ocean-500 mb-2">'+info.desc+'</p><div class="text-sm font-bold" style="color:#f59e0b">✨ 已达最高等级，继续累积积分解锁更多商城特权</div>';
+  }
+  if (hint && info.pointsToNext > 0) hint.textContent = '还差 ' + info.pointsToNext + ' 积分升级';
+  // 等级阶梯
+  var ladder = document.getElementById('lvLadder');
+  if (ladder) {
+    ladder.innerHTML = LevelSystem.LEVELS.map(function(lv, i) {
+      var achieved = (u.points || 0) >= lv.min;
+      return '<div class="text-center flex-1" title="'+lv.name+' · '+lv.min+' 积分起">'+
+        '<div style="width:28px;height:28px;border-radius:50%;margin:0 auto 4px;background:'+(achieved?lv.gradient:'#e2e8f0')+';display:flex;align-items:center;justify-content:center;font-size:13px;'+(achieved?'':'opacity:.4')+'">'+lv.icon+'</div>'+
+        '<div class="text-[10px] font-semibold" style="color:'+(achieved?lv.color:'#94a3b8')+'">'+lv.name+'</div>'+
+        '<div class="text-[9px] text-ocean-400">'+lv.min+'</div>'+
+      '</div>';
+    }).join('');
+  }
+}
+
+/* ═══ 徽章墙渲染 ═══ */
+function renderBadgeWall() {
+  if (!window.LevelSystem) return;
+  var grid = document.getElementById('badgeWallGrid');
+  if (!grid) return;
+  var earned = LevelSystem.getEarnedBadges();
+  var all = LevelSystem.BADGES;
+  grid.innerHTML = all.map(function(b) {
+    var isEarned = earned.indexOf(b.id) !== -1;
+    var bgStyle = isEarned
+      ? 'background:linear-gradient(135deg,#fef9c3,#fef3c7);border:2px solid #f59e0b;box-shadow:0 4px 12px rgba(245,158,11,.15)'
+      : 'background:#f8fafc;border:2px dashed #e2e8f0;opacity:.6';
+    var iconStyle = isEarned ? 'filter:none' : 'filter:grayscale(1)';
+    return '<div class="badge-cell" style="'+bgStyle+';padding:12px 8px;border-radius:14px;text-align:center;cursor:pointer;transition:transform .2s" '+
+      'onmouseover="this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.transform=\'translateY(0)\'" '+
+      'onclick="alert(\''+(isEarned?'✅ 已解锁 · ':'🔒 未解锁 · ')+b.name+'\\n\\n'+b.desc.replace(/'/g,'\\\'')+'\\n\\n奖励：+'+b.reward+' 积分\')">'+
+      '<div style="font-size:32px;margin-bottom:4px;'+iconStyle+'">'+b.icon+'</div>'+
+      '<div class="text-[11px] font-bold '+(isEarned?'text-warm-700':'text-ocean-400')+'">'+b.name+'</div>'+
+      (isEarned ? '<div class="text-[9px] text-warm-500 mt-1">+'+b.reward+'</div>' : '<div class="text-[9px] text-ocean-300 mt-1">未解锁</div>')+
+    '</div>';
+  }).join('');
+  var cnt = document.getElementById('badgeCountText');
+  if (cnt) cnt.textContent = earned.length + '/' + all.length;
+  var bar = document.getElementById('badgeProgressBar');
+  if (bar) bar.style.width = (earned.length / all.length * 100) + '%';
+}
+
+function renderLearningQuickStats() {
+  var data = getAchievementData();
+  var qsQ = document.getElementById('qsQuestions');
+  var qsD = document.getElementById('qsActiveDays');
+  var qsS = document.getElementById('qsScore');
+  var chatCount = document.getElementById('statChats');
+  if(qsQ) qsQ.textContent = data.questions;
+  if(qsD) qsD.textContent = data.days;
+  if(qsS) qsS.textContent = data.score;
+  if(chatCount) chatCount.textContent = data.sessions;
+
+  // Subject tags
+  var tagEl = document.getElementById('topSubjectTags');
+  if(!tagEl) return;
+  tagEl.innerHTML = '';
+  var colors = {'数学':'background:#eef6ff;color:#1450e1','语文':'background:#edfcf5;color:#0e7453','英语':'background:#fff8ed;color:#c74e08','物理':'background:#ede9fe;color:#5b21b6','化学':'background:#fce7f3;color:#9d174d'};
+  for(var subj in data.subjectSet){
+    var span = document.createElement('span');
+    span.className = 'subject-tag';
+    span.style.cssText = colors[subj] || 'background:#f1f5f9;color:#64748b';
+    span.textContent = subj;
+    tagEl.appendChild(span);
+  }
+  if(Object.keys(data.subjectSet).length === 0){
+    tagEl.innerHTML = '<span class="text-xs text-ocean-300">暂无学科数据，去和 AI 聊聊吧</span>';
+  }
+}
+
+/* ═══════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════ */
+// 异步初始化：先尝试 Supabase session，再渲染页面
+(async function() {
+  if (!userState.isLoggedIn) {
+    await tryAutoLogin();
+    loadUser();
+  }
+  syncNavbar();
+  showView();
+  afterShowView();
+})();
+// level-system.js 在本 script 标签之后加载，用 load 事件确保等级卡渲染
+window.addEventListener('load', function() {
+  try { renderMyLevel(); } catch(e) {}
+  try { renderBadgeWall(); } catch(e) {}
+});
+</script>
+<script src="level-system.js"></script>
+</body>
+</html>

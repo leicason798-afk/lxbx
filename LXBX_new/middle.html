@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- 防缓存:确保用户总是拿到最新版本 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>初中同步课程网</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet" />
+    <script src="ai-character.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2196F3',
+                        secondary: '#1976D2',
+                        ocean: '#E1F5FE',
+                        sky: '#B3E5FC',
+                    },
+                    fontFamily: {
+                        sans: ['Arial', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* ===== CSS VARIABLES ===== */
+        :root {
+            --nav-h: 64px;
+            --blue-glow: 0 4px 30px rgba(51,133,255,.15);
+            --card-shadow: 0 8px 32px rgba(20,37,87,.08);
+            --card-hover: 0 12px 40px rgba(51,133,255,.18);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        html { scroll-behavior: smooth; scroll-padding-top: var(--nav-h); }
+        body { font-family:'Noto Sans SC',sans-serif; color:#1e293b; background:#f8faff; overflow-x:hidden; }
+
+        /* ===== Decorative Background Mesh ===== */
+        body::before {
+            content:'';
+            position:fixed; inset:0; z-index:-1;
+            background:
+                radial-gradient(ellipse 80% 50% at 20% 10%, rgba(51,133,255,.06) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 80%, rgba(24,180,125,.05) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 60% at 50% 50%, rgba(255,159,56,.03) 0%, transparent 60%);
+        }
+
+        /* ===== NAVBAR ===== */
+        #navbar {
+            transition: background .35s, box-shadow .35s, backdrop-filter .35s;
+        }
+        #navbar.scrolled {
+            background: rgba(255,255,255,.82) !important;
+            backdrop-filter: blur(16px) saturate(1.4);
+            box-shadow: 0 1px 24px rgba(20,37,87,.07);
+        }
+
+        /* ===== CARDS ===== */
+        .feature-card {
+            background:#fff;
+            border-radius:18px;
+            box-shadow: var(--card-shadow);
+            transition: transform .3s, box-shadow .3s;
+            overflow:hidden;
+        }
+        .feature-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--card-hover);
+        }
+
+        /* ===== ACTION BTN ===== */
+        .btn-primary {
+            display:inline-flex; align-items:center; gap:6px;
+            padding: 10px 28px;
+            background: linear-gradient(135deg,#3385ff 0%,#1450e1 100%);
+            color:#fff; border-radius:12px; font-weight:600; font-size:.95rem;
+            transition: transform .25s, box-shadow .25s;
+            border:none; cursor:pointer;
+        }
+        .btn-primary:hover {
+            transform:translateY(-2px);
+            box-shadow: 0 6px 20px rgba(51,133,255,.35);
+        }
+
+        /* ===== SECTION TITLE ===== */
+        .section-title {
+            font-family:'Noto Serif SC',serif;
+            font-weight:700;
+            position:relative;
+            display:inline-block;
+            padding-bottom:12px;
+        }
+        .section-title::after {
+            content:'';
+            position:absolute; bottom:0; left:50%; transform:translateX(-50%);
+            width:48px; height:4px; border-radius:2px;
+            background:linear-gradient(90deg,#3385ff,#18b47d);
+        }
+
+        /* ===== Mobile Menu ===== */
+        #mobileMenu {
+            transition: max-height .35s ease, opacity .3s;
+            max-height:0; opacity:0; overflow:hidden;
+        }
+        #mobileMenu.open {
+            max-height:400px; opacity:1;
+        }
+
+        /* ===== Inline SVG Avatar Generation ===== */
+        .avatar-svg { border-radius:50%; }
+
+        /* Subtle grain overlay */
+        body::after {
+            content:'';
+            position:fixed; inset:0; z-index:-1;
+            opacity:.018;
+            background-image:url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        /* ═══ Unified Navbar ═══ */
+        #navbar{background:rgba(255,255,255,.82);backdrop-filter:blur(16px) saturate(1.4);box-shadow:0 1px 24px rgba(20,37,87,.07);transition:background .35s,box-shadow .35s}
+        .avatar-svg{border-radius:50%}
+    </style>
+</head>
+<body class="bg-gray-50">
+    <nav id="navbar" class="fixed top-0 left-0 w-full z-50 bg-transparent">
+        <div class="max-w-7xl mx-auto flex items-center justify-between px-5 md:px-8" style="height:var(--nav-h)">
+            <a href="#" class="flex items-center gap-2 text-ocean-700 font-bold text-lg select-none">
+                <svg class="w-8 h-8" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="18" stroke="#3385ff" stroke-width="2.5"/><circle cx="14" cy="17" r="4" fill="#3385ff" opacity=".7"/><circle cx="26" cy="17" r="4" fill="#18b47d" opacity=".7"/><circle cx="20" cy="27" r="4" fill="#ff9f38" opacity=".7"/><line x1="14" y1="17" x2="26" y2="17" stroke="#3385ff" stroke-width="1.5" opacity=".4"/><line x1="14" y1="17" x2="20" y2="27" stroke="#18b47d" stroke-width="1.5" opacity=".4"/><line x1="26" y1="17" x2="20" y2="27" stroke="#ff9f38" stroke-width="1.5" opacity=".4"/></svg>
+                <span class="hidden sm:inline font-display">灵犀伴学</span>
+            </a>
+            <ul class="hidden md:flex items-center gap-1 text-sm font-medium">
+                <li><a href="home.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">首页</a></li>
+                <li><a href="#courses" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">全部课程</a></li>
+                <li><a href="#textbooks" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">电子教材</a></li>
+                <li><a href="#about" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">关于本站</a></li>
+                <li><a href="user.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">用户中心</a></li>
+            
+      <li><a href="profile.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习画像</a></li>
+      <li><a href="goals.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习目标</a></li>
+    </ul>
+            <div class="flex items-center gap-3">
+                <a href="user.html" id="navUserInfo" class="flex items-center gap-2 hover:opacity-80 transition">
+                    <div id="navAvatar" class="w-9 h-9 rounded-full bg-ocean-100 flex items-center justify-center overflow-hidden"></div>
+                    <span id="navUserName" class="hidden sm:inline text-sm font-medium text-ocean-700"></span>
+                </a>
+                <button id="menuBtn" onclick="toggleMobileMenu()" class="md:hidden w-9 h-9 rounded-lg flex items-center justify-center hover:bg-ocean-50 transition">
+                    <svg class="w-5 h-5 text-ocean-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+            </div>
+        </div>
+        <div id="mobileMenu" class="md:hidden bg-white/95 backdrop-blur-md border-t border-ocean-100">
+            <ul class="flex flex-col py-2 px-5 text-sm font-medium">
+                <li><a href="home.html" onclick="closeMobileMenu()" class="block py-3 text-ocean-800">首页</a></li>
+                <li><a href="#courses" onclick="closeMobileMenu()" class="block py-3 text-ocean-800">全部课程</a></li>
+                <li><a href="#textbooks" onclick="closeMobileMenu()" class="block py-3 text-ocean-800">电子教材</a></li>
+                <li><a href="#about" onclick="closeMobileMenu()" class="block py-3 text-ocean-800">关于本站</a></li>
+                <li><a href="user.html" class="block py-3 text-ocean-600 font-semibold">用户中心</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-5 md:px-8 pt-24 pb-16">
+        <section class="mb-8">
+            <div class="max-w-3xl mx-auto">
+                <div class="relative">
+                    <input type="text" id="search-input" placeholder="搜索课程名称、科目、年级、教材版本" 
+                        class="w-full py-3 px-5 pr-12 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                    <button id="search-btn" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-primary">
+                        <svg style="width:20px;height:20px;display:inline;vertical-align:middle" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-8 bg-white rounded-xl shadow-sm p-4">
+            <div class="flex flex-wrap gap-4">
+                <div class="flex-1 min-w-[200px]">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">年级</label>
+                    <select id="grade-filter" class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <option value="all">全部年级</option>
+                        <option value="7">七年级</option>
+                        <option value="8">八年级</option>
+                        <option value="9">九年级</option>
+                    </select>
+                </div>
+                <div class="flex-1 min-w-[200px]">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">科目</label>
+                    <select id="subject-filter" class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <option value="all">全部科目</option>
+                        <option value="chinese">语文</option>
+                        <option value="math">数学</option>
+                        <option value="english">英语</option>
+                        <option value="physics">物理</option>
+                        <option value="chemistry">化学</option>
+                        <option value="biology">生物</option>
+                        <option value="history">历史</option>
+                        <option value="geography">地理</option>
+                        <option value="morality">道德与法治</option>
+                    </select>
+                </div>
+                <div class="flex-1 min-w-[200px]">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">教材版本</label>
+                    <select id="version-filter" class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <option value="all">全部版本</option>
+                        <option value="people">人教版</option>
+                        <option value="beishida">北师大版</option>
+                        <option value="suzhou">苏教版</option>
+                        <option value="外研版">外研版</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <section id="courses" class="mb-16">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">课程视频</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="course-container">
+                </div>
+        </section>
+
+        <section id="textbooks" class="mb-16">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">电子教材</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="textbook-container">
+                </div>
+        </section>
+
+        <section id="about" class="bg-white rounded-xl shadow-sm p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">关于本站</h2>
+            <p class="text-gray-600 mb-4">初中同步课程网致力于为初中生提供优质的同步课程视频和电子教材资源，帮助学生更好地学习和掌握课堂知识。</p>
+            <p class="text-gray-600">本站所有资源均来自合法合规的教育平台，仅供学习参考使用。</p>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <h3 class="text-xl font-bold mb-2">初中同步课程网</h3>
+                    <p class="text-gray-400">© 2026 初中同步课程网. 保留所有权利.</p>
+                </div>
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-400 hover:text-white">首页</a>
+                    <a href="#courses" class="text-gray-400 hover:text-white">全部课程</a>
+                    <a href="#textbooks" class="text-gray-400 hover:text-white">电子教材</a>
+                    <a href="#about" class="text-gray-400 hover:text-white">关于本站</a>
+                </div>
+            </div>
+            <div class="mt-6 pt-6 border-t border-gray-700 text-center text-gray-400 text-sm">
+                <p>备案号: 京ICP备12345678号</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 课程数据
+        const courses = [
+            // 七年级语文
+            {
+                id: 1,
+                title: "春",
+                grade: "7",
+                subject: "chinese",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1u44y1T7s9?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            {
+                id: 2,
+                title: "济南的冬天",
+                grade: "7",
+                subject: "chinese",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1nYpezMEBB?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            // 七年级数学
+            {
+                id: 3,
+                title: "有理数",
+                grade: "7",
+                subject: "math",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV18pWGzbEvh?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            {
+                id: 4,
+                title: "整式的加减",
+                grade: "7",
+                subject: "math",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1aS81zrEpW?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            // 七年级英语
+            {
+                id: 5,
+                title: "My name is Gina",
+                grade: "7",
+                subject: "english",
+                version: "外研版",
+                link: "https://www.bilibili.com/video/BV1684y1S7VZ?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            {
+                id: 6,
+                title: "This is my sister",
+                grade: "7",
+                subject: "english",
+                version: "外研版",
+                link: "https://www.bilibili.com/video/BV1g24y1971X?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            // 七年级生物
+            {
+                id: 7,
+                title: "生物的特征",
+                grade: "7",
+                subject: "biology",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1ZdtgepE34?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            {
+                id: 8,
+                title: "细胞的结构",
+                grade: "7",
+                subject: "biology",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1QT411N7NL?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            // 七年级历史
+            {
+                id: 9,
+                title: "中国早期人类的代表",
+                grade: "7",
+                subject: "history",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1o94y1S75K?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            {
+                id: 10,
+                title: "夏商周的更替",
+                grade: "7",
+                subject: "history",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1Xd4y1A7o6?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            // 七年级地理
+            {
+                id: 11,
+                title: "地球和地球仪",
+                grade: "7",
+                subject: "geography",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1d84y1q7So?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            {
+                id: 12,
+                title: "地图的阅读",
+                grade: "7",
+                subject: "geography",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1PPxJzkEwL?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            // 八年级语文
+            {
+                id: 13,
+                title: "背影",
+                grade: "8",
+                subject: "chinese",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1aP411x72p?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            {
+                id: 14,
+                title: "白杨礼赞",
+                grade: "8",
+                subject: "chinese",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1b44y1A76b?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            // 八年级数学
+            {
+                id: 15,
+                title: "三角形",
+                grade: "8",
+                subject: "math",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1rubQzuECG?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            {
+                id: 16,
+                title: "一次函数",
+                grade: "8",
+                subject: "math",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV16XBFBhEMn?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            // 八年级物理
+            {
+                id: 17,
+                title: "机械运动",
+                grade: "8",
+                subject: "physics",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV19R4y1E7zy?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            {
+                id: 18,
+                title: "声现象",
+                grade: "8",
+                subject: "physics",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1AkwZzoEoq?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            // 八年级生物
+            {
+                id: 19,
+                title: "动物的运动",
+                grade: "8",
+                subject: "biology",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1Yutoe3EvA?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            {
+                id: 20,
+                title: "生物的遗传与变异",
+                grade: "8",
+                subject: "biology",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1uM411c7JV?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            // 九年级语文
+            {
+                id: 21,
+                title: "沁园春·雪",
+                grade: "9",
+                subject: "chinese",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1wCpneyEPK?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            {
+                id: 22,
+                title: "故乡",
+                grade: "9",
+                subject: "chinese",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1Jp4y1877j?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            // 九年级数学
+            {
+                id: 23,
+                title: "二次函数",
+                grade: "9",
+                subject: "math",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV18qxczTEtR?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            {
+                id: 24,
+                title: "圆",
+                grade: "9",
+                subject: "math",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1Ta4y1s7tb?vd_source=b07cc0788dd80c612b00239e6eadacbc"
+            },
+            // 九年级物理
+            {
+                id: 25,
+                title: "内能",
+                grade: "9",
+                subject: "physics",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1wpYTz4ETd/?share_source=copy_web"
+            },
+            {
+                id: 26,
+                title: "电功率",
+                grade: "9",
+                subject: "physics",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV11zmyBnE4S/?share_source=copy_web"
+            },
+            // 九年级化学
+            {
+                id: 27,
+                title: "走进化学世界",
+                grade: "9",
+                subject: "chemistry",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1YetmzkETY/?share_source=copy_web"
+            },
+            {
+                id: 28,
+                title: "我们周围的空气",
+                grade: "9",
+                subject: "chemistry",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1VP8Fz1Eid/?share_source=copy_web"
+            },
+            // 道德与法治课程
+            {
+                id: 29,
+                title: "青春的邀约",
+                grade: "7",
+                subject: "morality",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1xcP6zUE3H/?share_source=copy_web"
+            },
+            {
+                id: 30,
+                title: "遵守社会规则",
+                grade: "8",
+                subject: "morality",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV18w411a796/?share_source=copy_web"
+            }
+        ];
+
+        // 电子教材数据
+        const textbooks = [
+            // 初中语文
+            {
+                id: 1,
+                title: "初中语文七年级上册",
+                grade: "7",
+                subject: "chinese",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1ktCuBTEYL/?share_source=copy_web"
+            },
+            {
+                id: 2,
+                title: "初中语文八年级上册",
+                grade: "8",
+                subject: "chinese",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1ktCuBTEYL/?share_source=copy_web"
+            },
+            {
+                id: 3,
+                title: "初中语文九年级上册",
+                grade: "9",
+                subject: "chinese",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1mEZeBnE1j/?share_source=copy_web"
+            },
+            // 初中数学
+            {
+                id: 4,
+                title: "初中数学七年级上册",
+                grade: "7",
+                subject: "math",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV18pWGzbEvh/?share_source=copy_web"
+            },
+            {
+                id: 5,
+                title: "初中数学八年级上册",
+                grade: "8",
+                subject: "math",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV12BxQzBEjL/?share_source=copy_web"
+            },
+            {
+                id: 6,
+                title: "初中数学九年级上册",
+                grade: "9",
+                subject: "math",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1G24y19736/?share_source=copy_web"
+            },
+            // 初中英语
+            {
+                id: 7,
+                title: "初中英语七年级上册",
+                grade: "7",
+                subject: "english",
+                version: "外研版",
+                link: "https://www.bilibili.com/video/BV1YMbzzHEeL/?share_source=copy_web"
+            },
+            {
+                id: 8,
+                title: "初中英语八年级上册",
+                grade: "8",
+                subject: "english",
+                version: "外研版",
+                link: "https://www.bilibili.com/video/BV1NgwuzsE37/?share_source=copy_web"
+            },
+            {
+                id: 9,
+                title: "初中英语九年级上册",
+                grade: "9",
+                subject: "english",
+                version: "外研版",
+                link: "https://www.bilibili.com/video/BV11FwxzKEVG/?share_source=copy_web"
+            },
+            // 初中物理
+            {
+                id: 10,
+                title: "初中物理八年级上册",
+                grade: "8",
+                subject: "physics",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1qu411b7EY/?share_source=copy_web"
+            },
+            {
+                id: 11,
+                title: "初中物理九年级全一册",
+                grade: "9",
+                subject: "physics",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1BL4y1w761/?share_source=copy_web"
+            },
+            // 初中化学
+            {
+                id: 12,
+                title: "初中化学九年级上册",
+                grade: "9",
+                subject: "chemistry",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1jntozVEvi/?share_source=copy_web"
+            },
+            // 初中生物
+            {
+                id: 13,
+                title: "初中生物七年级上册",
+                grade: "7",
+                subject: "biology",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1kZW3zyETT/?share_source=copy_web"
+            },
+            {
+                id: 14,
+                title: "初中生物八年级上册",
+                grade: "8",
+                subject: "biology",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1iJkmBPEEh/?share_source=copy_web"
+            },
+            // 初中历史
+            {
+                id: 15,
+                title: "初中历史七年级上册",
+                grade: "7",
+                subject: "history",
+                version: "people",
+                link: "https://www.sohu.com/a/753379545_121290891"
+            },
+            {
+                id: 16,
+                title: "初中历史八年级上册",
+                grade: "8",
+                subject: "history",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1C741zQEYo/?share_source=copy_web"
+            },
+            // 初中地理
+            {
+                id: 17,
+                title: "初中地理七年级上册",
+                grade: "7",
+                subject: "geography",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV1oabWzSEya/?share_source=copy_web"
+            },
+            {
+                id: 18,
+                title: "初中地理八年级上册",
+                grade: "8",
+                subject: "geography",
+                version: "people",
+                link: "https://www.bilibili.com/video/BV157S1BGEqQ/?share_source=copy_web"
+            }
+        ];
+
+        // 封面生成（现代化毛玻璃渐变风格）
+        function svgB64(s){try{return 'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(s)));}catch(e){return '';}}
+
+        const MODERN_COLORS = {
+            chinese:   { c1: '#ff9a9e', c2: '#fecfef', txt: '#e85d75', icon: '📝' },
+            math:      { c1: '#667eea', c2: '#764ba2', txt: '#5b247a', icon: '📐' },
+            english:   { c1: '#4facfe', c2: '#00f2fe', txt: '#0081a7', icon: '🌍' },
+            physics:   { c1: '#b224ef', c2: '#7579ff', txt: '#4834d4', icon: '⚡' },
+            chemistry: { c1: '#16d9e3', c2: '#30c7ec', txt: '#0097e6', icon: '🧪' },
+            biology:   { c1: '#0ba360', c2: '#3cb043', txt: '#008000', icon: '🌿' },
+            history:   { c1: '#f6d365', c2: '#fda085', txt: '#e15f41', icon: '🏛️' },
+            geography: { c1: '#43e97b', c2: '#38f9d7', txt: '#00b894', icon: '🗺️' },
+            science:   { c1: '#4facfe', c2: '#00f2fe', txt: '#0984e3', icon: '🔬' },
+            morality:  { c1: '#ff0844', c2: '#ffb199', txt: '#d63031', icon: '🤝' },
+            default:   { c1: '#89f7fe', c2: '#66a6ff', txt: '#0984e3', icon: '📚' }
+        };
+
+        function generateModernCover(title, subject, type) {
+            const style = MODERN_COLORS[subject] || MODERN_COLORS.default;
+            const t = title.length > 12 ? title.slice(0,11) + '...' : title;
+            const tag = type === 'course' ? '同步课程' : '电子教材';
+            
+            const svg = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="400" height="240" viewBox="0 0 400 240">
+                <defs>
+                    <linearGradient id="g_${subject}" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="${style.c1}" />
+                        <stop offset="100%" stop-color="${style.c2}" />
+                    </linearGradient>
+                    <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                        <circle cx="2" cy="2" r="1.5" fill="#ffffff" opacity="0.15"/>
+                    </pattern>
+                </defs>
+                <rect width="400" height="240" fill="url(#g_${subject})" />
+                <rect width="400" height="240" fill="url(#dots)" />
+                <circle cx="350" cy="40" r="90" fill="#ffffff" opacity="0.1" />
+                <circle cx="40" cy="210" r="70" fill="#ffffff" opacity="0.1" />
+                <rect x="30" y="40" width="340" height="160" rx="16" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.4)" stroke-width="2" />
+                <text x="200" y="125" font-family="sans-serif" font-size="28" font-weight="bold" fill="#ffffff" text-anchor="middle" style="text-shadow: 0 2px 8px rgba(0,0,0,0.15);">${t}</text>
+                <rect x="140" y="155" width="120" height="30" rx="15" fill="rgba(255,255,255,0.9)" />
+                <text x="200" y="176" font-family="sans-serif" font-size="14" font-weight="bold" fill="${style.txt}" text-anchor="middle">${style.icon} ${tag}</text>
+            </svg>`;
+            return svgB64(svg);
+        }
+
+        function generateCourseCover(title, subject) {
+            return generateModernCover(title, subject, 'course');
+        }
+        function generateTextbookCover(title, subject) {
+            return generateModernCover(title, subject, 'textbook');
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化课程和教材
+            renderCourses(courses);
+            renderTextbooks(textbooks);
+
+            // 移动端菜单切换
+            const menuToggle = document.getElementById('menuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            if (menuToggle && mobileMenu) {
+                menuToggle.addEventListener('click', function() {
+                    mobileMenu.classList.toggle('open');
+                });
+            }
+
+            // 筛选功能
+            const gradeFilter = document.getElementById('grade-filter');
+            const subjectFilter = document.getElementById('subject-filter');
+            const versionFilter = document.getElementById('version-filter');
+            const searchInput = document.getElementById('search-input');
+            const searchBtn = document.getElementById('search-btn');
+
+            // 筛选事件监听
+            gradeFilter.addEventListener('change', filterCoursesAndTextbooks);
+            subjectFilter.addEventListener('change', filterCoursesAndTextbooks);
+            versionFilter.addEventListener('change', filterCoursesAndTextbooks);
+            searchInput.addEventListener('input', filterCoursesAndTextbooks);
+            searchBtn.addEventListener('click', filterCoursesAndTextbooks);
+        });
+
+        // 渲染课程
+        function renderCourses(courseList) {
+            const container = document.getElementById('course-container');
+            container.innerHTML = '';
+
+            if (courseList.length === 0) {
+                container.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8">没有找到匹配的课程</p>';
+                return;
+            }
+
+            courseList.forEach(course => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl shadow-sm overflow-hidden card-hover';
+                const cover = generateCourseCover(course.title, course.subject);
+                card.innerHTML = `
+                    <a href="${course.link}" target="_blank" rel="noopener noreferrer">
+                        <div class="relative">
+                            <img src="${cover}" alt="${course.title}" class="w-full h-48 object-cover">
+                            <div class="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                                <svg style="width:48px;height:48px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.4))" fill="white" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="font-medium text-gray-800 mb-2">${course.title}</h3>
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                <span class="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">${getGradeText(course.grade)}年级</span>
+                                <span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">${getSubjectText(course.subject)}</span>
+                                <span class="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded-full">${getVersionText(course.version)}</span>
+                            </div>
+                            <div class="flex justify-end">
+                                <span class="text-sm text-primary flex items-center">
+                                    查看课程 <svg style="width:14px;height:14px;display:inline;vertical-align:middle;margin-left:4px" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // 渲染电子教材
+        function renderTextbooks(textbookList) {
+            const container = document.getElementById('textbook-container');
+            container.innerHTML = '';
+
+            if (textbookList.length === 0) {
+                container.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8">没有找到匹配的电子教材</p>';
+                return;
+            }
+
+            textbookList.forEach(textbook => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl shadow-sm overflow-hidden card-hover';
+                const cover = generateTextbookCover(textbook.title, textbook.subject);
+                card.innerHTML = `
+                    <a href="${textbook.link}" target="_blank" rel="noopener noreferrer">
+                        <div class="relative">
+                            <img src="${cover}" alt="${textbook.title}" class="w-full h-48 object-cover">
+                        </div>
+                        <div class="p-4">
+                            <h3 class="font-medium text-gray-800 mb-2">${textbook.title}</h3>
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                <span class="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">${getGradeText(textbook.grade)}年级</span>
+                                <span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">${getSubjectText(textbook.subject)}</span>
+                                <span class="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded-full">${getVersionText(textbook.version)}</span>
+                            </div>
+                            <div class="flex justify-end">
+                                <span class="text-sm text-primary flex items-center">
+                                    查看教材 <svg style="width:14px;height:14px;display:inline;vertical-align:middle;margin-left:4px" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // 筛选课程和教材
+        function filterCoursesAndTextbooks() {
+            const gradeValue = document.getElementById('grade-filter').value;
+            const subjectValue = document.getElementById('subject-filter').value;
+            const versionValue = document.getElementById('version-filter').value;
+            const searchValue = document.getElementById('search-input').value.toLowerCase();
+
+            // 筛选课程
+            const filteredCourses = courses.filter(course => {
+                const matchesGrade = gradeValue === 'all' || course.grade === gradeValue;
+                const matchesSubject = subjectValue === 'all' || course.subject === subjectValue;
+                const matchesVersion = versionValue === 'all' || course.version === versionValue;
+                const matchesSearch = searchValue === '' || 
+                    course.title.toLowerCase().includes(searchValue) ||
+                    getSubjectText(course.subject).toLowerCase().includes(searchValue) ||
+                    getGradeText(course.grade).includes(searchValue) ||
+                    getVersionText(course.version).toLowerCase().includes(searchValue);
+                return matchesGrade && matchesSubject && matchesVersion && matchesSearch;
+            });
+
+            // 筛选教材
+            const filteredTextbooks = textbooks.filter(textbook => {
+                const matchesGrade = gradeValue === 'all' || textbook.grade === gradeValue;
+                const matchesSubject = subjectValue === 'all' || textbook.subject === subjectValue;
+                const matchesVersion = versionValue === 'all' || textbook.version === versionValue;
+                const matchesSearch = searchValue === '' || 
+                    textbook.title.toLowerCase().includes(searchValue) ||
+                    getSubjectText(textbook.subject).toLowerCase().includes(searchValue) ||
+                    getGradeText(textbook.grade).includes(searchValue) ||
+                    getVersionText(textbook.version).toLowerCase().includes(searchValue);
+                return matchesGrade && matchesSubject && matchesVersion && matchesSearch;
+            });
+
+            // 重新渲染
+            renderCourses(filteredCourses);
+            renderTextbooks(filteredTextbooks);
+        }
+
+        // 辅助函数：获取年级文本
+        function getGradeText(grade) {
+            const gradeMap = {
+                '1': '一',
+                '2': '二',
+                '3': '三',
+                '4': '四',
+                '5': '五',
+                '6': '六',
+                '7': '七',
+                '8': '八',
+                '9': '九'
+            };
+            return gradeMap[grade] || grade;
+        }
+
+        // 辅助函数：获取科目文本
+        function getSubjectText(subject) {
+            const subjectMap = {
+                'chinese': '语文',
+                'math': '数学',
+                'english': '英语',
+                'science': '科学',
+                'morality': '道德与法治',
+                'physics': '物理',
+                'chemistry': '化学',
+                'biology': '生物',
+                'history': '历史',
+                'geography': '地理'
+            };
+            return subjectMap[subject] || subject;
+        }
+
+        // 辅助函数：获取教材版本文本
+        function getVersionText(version) {
+            const versionMap = {
+                'people': '人教版',
+                'beishida': '北师大版',
+                'suzhou': '苏教版',
+                '外研版': '外研版'
+            };
+            return versionMap[version] || version;
+        }
+
+        /* ===========================
+           NAVBAR SCROLL
+           =========================== */
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            navbar.classList.toggle('scrolled', window.scrollY > 30);
+        });
+        // Fire on load too
+        navbar.classList.toggle('scrolled', window.scrollY > 30);
+
+        /* ===========================
+           MOBILE MENU
+           =========================== */
+        function toggleMobileMenu() {
+            document.getElementById('mobileMenu').classList.toggle('open');
+        }
+        function closeMobileMenu() {
+            document.getElementById('mobileMenu').classList.remove('open');
+        }
+
+        /* ═══ UNIFIED USER SYNC (共享) ═══ */
+        const _avatarColors=[{bg:'#dbeafe',face:'#3b82f6',hair:'#1e40af',acc:'#60a5fa'},{bg:'#d1fae5',face:'#10b981',hair:'#065f46',acc:'#6ee7b7'},{bg:'#fef3c7',face:'#f59e0b',hair:'#92400e',acc:'#fcd34d'},{bg:'#fce7f3',face:'#ec4899',hair:'#9d174d',acc:'#f9a8d4'},{bg:'#e0e7ff',face:'#6366f1',hair:'#3730a3',acc:'#a5b4fc'},{bg:'#ffedd5',face:'#f97316',hair:'#9a3412',acc:'#fdba74'}];
+        function _genAvatar(idx,size){const c=_avatarColors[idx%6];const st=[`<circle cx="32" cy="34" r="18" fill="${c.face}"/><ellipse cx="32" cy="20" rx="16" ry="12" fill="${c.hair}"/><circle cx="26" cy="33" r="2" fill="#fff"/><circle cx="38" cy="33" r="2" fill="#fff"/><path d="M28 40 Q32 44 36 40" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>`,`<rect x="16" y="24" width="32" height="28" rx="10" fill="${c.face}"/><rect x="14" y="18" width="36" height="14" rx="7" fill="${c.hair}"/><rect x="18" y="14" width="28" height="8" rx="4" fill="${c.acc}"/><circle cx="26" cy="36" r="2" fill="#fff"/><circle cx="38" cy="36" r="2" fill="#fff"/>`,`<ellipse cx="32" cy="36" rx="16" ry="18" fill="${c.face}"/><ellipse cx="32" cy="22" rx="14" ry="10" fill="${c.hair}"/><circle cx="26" cy="35" r="5" stroke="#fff" stroke-width="1.5" fill="none"/><circle cx="38" cy="35" r="5" stroke="#fff" stroke-width="1.5" fill="none"/><circle cx="26" cy="35" r="1.5" fill="#fff"/><circle cx="38" cy="35" r="1.5" fill="#fff"/>`,`<circle cx="32" cy="36" r="16" fill="${c.face}"/><polygon points="18,24 14,10 26,20" fill="${c.hair}"/><polygon points="46,24 50,10 38,20" fill="${c.hair}"/><circle cx="26" cy="34" r="2" fill="#fff"/><circle cx="38" cy="34" r="2" fill="#fff"/>`,`<circle cx="32" cy="36" r="17" fill="${c.face}"/><ellipse cx="32" cy="22" rx="15" ry="10" fill="${c.hair}"/><polygon points="26,33 24,31 22,33 24,35" fill="#fff"/><polygon points="38,33 36,31 40,31 42,33 40,35 36,35" fill="#fff"/>`,`<rect x="16" y="22" width="32" height="30" rx="6" fill="${c.face}"/><rect x="20" y="16" width="24" height="10" rx="3" fill="${c.hair}"/><rect x="22" y="32" width="8" height="5" rx="2" fill="#fff"/><rect x="34" y="32" width="8" height="5" rx="2" fill="#fff"/>`];return`<svg viewBox="0 0 64 64" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" class="avatar-svg"><rect width="64" height="64" rx="32" fill="${c.bg}"/>${st[idx%6]}</svg>`}
+
+        // Sync navbar from localStorage
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                const u = JSON.parse(localStorage.getItem('zhibanUser') || '{}');
+                const navAvatar = document.getElementById('navAvatar');
+                const navUserName = document.getElementById('navUserName');
+                if (navAvatar) {
+                    navAvatar.innerHTML = _genAvatar(u.avatarIndex || 0, 36);
+                }
+                if (navUserName && u.userName) {
+                    navUserName.textContent = u.userName;
+                }
+            } catch(e) {}
+        });
+    </script>
+</body>
+</html>

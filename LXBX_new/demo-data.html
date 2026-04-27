@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- 防缓存:确保用户总是拿到最新版本 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>演示数据管理 — 灵犀伴学</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{ocean:{50:'#eef6ff',100:'#d9ecff',500:'#3385ff',700:'#1450e1',900:'#19398f',950:'#142557'},mint:{500:'#18b47d'},warm:{500:'#ff8211'}}}}};</script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans SC',sans-serif;background:#f8faff;min-height:100vh;color:#1e293b}
+.card{background:#fff;border-radius:18px;box-shadow:0 4px 24px rgba(20,37,87,.06);border:1px solid rgba(51,133,255,.06);padding:24px}
+.btn{padding:12px 28px;border-radius:14px;font-weight:700;font-size:14px;cursor:pointer;border:none;transition:all .2s;font-family:inherit;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.btn-blue{background:linear-gradient(135deg,#3385ff,#1450e1);color:#fff}
+.btn-green{background:linear-gradient(135deg,#18b47d,#0e7453);color:#fff}
+.btn-red{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff}
+.btn-gray{background:#f1f5f9;color:#64748b}
+.stat{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);padding:14px 28px;border-radius:14px;font-weight:600;z-index:999;transition:transform .4s cubic-bezier(.4,0,.2,1);background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div id="toast" class="toast"></div>
+<div class="max-w-2xl mx-auto px-4 py-12">
+  <div class="text-center mb-8">
+    <h1 class="text-2xl font-bold text-ocean-900 mb-2" style="font-family:'Noto Sans SC'">🛠️ 灵犀伴学 · 演示数据管理</h1>
+    <p class="text-ocean-500 text-sm">比赛演示前一键注入丰富数据，展示完整的个性化学习体验</p>
+    <p class="text-red-400 text-xs mt-2">⚠️ 此页面仅供比赛演示使用，不要部署到正式环境</p>
+  </div>
+
+  <!-- Current Status -->
+  <div class="card mb-4">
+    <h3 class="font-bold text-ocean-800 mb-4">📊 当前数据状态</h3>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="statusGrid"></div>
+  </div>
+
+  <!-- Inject -->
+  <div class="card mb-4">
+    <h3 class="font-bold text-ocean-800 mb-2">🚀 一键注入演示数据</h3>
+    <p class="text-xs text-ocean-400 mb-4">注入丰富的多学科对话记录、错题、专注时间、用户档案，让所有页面都有充足的展示内容</p>
+    <div class="flex flex-wrap gap-3">
+      <button class="btn btn-blue" onclick="injectAll()">🎯 注入全部演示数据</button>
+      <button class="btn btn-gray" onclick="injectChat()">💬 仅对话记录</button>
+      <button class="btn btn-gray" onclick="injectErrors()">📝 仅错题数据</button>
+      <button class="btn btn-gray" onclick="injectTimer()">⏱️ 仅计时数据</button>
+      <button class="btn btn-gray" onclick="injectGoals()">🎯 仅目标数据</button>
+    </div>
+  </div>
+
+  <!-- Clear -->
+  <div class="card">
+    <h3 class="font-bold text-ocean-800 mb-2">🗑️ 清空数据</h3>
+    <p class="text-xs text-ocean-400 mb-4">清空所有 localStorage 数据，恢复到初始状态</p>
+    <button class="btn btn-red" onclick="if(confirm('确定清空所有数据？'))clearAll()">清空全部数据</button>
+  </div>
+
+  <div class="text-center mt-6">
+    <a href="home.html" class="text-ocean-500 text-sm font-semibold hover:text-ocean-700 transition">← 返回主页</a>
+  </div>
+</div>
+
+<script>
+function showToast(msg){
+  var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show')},2500);
+}
+
+function refreshStatus(){
+  var items=[
+    {key:'zhibanUser',label:'用户档案',icon:'👤'},
+    {key:'zhibanChatHistory',label:'对话记录',icon:'💬'},
+    {key:'zhibanErrorBook',label:'错题数据',icon:'📝'},
+    {key:'zhibanTimerStats',label:'计时数据',icon:'⏱️'},
+    {key:'zhibanGoals',label:'学习目标',icon:'🎯'},
+    {key:'zhibanCheckins',label:'打卡记录',icon:'📅'},
+  ];
+  var grid=document.getElementById('statusGrid');
+  grid.innerHTML='';
+  items.forEach(function(item){
+    var raw=localStorage.getItem(item.key);
+    var count=0;
+    try{
+      var d=JSON.parse(raw||'null');
+      if(Array.isArray(d))count=d.length;
+      else if(d&&typeof d==='object')count=Object.keys(d).length;
+      else count=d?1:0;
+    }catch(e){count=0}
+    var div=document.createElement('div');
+    div.className='text-center p-3 rounded-xl bg-ocean-50';
+    div.innerHTML='<div class="text-lg mb-1">'+item.icon+'</div><div class="stat text-ocean-600">'+count+'</div><div class="text-xs text-ocean-400 mt-1">'+item.label+'</div>';
+    grid.appendChild(div);
+  });
+}
+
+function injectUser(){
+  var u=JSON.parse(localStorage.getItem('zhibanUser')||'{}');
+  u.isLoggedIn=true;
+  u.userName=u.userName||'林小犀';
+  u.email=u.email||'lingxi_demo@163.com';
+  u.avatarIndex=u.avatarIndex||2;
+  u.points=(u.points||0)+580;
+  u.studyDays=Math.max(u.studyDays||0,12);
+  u.ownedAvatars=u.ownedAvatars||['p0','p3','p7'];
+  u.autoLogin=true;
+  localStorage.setItem('zhibanUser',JSON.stringify(u));
+}
+
+function injectChat(){
+  var now=new Date();
+  var sessions=[];
+  var demoSessions=[
+    {title:'数学分数运算求助',msgs:[
+      {role:'user',content:'老师，分数加法怎么做？比如 1/3 + 1/4'},
+      {role:'bot',content:'很好的问题！分数加法需要先通分。1/3 和 1/4 的最小公分母是12，所以 1/3 = 4/12，1/4 = 3/12，最后 4/12 + 3/12 = 7/12'},
+      {role:'user',content:'那 2/5 + 3/7 呢？'},
+      {role:'bot',content:'同样的方法！公分母是35，2/5 = 14/35，3/7 = 15/35，所以 14/35 + 15/35 = 29/35。你学会了吗？'},
+      {role:'user',content:'懂了！谢谢'},
+    ]},
+    {title:'语文古诗词鉴赏',msgs:[
+      {role:'user',content:'静夜思是谁写的？表达了什么感情？'},
+      {role:'bot',content:'《静夜思》是唐代诗人李白的作品。"床前明月光，疑是地上霜。举头望明月，低头思故乡。"表达了诗人在寂静夜晚看到月光时产生的对故乡的深深思念之情。'},
+      {role:'user',content:'还有哪些思乡的古诗？'},
+      {role:'bot',content:'经典的思乡诗还有：王维的《九月九日忆山东兄弟》、余光中的《乡愁》、王安石的《泊船瓜洲》等。每首诗表达思乡的角度都不同。'},
+    ]},
+    {title:'英语时态学习',msgs:[
+      {role:'user',content:'一般过去时和现在完成时有什么区别'},
+      {role:'bot',content:'好问题！一般过去时（did）强调过去某个时间点发生的动作，如"I ate breakfast at 7am"。现在完成时（have done）强调过去的动作对现在的影响，如"I have eaten breakfast"（所以我现在不饿了）。'},
+      {role:'user',content:'能再举个例子吗'},
+      {role:'bot',content:'当然！"I lost my key yesterday"（一般过去时，强调昨天丢了）vs "I have lost my key"（现在完成时，强调现在找不到钥匙了）。关键看你想强调什么！'},
+    ]},
+    {title:'物理浮力计算',msgs:[
+      {role:'user',content:'浮力公式是什么？'},
+      {role:'bot',content:'浮力公式：F浮 = ρ液 × g × V排。其中ρ液是液体密度，g是重力加速度（9.8N/kg），V排是物体排开液体的体积。'},
+      {role:'user',content:'不理解V排是什么意思'},
+      {role:'bot',content:'想象你把一个球放进装满水的杯子里，会有水溢出来对吧？溢出的那部分水的体积就是V排——也就是球浸入水中那部分的体积。如果球完全浸没，V排就等于球的体积。'},
+    ]},
+    {title:'写作文开头技巧',msgs:[
+      {role:'user',content:'作文开头怎么写才吸引人'},
+      {role:'bot',content:'有几种好用的开头方式：1）设问开头："你是否想过...?" 2）场景描写开头：直接展示一个画面 3）引用名言开头 4）悬念开头：先说结果再回溯。最忌讳"在一个阳光明媚的日子里..."这种套话。'},
+    ]},
+    {title:'化学方程式配平',msgs:[
+      {role:'user',content:'Fe + O2 → Fe3O4 怎么配平'},
+      {role:'bot',content:'配平步骤：先数两边原子数。右边Fe有3个O有4个，左边Fe有1个O有2个。所以：3Fe + 2O2 = Fe3O4。验证：左边Fe=3 O=4，右边Fe=3 O=4，配平！'},
+      {role:'user',content:'太棒了我学会了'},
+    ]},
+    {title:'数学方程应用题',msgs:[
+      {role:'user',content:'鸡兔同笼问题怎么解？上面35个头，下面94只脚'},
+      {role:'bot',content:'设鸡x只，兔y只。列方程组：x+y=35（头的数量），2x+4y=94（脚的数量）。从第一个方程得x=35-y，代入第二个：2(35-y)+4y=94，解得y=12，x=23。所以鸡23只，兔12只！'},
+      {role:'user',content:'我之前一直不会做这类题，现在明白了'},
+    ]},
+    {title:'英语口语场景练习',msgs:[
+      {role:'user',content:'去餐厅点餐的英语对话怎么说'},
+      {role:'bot',content:'常用句型：Can I see the menu please? / I would like to order... / Could I have the steak, medium rare? / Check please. 服务员可能问：Are you ready to order? / How would you like your steak? / Would you like anything to drink?'},
+    ]},
+  ];
+
+  for(var i=0;i<demoSessions.length;i++){
+    var d=new Date(now.getTime()-(demoSessions.length-i)*86400000*Math.random()*3);
+    var timeStr=(d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
+    sessions.push({
+      id:'session_demo_'+i,
+      title:demoSessions[i].title,
+      time:timeStr,
+      messages:demoSessions[i].msgs.map(function(m){return{role:m.role,content:m.content}})
+    });
+  }
+
+  var existing=[];
+  try{existing=JSON.parse(localStorage.getItem('zhibanChatHistory')||'[]')}catch(e){}
+  localStorage.setItem('zhibanChatHistory',JSON.stringify(sessions.concat(existing)));
+  showToast('✅ 已注入 '+sessions.length+' 条对话记录');
+  refreshStatus();
+}
+
+function injectErrors(){
+  var errors=[
+    {subject:'数学',question:'8 × 7 = ？',options:['48','54','56','63'],correctIdx:2,userIdx:1,source:'知识农场',reviewCount:2,mastered:false,daysAgo:8},
+    {subject:'数学',question:'125 ÷ 5 = ？',options:['20','25','30','15'],correctIdx:1,userIdx:0,source:'数学速算',reviewCount:1,mastered:false,daysAgo:4},
+    {subject:'数学',question:'3/8 + 1/4 = ？',options:['4/12','5/8','1/2','7/8'],correctIdx:1,userIdx:2,source:'知识农场',reviewCount:0,mastered:false,daysAgo:1},
+    {subject:'语文',question:'"但愿人长久"的下一句？',options:['千里共婵娟','明月几时有','低头思故乡','举杯邀明月'],correctIdx:0,userIdx:2,source:'知识农场',reviewCount:3,mastered:true,daysAgo:15},
+    {subject:'语文',question:'成语填空：画龙点（第4字）',options:['睛','精','晴','情'],correctIdx:0,userIdx:3,source:'成语冒险',reviewCount:1,mastered:false,daysAgo:3},
+    {subject:'语文',question:'"锲而不舍"中"锲"的意思？',options:['雕刻','坚持','放弃','切割'],correctIdx:0,userIdx:2,source:'知识农场',reviewCount:0,mastered:false,daysAgo:0},
+    {subject:'英语',question:'"Wednesday"是星期几？',options:['星期二','星期三','星期四','星期五'],correctIdx:1,userIdx:0,source:'知识农场',reviewCount:2,mastered:true,daysAgo:20},
+    {subject:'英语',question:'I ___ to school yesterday.',options:['go','goes','went','going'],correctIdx:2,userIdx:0,source:'知识农场',reviewCount:1,mastered:false,daysAgo:5},
+    {subject:'数学',question:'直角三角形的斜边叫什么？',options:['底边','直角边','斜边','高'],correctIdx:2,userIdx:0,source:'知识农场',reviewCount:0,mastered:false,daysAgo:2},
+    {subject:'英语',question:'"accomplish"的意思？',options:['陪伴','完成','适应','控告'],correctIdx:1,userIdx:0,source:'知识农场',reviewCount:0,mastered:false,daysAgo:1},
+    {subject:'语文',question:'《春晓》的作者是谁？',options:['李白','杜甫','孟浩然','王维'],correctIdx:2,userIdx:0,source:'知识农场',reviewCount:1,mastered:false,daysAgo:6},
+    {subject:'数学',question:'圆的面积公式是？',options:['πr','2πr','πr²','πd'],correctIdx:2,userIdx:1,source:'知识农场',reviewCount:2,mastered:true,daysAgo:18},
+  ];
+
+  var now=new Date();
+  var result=errors.map(function(e,i){
+    var d=new Date(now.getTime()-e.daysAgo*86400000);
+    return{
+      id:'err_demo_'+i+'_'+Date.now(),
+      subject:e.subject,
+      question:e.question,
+      options:e.options,
+      correctIdx:e.correctIdx,
+      userIdx:e.userIdx,
+      source:e.source,
+      date:d.toLocaleDateString(),
+      mastered:e.mastered,
+      reviewCount:e.reviewCount
+    };
+  });
+
+  var existing=[];
+  try{existing=JSON.parse(localStorage.getItem('zhibanErrorBook')||'[]')}catch(e){}
+  // Remove old demos
+  existing=existing.filter(function(e){return e.id.indexOf('err_demo_')<0});
+  localStorage.setItem('zhibanErrorBook',JSON.stringify(result.concat(existing)));
+  showToast('✅ 已注入 '+result.length+' 条错题数据');
+  refreshStatus();
+}
+
+function injectTimer(){
+  var stats={};
+  var now=new Date();
+  // Generate 14 days of timer data
+  for(var i=0;i<14;i++){
+    var d=new Date(now.getTime()-i*86400000);
+    var key=d.toLocaleDateString();
+    var sessions=Math.floor(Math.random()*4)+1;
+    var minutes=sessions*(Math.floor(Math.random()*3)+1)*15;
+    var points=sessions*Math.floor(Math.random()*10+5);
+    stats[key]={sessions:sessions,minutes:minutes,points:points};
+  }
+  localStorage.setItem('zhibanTimerStats',JSON.stringify(stats));
+  showToast('✅ 已注入 14 天专注计时数据');
+  refreshStatus();
+}
+
+
+function injectGoals(){
+  var now=new Date();
+  var goals=[
+    {title:'每天向AI提问3个问题',link:'ai-module.html',totalDays:7,dailyTarget:3,daysAgo:5,checkedCount:4,completed:false,reward:42},
+    {title:'每天专注学习25分钟',link:'timer.html',totalDays:7,dailyTarget:1,daysAgo:7,checkedCount:7,completed:true,reward:14},
+    {title:'复习5道错题',link:'error-book.html',totalDays:5,dailyTarget:5,daysAgo:3,checkedCount:2,completed:false,reward:50},
+  ];
+  var result=goals.map(function(g,i){
+    var start=new Date(now.getTime()-g.daysAgo*86400000);
+    var end=new Date(start.getTime()+(g.totalDays-1)*86400000);
+    var sk=function(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+    var checked={};
+    for(var j=0;j<g.checkedCount;j++){
+      var cd=new Date(start.getTime()+j*86400000);
+      checked[sk(cd)]=g.dailyTarget;
+    }
+    return{id:'goal_demo_'+i+'_'+Date.now(),title:g.title,link:g.link,totalDays:g.totalDays,dailyTarget:g.dailyTarget,startDate:sk(start),endDate:sk(end),checkedDays:checked,completed:g.completed,reward:g.reward,createdAt:start.toISOString()};
+  });
+  localStorage.setItem('zhibanGoals',JSON.stringify(result));
+  
+  // Also inject checkin calendar data
+  var checkins={};
+  for(var i=0;i<10;i++){
+    var d=new Date(now.getTime()-i*86400000);
+    var k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(Math.random()>0.3) checkins[k]=Math.floor(Math.random()*3)+1;
+  }
+  localStorage.setItem('zhibanCheckins',JSON.stringify(checkins));
+  showToast('✅ 已注入 '+result.length+' 个学习目标');
+  refreshStatus();
+}
+
+function injectAll(){
+  injectUser();
+  injectChat();
+  injectErrors();
+  injectTimer();
+  injectGoals();
+  showToast('🎉 全部演示数据注入完成！');
+  refreshStatus();
+}
+
+function clearAll(){
+  ['zhibanUser','zhibanChatHistory','zhibanErrorBook','zhibanTimerStats','zhibanFarm','zhibanAiName','zhibanAiNameAsked','zhibanFarmGrade','zhibanFarmSubject','zhibanGoals','zhibanCheckins'].forEach(function(k){
+    localStorage.removeItem(k);
+  });
+  showToast('🗑️ 已清空所有数据');
+  refreshStatus();
+}
+
+refreshStatus();
+</script>
+</body>
+</html>

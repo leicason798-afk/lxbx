@@ -1,0 +1,61 @@
+{
+  "envId": "zbxt-5gcdx6xr0a0f0a98",
+  "framework": {
+    "name": "灵犀伴学",
+    "plugins": {
+      "client": {
+        "use": "@cloudbase/framework-plugin-website",
+        "inputs": {
+          "outputPath": "./",
+          "cloudPath": "/",
+          "ignore": ["cloudbaserc.json", ".env", "node_modules", ".git"],
+          "headers": [
+            {
+              "source": "**/*.html",
+              "headers": [
+                { "key": "Content-Type",  "value": "text/html; charset=utf-8" },
+                { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+                { "key": "Pragma",        "value": "no-cache" },
+                { "key": "Expires",       "value": "0" }
+              ]
+            },
+            {
+              "source": "**/*.js",
+              "headers": [
+                { "key": "Content-Type",  "value": "application/javascript; charset=utf-8" },
+                { "key": "Cache-Control", "value": "public, max-age=3600" }
+              ]
+            },
+            {
+              "source": "**/*.css",
+              "headers": [
+                { "key": "Content-Type",  "value": "text/css; charset=utf-8" },
+                { "key": "Cache-Control", "value": "public, max-age=3600" }
+              ]
+            }
+          ],
+          "routes": [
+            { "src": "/",          "dest": "/home.html" },
+            { "src": "/index",     "dest": "/index.html" },
+            { "src": "/home",      "dest": "/home.html" },
+            { "src": "/user",      "dest": "/user.html" },
+            { "src": "/ai",        "dest": "/ai-module.html" },
+            { "src": "/timer",     "dest": "/timer.html" },
+            { "src": "/farm",      "dest": "/farm.html" },
+            { "src": "/goals",     "dest": "/goals.html" },
+            { "src": "/ranking",   "dest": "/ranking.html" },
+            { "src": "/dashboard", "dest": "/dashboard.html" },
+            { "src": "/profile",   "dest": "/profile.html" },
+            { "src": "/graph",     "dest": "/knowledge-graph.html" },
+            { "src": "/speaking",  "dest": "/speaking.html" },
+            { "src": "/errors",    "dest": "/error-book.html" },
+            { "src": "/math",      "dest": "/math.html" },
+            { "src": "/idiom",     "dest": "/idiom.html" },
+            { "src": "/primary",   "dest": "/primary.html" },
+            { "src": "/middle",    "dest": "/middle.html" }
+          ]
+        }
+      }
+    }
+  }
+}

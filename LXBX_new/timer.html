@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- 防缓存:确保用户总是拿到最新版本 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI学习计时器 — 灵犀伴学</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{ocean:{50:'#eef6ff',100:'#d9ecff',200:'#bcdeff',400:'#59a9ff',500:'#3385ff',600:'#1a65f5',700:'#1450e1',800:'#1741b6',900:'#19398f',950:'#142557'},mint:{50:'#edfcf5',400:'#3acd95',500:'#18b47d'},warm:{400:'#ff9f38',500:'#ff8211',600:'#f06807'}},fontFamily:{display:['"Noto Serif SC"','serif']}}}};</script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--nav-h:64px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans SC',system-ui,sans-serif;background:linear-gradient(135deg,#f0f5ff,#edfcf5);min-height:100vh;color:#1e293b}
+#navbar{background:rgba(255,255,255,.82);backdrop-filter:blur(16px) saturate(1.4);box-shadow:0 1px 24px rgba(20,37,87,.07)}
+.timer-ring{width:280px;height:280px;border-radius:50%;position:relative;margin:0 auto}
+.timer-ring svg{transform:rotate(-90deg)}
+.timer-ring .bg{stroke:#e2e8f0;fill:none;stroke-width:8}
+.timer-ring .progress{fill:none;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .5s ease}
+.timer-display{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.timer-time{font-family:'JetBrains Mono',monospace;font-size:52px;font-weight:700;color:#1e293b}
+.timer-label{font-size:13px;color:#64748b;margin-top:4px}
+.card{background:#fff;border-radius:18px;box-shadow:0 4px 24px rgba(20,37,87,.06);border:1px solid rgba(51,133,255,.06)}
+.btn{padding:12px 28px;border-radius:14px;font-weight:600;font-size:15px;cursor:pointer;border:none;transition:all .2s;font-family:inherit}
+.btn-start{background:linear-gradient(135deg,#3385ff,#1a65f5);color:#fff}
+.btn-start:hover{box-shadow:0 6px 20px rgba(51,133,255,.3);transform:translateY(-1px)}
+.btn-pause{background:#fbbf24;color:#92400e}
+.btn-reset{background:#f1f5f9;color:#64748b}
+.noise-btn{padding:8px 16px;border-radius:10px;border:2px solid #e2e8f0;background:#fff;font-size:13px;cursor:pointer;transition:all .2s;font-family:inherit}
+.noise-btn.active{border-color:#3385ff;background:#eef6ff;color:#3385ff;font-weight:600}
+.stat-num{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700}
+</style>
+<script src="supabase-sync.js"></script>
+</head>
+<body>
+<nav id="navbar" class="fixed top-0 left-0 w-full z-50" style="height:var(--nav-h)">
+  <div class="max-w-7xl mx-auto flex items-center justify-between px-5 md:px-8 h-full">
+    <a href="home.html" class="flex items-center gap-2 text-ocean-700 font-bold text-lg select-none">
+      <svg class="w-8 h-8" viewBox="0 0 40 40" fill="none"><defs><linearGradient id="lxG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3385ff"/><stop offset="100%" stop-color="#18b47d"/></linearGradient></defs><circle cx="20" cy="20" r="19" fill="url(#lxG)" opacity=".12"/><circle cx="20" cy="20" r="19" stroke="url(#lxG)" stroke-width="1.5"/><path d="M12 26c0-4 2-7 5-9l1-3c0-1 1-1.5 2-1.5s1.5.8 1.5 1.5l-.5 2c2-1 4-1 5.5 0l1.5-1c.5-.5 1.2-.3 1.5.2s.1 1.2-.4 1.5L27 18c1 1.5 1.5 3.5 1 5.5-.5 2-2 3-4 3.5H16c-2-.5-3.5-2-4-4z" fill="url(#lxG)" opacity=".85"/><circle cx="23" cy="19" r="1.3" fill="white"/></svg>
+      <span class="hidden sm:inline" style="font-family:'Noto Serif SC',serif">灵犀伴学</span>
+    </a>
+    <ul class="hidden md:flex items-center gap-1 text-sm font-medium"><li><a href="home.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">首页</a></li><li><a href="ai-module.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">AI伴学</a></li><li><a href="profile.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习画像</a></li><li><a href="goals.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习目标</a></li><li><a href="user.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">用户中心</a></li></ul>
+    <div class="flex items-center gap-3"><a href="user.html" class="flex items-center gap-2"><div id="navAvatar" class="w-9 h-9 rounded-full bg-ocean-100 flex items-center justify-center overflow-hidden"></div><span id="navUserName" class="hidden sm:inline text-sm font-medium text-ocean-700"></span></a></div>
+  </div>
+</nav>
+
+<main class="pt-24 pb-16 px-4 max-w-lg mx-auto">
+  <div class="text-center mb-6">
+    <h1 class="text-2xl md:text-3xl font-bold font-display text-ocean-900 mb-2">⏱️ AI 学习计时器</h1>
+    <p class="text-ocean-500 text-sm">专注学习，番茄工作法让效率翻倍</p>
+  </div>
+
+  <div class="card p-8 mb-6">
+    <div class="timer-ring">
+      <svg viewBox="0 0 280 280" width="280" height="280">
+        <circle class="bg" cx="140" cy="140" r="130"/>
+        <circle class="progress" id="timerProgress" cx="140" cy="140" r="130" stroke="#3385ff" stroke-dasharray="816.81" stroke-dashoffset="0"/>
+      </svg>
+      <div class="timer-display">
+        <div class="timer-time" id="timerDisplay">25:00</div>
+        <div class="timer-label" id="timerPhase">专注时间</div>
+      </div>
+    </div>
+    <div class="flex justify-center gap-2 mt-6 mb-6">
+      <button class="noise-btn active" data-dur="25" onclick="setDuration(25,this)">25分钟</button>
+      <button class="noise-btn" data-dur="15" onclick="setDuration(15,this)">15分钟</button>
+      <button class="noise-btn" data-dur="45" onclick="setDuration(45,this)">45分钟</button>
+      <button class="noise-btn" data-dur="60" onclick="setDuration(60,this)">60分钟</button>
+    </div>
+    <div class="flex justify-center gap-3">
+      <button class="btn btn-start" id="btnStart" onclick="toggleTimer()">开始专注</button>
+      <button class="btn btn-reset" onclick="resetTimer()">重置</button>
+    </div>
+  </div>
+
+  <div class="card p-6 mb-6">
+    <h3 class="text-sm font-semibold text-ocean-700 mb-3 text-center">🎵 白噪音</h3>
+    <div class="flex flex-wrap justify-center gap-2">
+      <button class="noise-btn" onclick="toggleNoise('rain',this)">🌧️ 雨声</button>
+      <button class="noise-btn" onclick="toggleNoise('forest',this)">🌲 森林</button>
+      <button class="noise-btn" onclick="toggleNoise('ocean',this)">🌊 海浪</button>
+      <button class="noise-btn" onclick="toggleNoise('fire',this)">🔥 篝火</button>
+      <button class="noise-btn" onclick="toggleNoise('cafe',this)">☕ 咖啡厅</button>
+    </div>
+    <div class="flex items-center justify-center gap-3 mt-3">
+      <span class="text-xs text-ocean-400">音量</span>
+      <input type="range" id="noiseVolume" min="0" max="100" value="30" style="width:120px" oninput="setVolume(this.value)">
+    </div>
+  </div>
+
+  <div class="card p-6">
+    <h3 class="text-sm font-semibold text-ocean-700 mb-4 text-center">📊 今日专注统计</h3>
+    <div class="grid grid-cols-3 gap-3">
+      <div class="text-center"><div class="stat-num text-ocean-500" id="todaySessions">0</div><div class="text-xs text-ocean-400 mt-1">专注次数</div></div>
+      <div class="text-center"><div class="stat-num text-mint-500" id="todayMinutes">0</div><div class="text-xs text-ocean-400 mt-1">专注分钟</div></div>
+      <div class="text-center"><div class="stat-num text-warm-500" id="todayPoints">0</div><div class="text-xs text-ocean-400 mt-1">获得积分</div></div>
+    </div>
+  </div>
+</main>
+
+<footer class="bg-ocean-950 text-white/60 py-6 text-center text-xs">© 2026 灵犀伴学 · 灵犀 Lab · 燕京理工学院</footer>
+
+<script>
+let duration = 25 * 60, remaining = duration, isRunning = false, interval = null, currentNoise = null, noiseAudio = null;
+const CIRCUMFERENCE = 2 * Math.PI * 130;
+
+function setDuration(mins, btn) {
+  if (isRunning) return; duration = mins * 60; remaining = duration; updateDisplay();
+  document.querySelectorAll('[data-dur]').forEach(b => b.classList.remove('active')); btn.classList.add('active');
+}
+function updateDisplay() {
+  var m = Math.floor(remaining / 60), s = remaining % 60;
+  document.getElementById('timerDisplay').textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  var offset = CIRCUMFERENCE * (1 - remaining / duration); document.getElementById('timerProgress').style.strokeDashoffset = offset;
+  var pct = remaining / duration;
+  if (pct > 0.5) document.getElementById('timerProgress').setAttribute('stroke', '#3385ff');
+  else if (pct > 0.2) document.getElementById('timerProgress').setAttribute('stroke', '#fbbf24');
+  else document.getElementById('timerProgress').setAttribute('stroke', '#ef4444');
+}
+function toggleTimer() {
+  if (isRunning) {
+    clearInterval(interval); isRunning = false;
+    document.getElementById('btnStart').textContent = '继续'; document.getElementById('btnStart').className = 'btn btn-start';
+  } else {
+    isRunning = true; document.getElementById('btnStart').textContent = '暂停'; document.getElementById('btnStart').className = 'btn btn-pause'; document.getElementById('timerPhase').textContent = '专注中...';
+    interval = setInterval(function() { remaining--; updateDisplay(); if (remaining <= 0) { clearInterval(interval); isRunning = false; onComplete(); } }, 1000);
+  }
+}
+function resetTimer() {
+  clearInterval(interval); isRunning = false; remaining = duration; updateDisplay();
+  document.getElementById('btnStart').textContent = '开始专注'; document.getElementById('btnStart').className = 'btn btn-start'; document.getElementById('timerPhase').textContent = '专注时间';
+}
+function onComplete() {
+  document.getElementById('timerPhase').textContent = '🎉 专注完成！'; document.getElementById('btnStart').textContent = '开始专注'; document.getElementById('btnStart').className = 'btn btn-start';
+  var mins = Math.round(duration / 60), pts = Math.max(5, Math.round(mins / 5) * 5);
+  try { var u = JSON.parse(localStorage.getItem('zhibanUser') || '{}'); u.points = (u.points || 0) + pts; localStorage.setItem('zhibanUser', JSON.stringify(u)); } catch(e) {}
+  if (window.sbUsers) sbUsers.update({ points: (JSON.parse(localStorage.getItem('zhibanUser')||'{}').points || 0) });
+  var today = new Date().toISOString().slice(0,10), stats = JSON.parse(localStorage.getItem('zhibanTimerStats') || '{}');
+  if (!stats[today]) stats[today] = { sessions: 0, minutes: 0, points: 0 };
+  stats[today].sessions++; stats[today].minutes += mins; stats[today].points += pts;
+  localStorage.setItem('zhibanTimerStats', JSON.stringify(stats));
+  if (window.sbTimer) sbTimer.upsert(today, stats[today]);
+  updateTodayStats(); remaining = duration; updateDisplay();
+  var choice = confirm('🎉 专注完成！获得 ' + pts + ' 积分！\n\n趁热打铁，去AI伴学继续学习？');
+  if(choice) window.location.href='ai-module.html';
+}
+function updateTodayStats() {
+  var today = new Date().toISOString().slice(0,10), stats = JSON.parse(localStorage.getItem('zhibanTimerStats') || '{}');
+  var t = stats[today] || { sessions: 0, minutes: 0, points: 0 };
+  document.getElementById('todaySessions').textContent = t.sessions; document.getElementById('todayMinutes').textContent = t.minutes; document.getElementById('todayPoints').textContent = t.points;
+}
+
+var audioCtx = null, noiseNode = null, gainNode = null;
+function toggleNoise(type, btn) {
+  document.querySelectorAll('.noise-btn').forEach(b => { if (b !== btn && !b.dataset.dur) b.classList.remove('active'); });
+  if (currentNoise === type) { stopNoise(); btn.classList.remove('active'); currentNoise = null; return; }
+  stopNoise(); currentNoise = type; btn.classList.add('active');
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  var bufferSize = 2 * audioCtx.sampleRate, noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate), output = noiseBuffer.getChannelData(0);
+  var freqMod = {rain: 0.3, forest: 0.5, ocean: 0.15, fire: 0.6, cafe: 0.8}, f = freqMod[type] || 0.5, lastOut = 0;
+  for (var i = 0; i < bufferSize; i++) { var white = Math.random() * 2 - 1; output[i] = (lastOut + (f * white)) / (1 + f); lastOut = output[i]; output[i] *= 0.8; }
+  noiseNode = audioCtx.createBufferSource(); noiseNode.buffer = noiseBuffer; noiseNode.loop = true; gainNode = audioCtx.createGain(); gainNode.gain.value = parseInt(document.getElementById('noiseVolume').value) / 100 * 0.5;
+  noiseNode.connect(gainNode); gainNode.connect(audioCtx.destination); noiseNode.start();
+}
+function stopNoise() { if (noiseNode) { try { noiseNode.stop(); } catch(e) {} noiseNode = null; } }
+function setVolume(v) { if (gainNode) gainNode.gain.value = v / 100 * 0.5; }
+
+updateDisplay();
+if (window.sbTimer) sbTimer.getAll().then(updateTodayStats).catch(function(){updateTodayStats();});
+else updateTodayStats();
+</script>
+
+<script>
+/* 统一头像同步脚本 */
+(function(){
+  try{
+    var u=JSON.parse(localStorage.getItem('zhibanUser')||'{}');
+    var av=document.getElementById('navAvatar');
+    var nm=document.getElementById('navUserName');
+    if(!av)return;
+    var colors=[{bg:'#fff7ed'},{bg:'#fce7f3'},{bg:'#fef3c7'},{bg:'#e0e7ff'},{bg:'#ecfdf5'},{bg:'#dbeafe'}];
+    var animals=['<circle cx="32" cy="36" r="20" fill="#fb923c"/><circle cx="32" cy="38" r="14" fill="#fff"/><polygon points="16,22 12,6 24,18" fill="#fb923c"/><polygon points="48,22 52,6 40,18" fill="#fb923c"/><polygon points="16,22 14,10 22,18" fill="#fff" opacity=".5"/><polygon points="48,22 50,10 42,18" fill="#fff" opacity=".5"/><circle cx="25" cy="34" r="2.8" fill="#1e293b"/><circle cx="39" cy="34" r="2.8" fill="#1e293b"/><circle cx="26" cy="33" r="1" fill="#fff"/><circle cx="40" cy="33" r="1" fill="#fff"/><ellipse cx="32" cy="39" rx="2.5" ry="2" fill="#1e293b"/><ellipse cx="23" cy="40" rx="4" ry="2" fill="#fca5a5" opacity=".25"/><ellipse cx="41" cy="40" rx="4" ry="2" fill="#fca5a5" opacity=".25"/>','<circle cx="32" cy="40" r="18" fill="#fef9c3"/><circle cx="32" cy="40" r="18" fill="#fff" opacity=".5"/><ellipse cx="25" cy="14" rx="5" ry="14" fill="#fef9c3" stroke="#fde047" stroke-width=".5"/><ellipse cx="25" cy="14" rx="3" ry="10" fill="#fda4af" opacity=".4"/><ellipse cx="39" cy="14" rx="5" ry="14" fill="#fef9c3" stroke="#fde047" stroke-width=".5"/><ellipse cx="39" cy="14" rx="3" ry="10" fill="#fda4af" opacity=".4"/><circle cx="26" cy="37" r="2.5" fill="#1e293b"/><circle cx="38" cy="37" r="2.5" fill="#1e293b"/><circle cx="27" cy="36" r="1" fill="#fff"/><circle cx="39" cy="36" r="1" fill="#fff"/><ellipse cx="32" cy="42" rx="2" ry="1.5" fill="#fda4af"/><ellipse cx="24" cy="43" rx="4" ry="2" fill="#fca5a5" opacity=".2"/><ellipse cx="40" cy="43" rx="4" ry="2" fill="#fca5a5" opacity=".2"/>','<circle cx="32" cy="36" r="20" fill="#d4a574"/><circle cx="20" cy="20" r="7" fill="#d4a574" stroke="#c09060" stroke-width=".5"/><circle cx="44" cy="20" r="7" fill="#d4a574" stroke="#c09060" stroke-width=".5"/><circle cx="20" cy="20" r="4" fill="#f5deb3"/><circle cx="44" cy="20" r="4" fill="#f5deb3"/><circle cx="32" cy="40" r="10" fill="#f5deb3"/><circle cx="26" cy="34" r="2.8" fill="#1e293b"/><circle cx="38" cy="34" r="2.8" fill="#1e293b"/><circle cx="27" cy="33" r="1" fill="#fff"/><circle cx="39" cy="33" r="1" fill="#fff"/><ellipse cx="32" cy="39" rx="3.5" ry="2.5" fill="#1e293b"/><path d="M30.5 39 L33.5 39" stroke="#d4a574" stroke-width=".6"/><ellipse cx="24" cy="42" rx="4" ry="2" fill="#fca5a5" opacity=".2"/><ellipse cx="40" cy="42" rx="4" ry="2" fill="#fca5a5" opacity=".2"/>','<ellipse cx="32" cy="36" rx="18" ry="22" fill="#334155"/><ellipse cx="32" cy="40" rx="12" ry="14" fill="#fff"/><circle cx="25" cy="30" r="3.5" fill="#fff"/><circle cx="39" cy="30" r="3.5" fill="#fff"/><circle cx="25" cy="30" r="1.8" fill="#1e293b"/><circle cx="39" cy="30" r="1.8" fill="#1e293b"/><circle cx="26" cy="29" r=".7" fill="#fff"/><circle cx="40" cy="29" r=".7" fill="#fff"/><polygon points="32,35 28,39 36,39" fill="#fbbf24"/><ellipse cx="23" cy="36" rx="3" ry="1.8" fill="#fca5a5" opacity=".3"/><ellipse cx="41" cy="36" rx="3" ry="1.8" fill="#fca5a5" opacity=".3"/><ellipse cx="14" cy="40" rx="5" ry="2.5" fill="#334155" transform="rotate(-15 14 40)"/><ellipse cx="50" cy="40" rx="5" ry="2.5" fill="#334155" transform="rotate(15 50 40)"/>','<circle cx="32" cy="38" r="19" fill="#86efac"/><circle cx="22" cy="22" r="9" fill="#86efac" stroke="#4ade80" stroke-width=".5"/><circle cx="42" cy="22" r="9" fill="#86efac" stroke="#4ade80" stroke-width=".5"/><circle cx="22" cy="22" r="5" fill="#fff"/><circle cx="42" cy="22" r="5" fill="#fff"/><circle cx="22" cy="22" r="2.5" fill="#1e293b"/><circle cx="42" cy="22" r="2.5" fill="#1e293b"/><circle cx="23" cy="21" r="1" fill="#fff"/><circle cx="43" cy="21" r="1" fill="#fff"/><path d="M24 42 Q32 48 40 42" stroke="#1e293b" stroke-width="1.5" fill="none" stroke-linecap="round"/><ellipse cx="24" cy="38" rx="4" ry="2" fill="#fca5a5" opacity=".2"/><ellipse cx="40" cy="38" rx="4" ry="2" fill="#fca5a5" opacity=".2"/>','<circle cx="32" cy="38" r="19" fill="#94a3b8"/><circle cx="32" cy="40" r="13" fill="#e2e8f0"/><polygon points="16,24 12,6 24,22" fill="#94a3b8" stroke="#64748b" stroke-width=".3"/><polygon points="48,24 52,6 40,22" fill="#94a3b8" stroke="#64748b" stroke-width=".3"/><polygon points="16,24 14,10 22,20" fill="#fda4af" opacity=".3"/><polygon points="48,24 50,10 42,20" fill="#fda4af" opacity=".3"/><circle cx="25" cy="35" r="2.5" fill="#1e293b"/><circle cx="39" cy="35" r="2.5" fill="#1e293b"/><circle cx="26" cy="34" r="1" fill="#fff"/><circle cx="40" cy="34" r="1" fill="#fff"/><ellipse cx="32" cy="40" rx="2" ry="1.5" fill="#fda4af"/><line x1="14" y1="36" x2="23" y2="37" stroke="#94a3b8" stroke-width=".6" opacity=".4"/><line x1="14" y1="39" x2="23" y2="39" stroke="#94a3b8" stroke-width=".6" opacity=".4"/><line x1="41" y1="37" x2="50" y2="36" stroke="#94a3b8" stroke-width=".6" opacity=".4"/><line x1="41" y1="39" x2="50" y2="39" stroke="#94a3b8" stroke-width=".6" opacity=".4"/><ellipse cx="24" cy="43" rx="4" ry="2" fill="#fca5a5" opacity=".2"/><ellipse cx="40" cy="43" rx="4" ry="2" fill="#fca5a5" opacity=".2"/>'];
+    var premiumAvatars={'p0':'<rect width="64" height="64" rx="32" fill="#fef3c7"/><ellipse cx="32" cy="37" rx="21" ry="20" fill="#fff" stroke="#d1d5db" stroke-width=".5"/><circle cx="24" cy="34" r="3" fill="#1e293b"/><circle cx="40" cy="34" r="3" fill="#1e293b"/><circle cx="25.5" cy="32.5" r="1.3" fill="#fff"/><circle cx="41.5" cy="32.5" r="1.3" fill="#fff"/><ellipse cx="18" cy="39" rx="5" ry="3" fill="#fca5a5" opacity=".25"/><ellipse cx="46" cy="39" rx="5" ry="3" fill="#fca5a5" opacity=".25"/><path d="M28 41 Q32 45 36 41" stroke="#1e293b" stroke-width="1.5" fill="none" stroke-linecap="round"/><ellipse cx="23" cy="20" rx="6" ry="9" fill="#fff" stroke="#d1d5db" stroke-width=".5" transform="rotate(-12 23 20)"/><ellipse cx="41" cy="20" rx="6" ry="9" fill="#fff" stroke="#d1d5db" stroke-width=".5" transform="rotate(12 41 20)"/><circle cx="23" cy="17" r="2" fill="#fca5a5" opacity=".3"/><circle cx="41" cy="17" r="2" fill="#fca5a5" opacity=".3"/>','p1':'<rect width="64" height="64" rx="32" fill="#fce7f3"/><ellipse cx="32" cy="40" rx="19" ry="18" fill="#fff" stroke="#f9a8d4" stroke-width=".6"/><circle cx="24" cy="37" r="2.8" fill="#1e293b"/><circle cx="40" cy="37" r="2.8" fill="#1e293b"/><circle cx="25.3" cy="35.5" r="1.2" fill="#fff"/><circle cx="41.3" cy="35.5" r="1.2" fill="#fff"/><path d="M29 43 Q32 46 35 43" stroke="#1e293b" stroke-width="1.3" fill="none" stroke-linecap="round"/><ellipse cx="21" cy="43" rx="4.5" ry="2.5" fill="#fca5a5" opacity=".2"/><ellipse cx="43" cy="43" rx="4.5" ry="2.5" fill="#fca5a5" opacity=".2"/><ellipse cx="24" cy="14" rx="5" ry="14" fill="#fff" stroke="#f9a8d4" stroke-width=".6" transform="rotate(-6 24 14)"/><ellipse cx="24" cy="14" rx="3" ry="10" fill="#fbcfe8" transform="rotate(-6 24 14)"/><ellipse cx="40" cy="14" rx="5" ry="14" fill="#fff" stroke="#f9a8d4" stroke-width=".6" transform="rotate(6 40 14)"/><ellipse cx="40" cy="14" rx="3" ry="10" fill="#fbcfe8" transform="rotate(6 40 14)"/><circle cx="32" cy="40" r="1.8" fill="#fda4af"/>','p2':'<rect width="64" height="64" rx="32" fill="#dbeafe"/><circle cx="32" cy="38" r="20" fill="#93c5fd" stroke="#60a5fa" stroke-width=".6"/><circle cx="20" cy="22" r="8" fill="#93c5fd" stroke="#60a5fa" stroke-width=".6"/><circle cx="44" cy="22" r="8" fill="#93c5fd" stroke="#60a5fa" stroke-width=".6"/><circle cx="20" cy="22" r="4.5" fill="#bfdbfe"/><circle cx="44" cy="22" r="4.5" fill="#bfdbfe"/><circle cx="25" cy="35" r="3" fill="#1e3a5f"/><circle cx="39" cy="35" r="3" fill="#1e3a5f"/><circle cx="26.2" cy="33.5" r="1.2" fill="#fff"/><circle cx="40.2" cy="33.5" r="1.2" fill="#fff"/><ellipse cx="32" cy="40" rx="3.5" ry="2.5" fill="#1e3a5f"/><path d="M30.5 40 L33.5 40" stroke="#93c5fd" stroke-width=".8"/><ellipse cx="22" cy="42" rx="5" ry="2.5" fill="#fca5a5" opacity=".2"/><ellipse cx="42" cy="42" rx="5" ry="2.5" fill="#fca5a5" opacity=".2"/>','p3':'<rect width="64" height="64" rx="32" fill="#fff1f2"/><ellipse cx="32" cy="39" rx="20" ry="19" fill="#fff" stroke="#fecdd3" stroke-width=".6"/><polygon points="15,26 11,8 23,21" fill="#fff" stroke="#fecdd3" stroke-width=".6" stroke-linejoin="round"/><polygon points="49,26 53,8 41,21" fill="#fff" stroke="#fecdd3" stroke-width=".6" stroke-linejoin="round"/><polygon points="15,26 12,10 22,21" fill="#fecdd3" opacity=".4"/><polygon points="49,26 52,10 42,21" fill="#fecdd3" opacity=".4"/><circle cx="24" cy="36" r="2.5" fill="#1e293b"/><circle cx="40" cy="36" r="2.5" fill="#1e293b"/><circle cx="25.2" cy="34.8" r="1" fill="#fff"/><circle cx="41.2" cy="34.8" r="1" fill="#fff"/><ellipse cx="32" cy="40" rx="2.5" ry="1.8" fill="#fda4af"/><line x1="12" y1="37" x2="21" y2="38" stroke="#fda4af" stroke-width=".5" opacity=".6"/><line x1="12" y1="40" x2="21" y2="40" stroke="#fda4af" stroke-width=".5" opacity=".6"/><line x1="43" y1="38" x2="52" y2="37" stroke="#fda4af" stroke-width=".5" opacity=".6"/><line x1="43" y1="40" x2="52" y2="40" stroke="#fda4af" stroke-width=".5" opacity=".6"/><ellipse cx="21" cy="43" rx="5" ry="2.5" fill="#fca5a5" opacity=".18"/><ellipse cx="43" cy="43" rx="5" ry="2.5" fill="#fca5a5" opacity=".18"/>','p4':'<rect width="64" height="64" rx="32" fill="#d1fae5"/><ellipse cx="32" cy="42" rx="20" ry="15" fill="#86efac" stroke="#4ade80" stroke-width=".6"/><path d="M18 36 Q21 28 27 31 Q32 23 37 31 Q43 28 46 36" fill="#4ade80"/><path d="M26 40 L32 36 L38 40" stroke="#22c55e" stroke-width=".8" fill="none"/><path d="M32 36 L32 46" stroke="#22c55e" stroke-width=".8"/><circle cx="32" cy="36" r="15" fill="#fef9c3" stroke="#fde047" stroke-width=".6"/><circle cx="26" cy="34" r="2.5" fill="#1e293b"/><circle cx="38" cy="34" r="2.5" fill="#1e293b"/><circle cx="27.2" cy="32.8" r="1" fill="#fff"/><circle cx="39.2" cy="32.8" r="1" fill="#fff"/><path d="M29 39 Q32 42 35 39" stroke="#1e293b" stroke-width="1.2" fill="none" stroke-linecap="round"/><ellipse cx="23" cy="38" rx="4" ry="2" fill="#fca5a5" opacity=".2"/><ellipse cx="41" cy="38" rx="4" ry="2" fill="#fca5a5" opacity=".2"/>','p5':'<rect width="64" height="64" rx="32" fill="#f0f9ff"/><circle cx="20" cy="22" r="9" fill="#fff" stroke="#e2e8f0" stroke-width=".5"/><circle cx="44" cy="22" r="9" fill="#fff" stroke="#e2e8f0" stroke-width=".5"/><circle cx="32" cy="18" r="10" fill="#fff" stroke="#e2e8f0" stroke-width=".5"/><circle cx="18" cy="33" r="8" fill="#fff" stroke="#e2e8f0" stroke-width=".5"/><circle cx="46" cy="33" r="8" fill="#fff" stroke="#e2e8f0" stroke-width=".5"/><circle cx="32" cy="40" r="9" fill="#fff" stroke="#e2e8f0" stroke-width=".5"/><ellipse cx="32" cy="40" rx="14" ry="13" fill="#fef9c3" stroke="#fde047" stroke-width=".6"/><circle cx="26" cy="37" r="2.8" fill="#1e293b"/><circle cx="38" cy="37" r="2.8" fill="#1e293b"/><circle cx="27.3" cy="35.5" r="1.1" fill="#fff"/><circle cx="39.3" cy="35.5" r="1.1" fill="#fff"/><path d="M30 43 Q32 46 34 43" stroke="#1e293b" stroke-width="1.2" fill="none" stroke-linecap="round"/><ellipse cx="23" cy="42" rx="4" ry="2" fill="#fca5a5" opacity=".2"/><ellipse cx="41" cy="42" rx="4" ry="2" fill="#fca5a5" opacity=".2"/>','p6':'<rect width="64" height="64" rx="32" fill="#fff7ed"/><circle cx="32" cy="37" r="22" fill="#fed7aa" stroke="#fdba74" stroke-width=".6"/><circle cx="18" cy="23" r="7" fill="#fed7aa" stroke="#fdba74" stroke-width=".6"/><circle cx="46" cy="23" r="7" fill="#fed7aa" stroke="#fdba74" stroke-width=".6"/><circle cx="18" cy="23" r="4" fill="#fef3c7"/><circle cx="46" cy="23" r="4" fill="#fef3c7"/><circle cx="25" cy="34" r="3" fill="#1e293b"/><circle cx="39" cy="34" r="3" fill="#1e293b"/><circle cx="26.3" cy="32.5" r="1.2" fill="#fff"/><circle cx="40.3" cy="32.5" r="1.2" fill="#fff"/><ellipse cx="32" cy="40" rx="4" ry="2.5" fill="#fb923c"/><path d="M30 39.5 L34 39.5" stroke="#fed7aa" stroke-width=".6"/><ellipse cx="20" cy="41" rx="6" ry="3.5" fill="#fca5a5" opacity=".22"/><ellipse cx="44" cy="41" rx="6" ry="3.5" fill="#fca5a5" opacity=".22"/><ellipse cx="32" cy="50" rx="12" ry="4" fill="#fff" opacity=".3"/>','p7':'<rect width="64" height="64" rx="32" fill="#ecfdf5"/><ellipse cx="32" cy="37" rx="20" ry="22" fill="#334155" stroke="#1e293b" stroke-width=".5"/><ellipse cx="32" cy="40" rx="13" ry="16" fill="#fff"/><circle cx="25" cy="32" r="3" fill="#fff"/><circle cx="39" cy="32" r="3" fill="#fff"/><circle cx="25" cy="32" r="1.5" fill="#1e293b"/><circle cx="39" cy="32" r="1.5" fill="#1e293b"/><circle cx="25.8" cy="31" r=".7" fill="#fff"/><circle cx="39.8" cy="31" r=".7" fill="#fff"/><polygon points="32,37 28,41 36,41" fill="#f59e0b" stroke="#d97706" stroke-width=".3"/><ellipse cx="23" cy="38" rx="4" ry="2" fill="#fca5a5" opacity=".25"/><ellipse cx="41" cy="38" rx="4" ry="2" fill="#fca5a5" opacity=".25"/><ellipse cx="14" cy="40" rx="6" ry="3" fill="#334155" transform="rotate(-20 14 40)"/><ellipse cx="50" cy="40" rx="6" ry="3" fill="#334155" transform="rotate(20 50 40)"/>','p8':'<rect width="64" height="64" rx="32" fill="#e0e7ff"/><ellipse cx="32" cy="36" rx="24" ry="18" fill="#a5b4fc" stroke="#818cf8" stroke-width=".6"/><ellipse cx="32" cy="42" rx="14" ry="7" fill="#c7d2fe"/><circle cx="20" cy="33" r="3" fill="#312e81"/><circle cx="21.2" cy="31.5" r="1.2" fill="#fff"/><circle cx="44" cy="33" r="2.5" fill="#312e81"/><circle cx="44.8" cy="32" r=".8" fill="#fff"/><path d="M27 42 Q32 46 37 42" stroke="#312e81" stroke-width="1.2" fill="none" stroke-linecap="round"/><path d="M8 30 Q12 25 14 30" stroke="#818cf8" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M50 30 Q52 25 56 30" stroke="#818cf8" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="16" cy="20" r="1.5" fill="#fbbf24" opacity=".7"/><circle cx="48" cy="18" r="2" fill="#fbbf24" opacity=".6"/><circle cx="38" cy="14" r="1" fill="#fbbf24" opacity=".5"/><circle cx="26" cy="16" r="1.2" fill="#fbbf24" opacity=".4"/>','p9':'<rect width="64" height="64" rx="32" fill="#fefce8"/><circle cx="32" cy="39" r="20" fill="#fef08a" stroke="#fde047" stroke-width=".6"/><path d="M20 26 L24 18 L29 23 L32 12 L35 23 L40 18 L44 26" fill="#fbbf24" stroke="#f59e0b" stroke-width=".6" stroke-linejoin="round"/><circle cx="32" cy="16" r="2.5" fill="#f59e0b"/><circle cx="24" cy="20" r="1.5" fill="#f59e0b" opacity=".6"/><circle cx="40" cy="20" r="1.5" fill="#f59e0b" opacity=".6"/><circle cx="26" cy="37" r="3" fill="#1e293b"/><circle cx="38" cy="37" r="3" fill="#1e293b"/><circle cx="27.2" cy="35.5" r="1.2" fill="#fff"/><circle cx="39.2" cy="35.5" r="1.2" fill="#fff"/><polygon points="32,42 28,46 36,46" fill="#fb923c" stroke="#ea580c" stroke-width=".3"/><ellipse cx="22" cy="42" rx="5" ry="2.5" fill="#fca5a5" opacity=".2"/><ellipse cx="42" cy="42" rx="5" ry="2.5" fill="#fca5a5" opacity=".2"/>'};
+    if(u.customAvatar){
+      av.innerHTML='<img src="'+u.customAvatar+'" style="width:36px;height:36px;object-fit:cover;border-radius:50%">';
+    }else if(u.premiumAvatar && premiumAvatars[u.premiumAvatar]){
+      av.innerHTML='<svg viewBox="0 0 64 64" width="36" height="36" xmlns="http://www.w3.org/2000/svg" style="border-radius:50%">'+premiumAvatars[u.premiumAvatar]+'</svg>';
+    }else{
+      var c=colors[(u.avatarIndex||0)%6];
+      var body=animals[(u.avatarIndex||0)%6];
+      av.innerHTML='<svg viewBox="0 0 64 64" width="36" height="36" xmlns="http://www.w3.org/2000/svg" style="border-radius:50%"><rect width="64" height="64" rx="32" fill="'+c.bg+'"/>'+body+'</svg>';
+    }
+    if(nm)nm.textContent=u.userName||'';
+  }catch(e){}
+})();
+</script>
+<script src="ai-character.js"></script>
+</body>
+</html>

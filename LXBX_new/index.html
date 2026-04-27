@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<!-- 防缓存:确保用户总是拿到最新版本 -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>灵犀伴学</title>
+<script>
+(function(){
+  try {
+    var u = JSON.parse(localStorage.getItem('zhibanUser') || '{}');
+    if (u && u.isLoggedIn) {
+      window.location.replace('home.html');
+    } else {
+      window.location.replace('user.html');
+    }
+  } catch(e) {
+    window.location.replace('user.html');
+  }
+})();
+</script>
+</head><body></body></html>

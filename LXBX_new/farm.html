@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- 防缓存:确保用户总是拿到最新版本 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知识农场 — 灵犀伴学</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{ocean:{50:'#eef6ff',100:'#d9ecff',200:'#bcdeff',300:'#8ec9ff',400:'#59a9ff',500:'#3385ff',600:'#1a65f5',700:'#1450e1',800:'#1741b6',900:'#19398f',950:'#142557'},mint:{50:'#edfcf5',100:'#d3f8e6',200:'#aaf0d1',300:'#73e2b5',400:'#3acd95',500:'#18b47d'},warm:{50:'#fff8ed',100:'#fff0d4',200:'#ffdda8',300:'#ffc371',400:'#ff9f38',500:'#ff8211',600:'#f06807',700:'#c74e08'}},fontFamily:{display:['"Noto Serif SC"','serif'],body:['"Noto Sans SC"','sans-serif']}}}};
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--nav-h:64px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans SC',sans-serif;color:#1e293b;background:#f0f7ed;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse 80% 50% at 30% 20%,rgba(24,180,125,.08) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 70% 80%,rgba(255,159,56,.06) 0%,transparent 60%)}
+#navbar{background:rgba(255,255,255,.82);backdrop-filter:blur(16px) saturate(1.4);box-shadow:0 1px 24px rgba(20,37,87,.07)}
+#mobileMenu{transition:max-height .35s ease,opacity .3s;max-height:0;opacity:0;overflow:hidden}
+#mobileMenu.open{max-height:400px;opacity:1}
+.btn-primary{display:inline-flex;align-items:center;gap:6px;padding:10px 28px;background:linear-gradient(135deg,#18b47d,#0e7453);color:#fff;border-radius:12px;font-weight:600;font-size:.95rem;transition:transform .25s,box-shadow .25s;border:none;cursor:pointer}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(24,180,125,.35)}
+.card{background:#fff;border-radius:18px;box-shadow:0 8px 32px rgba(20,37,87,.08)}
+.avatar-svg{border-radius:50%}
+
+/* Farm ground */
+.farm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:420px;margin:0 auto}
+.plot{aspect-ratio:1;border-radius:16px;background:linear-gradient(180deg,#d4a76a 0%,#c49a5c 100%);border:3px solid #b8894d;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .3s;position:relative;overflow:hidden}
+.plot::before{content:'';position:absolute;inset:4px;border-radius:12px;background:linear-gradient(180deg,#8B6914 0%,#a07730 40%,#6d4c11 100%);opacity:.15}
+.plot:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.plot.empty{background:linear-gradient(180deg,#d4a76a,#c49a5c)}
+.plot.seeded{background:linear-gradient(180deg,#c49a5c,#9b7b3a)}
+.plot.growing{background:linear-gradient(180deg,#8fbc5a,#6d9e3a)}
+.plot.ready{background:linear-gradient(180deg,#4ade80,#22c55e);border-color:#16a34a;animation:readyPulse 1.5s infinite}
+@keyframes readyPulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.3)}50%{box-shadow:0 0 0 10px rgba(34,197,94,0)}}
+.plot-emoji{font-size:2.2rem;line-height:1;z-index:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.15))}
+.plot-label{font-size:.7rem;color:#fff;font-weight:600;margin-top:4px;z-index:1;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+.plot-progress{position:absolute;bottom:4px;left:8px;right:8px;height:5px;background:rgba(0,0,0,.15);border-radius:3px;overflow:hidden;z-index:1}
+.plot-progress-fill{height:100%;background:linear-gradient(90deg,#fbbf24,#22c55e);border-radius:3px;transition:width .4s}
+
+/* Resources bar */
+.res-bar{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.res-item{display:flex;align-items:center;gap:5px;padding:6px 14px;background:#fff;border-radius:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);font-size:.85rem;font-weight:600}
+
+/* Quiz modal */
+.quiz-modal{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+.quiz-modal.active{opacity:1;pointer-events:auto}
+.quiz-bg{position:absolute;inset:0;background:rgba(20,37,87,.3);backdrop-filter:blur(6px)}
+.quiz-box{position:relative;background:#fff;border-radius:24px;padding:32px 28px;max-width:440px;width:92%;box-shadow:0 24px 64px rgba(20,37,87,.18);transform:translateY(20px);transition:transform .35s}
+.quiz-modal.active .quiz-box{transform:translateY(0)}
+
+.quiz-opt{width:100%;padding:12px 16px;border:2px solid #bcdeff;border-radius:12px;background:#fff;text-align:left;font-size:.95rem;cursor:pointer;transition:all .2s;font-family:'Noto Sans SC',sans-serif;margin-bottom:8px}
+.quiz-opt:hover{border-color:#3385ff;background:#eef6ff}
+.quiz-opt.correct{border-color:#18b47d;background:#edfcf5;color:#0e7453}
+.quiz-opt.wrong{border-color:#ef4444;background:#fef2f2;color:#dc2626}
+
+/* Shop */
+.shop-item{padding:12px;border-radius:14px;background:#fff;border:2px solid #d3f8e6;text-align:center;cursor:pointer;transition:all .2s}
+.shop-item:hover{border-color:#18b47d;transform:translateY(-2px);box-shadow:0 4px 12px rgba(24,180,125,.15)}
+.shop-item.disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* ═══ Unified Navbar ═══ */
+#navbar{background:rgba(255,255,255,.82);backdrop-filter:blur(16px) saturate(1.4);box-shadow:0 1px 24px rgba(20,37,87,.07);transition:background .35s,box-shadow .35s}
+.avatar-svg{border-radius:50%}
+</style>
+<script src="supabase-sync.js"></script>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<!-- ══════════ UNIFIED NAVBAR ══════════ -->
+<nav id="navbar" class="fixed top-0 left-0 w-full z-50" style="height:var(--nav-h)">
+  <div class="max-w-7xl mx-auto flex items-center justify-between px-5 md:px-8 h-full">
+    <a href="home.html" class="flex items-center gap-2 text-ocean-700 font-bold text-lg select-none">
+      <svg class="w-8 h-8" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="18" stroke="#3385ff" stroke-width="2.5"/><circle cx="14" cy="17" r="4" fill="#3385ff" opacity=".7"/><circle cx="26" cy="17" r="4" fill="#18b47d" opacity=".7"/><circle cx="20" cy="27" r="4" fill="#ff9f38" opacity=".7"/><line x1="14" y1="17" x2="26" y2="17" stroke="#3385ff" stroke-width="1.5" opacity=".4"/><line x1="14" y1="17" x2="20" y2="27" stroke="#18b47d" stroke-width="1.5" opacity=".4"/><line x1="26" y1="17" x2="20" y2="27" stroke="#ff9f38" stroke-width="1.5" opacity=".4"/></svg>
+      <span class="hidden sm:inline" style="font-family:'Noto Serif SC',serif">灵犀伴学</span>
+    </a>
+    <ul class="hidden md:flex items-center gap-1 text-sm font-medium">
+      <li><a href="home.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">首页</a></li>
+      <li><a href="home.html#plan" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习计划</a></li>
+      <li><a href="home.html#about" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">关于我们</a></li>
+      <li><a href="home.html#footer" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">联系我们</a></li>
+      <li><a href="user.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">用户中心</a></li>
+    
+      <li><a href="profile.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习画像</a></li>
+      <li><a href="goals.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习目标</a></li>
+    </ul>
+    <div class="flex items-center gap-3">
+      <a href="user.html" id="navUserInfo" class="flex items-center gap-2 hover:opacity-80 transition">
+        <div id="navAvatar" class="w-9 h-9 rounded-full bg-ocean-100 flex items-center justify-center overflow-hidden"></div>
+        <span id="navUserName" class="hidden sm:inline text-sm font-medium text-ocean-700"></span>
+      </a>
+      <button onclick="document.getElementById('mobileMenu').classList.toggle('open')" class="md:hidden w-9 h-9 rounded-lg flex items-center justify-center hover:bg-ocean-50 transition">
+        <svg class="w-5 h-5 text-ocean-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="mobileMenu" class="md:hidden bg-white/95 backdrop-blur-md border-t border-ocean-100" style="max-height:0;opacity:0;overflow:hidden;transition:max-height .35s ease,opacity .3s">
+    <ul class="flex flex-col py-2 px-5 text-sm font-medium">
+      <li><a href="home.html" class="block py-3 text-ocean-800">首页</a></li>
+      <li><a href="home.html#plan" class="block py-3 text-ocean-800">学习计划</a></li>
+      <li><a href="home.html#about" class="block py-3 text-ocean-800">关于我们</a></li>
+      <li><a href="home.html#footer" class="block py-3 text-ocean-800">联系我们</a></li>
+      <li><a href="user.html" class="block py-3 text-ocean-600 font-semibold">用户中心</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="pt-24 pb-16 px-4 max-w-2xl mx-auto">
+
+  <!-- Title -->
+  <div class="text-center mb-6">
+    <h1 class="text-2xl md:text-3xl font-bold font-display text-ocean-900 mb-2">🌾 知识农场</h1>
+    <p class="text-ocean-500 text-sm">答题获取资源，种植并收获你的知识果实！</p>
+  </div>
+
+  <!-- Resources -->
+  <div class="res-bar mb-6">
+    <div class="res-item"><svg width="18" height="18" viewBox="0 0 24 24" fill="#3b82f6"><path d="M12 2C12 2 5 10 5 15a7 7 0 0014 0c0-5-7-13-7-13z"/></svg> <span id="waterCount">3</span></div>
+    <div class="res-item"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"><path d="M12 22V10"/><path d="M12 10C8 10 5 7 5 3c3 0 6 2 7 7"/><path d="M12 10c4 0 7-3 7-7-3 0-6 2-7 7"/></svg> <span id="seedCount">2</span></div>
+    <div class="res-item"><svg width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#fbbf24"/><text x="12" y="16.5" text-anchor="middle" font-size="13" font-weight="bold" fill="#92400e">$</text></svg> <span id="coinCount">0</span></div>
+    <div class="res-item"><svg width="18" height="18" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg> <span id="ptsDisplay">0</span></div>
+    <div class="res-item"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Lv.<span id="levelNum">1</span></div>
+  </div>
+
+  <!-- Answer questions button -->
+  <div class="text-center mb-6">
+    <button onclick="openQuiz()" class="btn-primary px-8 text-base">
+      📝 答题获取资源
+    </button>
+    <button onclick="changeGradeSubject()" class="text-xs text-ocean-400 hover:text-ocean-600 ml-3 transition" id="currentGradeLabel" style="cursor:pointer;border:1px solid #dbeafe;padding:4px 12px;border-radius:8px">
+      选择年级科目
+    </button>
+  </div>
+
+  <!-- Farm grid -->
+  <div class="card p-6 mb-6">
+    <p class="text-center text-ocean-400 text-xs mb-4 font-medium">点击空地播种，浇水促进生长，成熟后点击收获</p>
+    <div class="farm-grid" id="farmGrid"></div>
+  </div>
+
+  <!-- Seed shop -->
+  <div class="card p-6">
+    <h3 class="text-sm font-semibold text-ocean-700 mb-4 text-center">🏪 种子商店</h3>
+    <div class="grid grid-cols-3 gap-3" id="shopGrid"></div>
+  </div>
+</main>
+
+<!-- Quiz Modal -->
+<div class="quiz-modal" id="quizModal">
+  <div class="quiz-bg" onclick="closeQuiz()"></div>
+  <div class="quiz-box">
+    <h3 class="font-bold text-lg text-ocean-900 mb-1" id="quizTitle">答题挑战</h3>
+    <p class="text-ocean-400 text-xs mb-4" id="quizSubject">语文</p>
+    <p class="text-ocean-800 font-medium mb-4" id="quizQuestion">题目</p>
+    <div id="quizOptions"></div>
+    <div id="quizResult" class="hidden text-center mt-3">
+      <p id="quizResultText" class="font-semibold text-sm mb-3"></p>
+      <button onclick="openQuiz()" class="btn-primary text-sm px-6">下一题</button>
+      <button onclick="closeQuiz()" class="btn-primary text-sm px-6 ml-2" style="background:#64748b">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- Grade Selection Modal -->
+<div class="quiz-modal" id="gradeModal">
+  <div class="quiz-bg"></div>
+  <div class="quiz-box" style="max-width:480px">
+    <h3 class="font-bold text-lg text-ocean-900 mb-1 text-center">选择你的年级和科目</h3>
+    <p class="text-ocean-400 text-xs mb-5 text-center">题目将根据你的选择智能匹配</p>
+    <div class="mb-4">
+      <p class="text-sm font-semibold text-ocean-700 mb-2">年级</p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+        <button class="grade-btn" data-g="1" onclick="selectGrade(1)">1年级</button>
+        <button class="grade-btn" data-g="2" onclick="selectGrade(2)">2年级</button>
+        <button class="grade-btn" data-g="3" onclick="selectGrade(3)">3年级</button>
+        <button class="grade-btn" data-g="4" onclick="selectGrade(4)">4年级</button>
+        <button class="grade-btn" data-g="5" onclick="selectGrade(5)">5年级</button>
+        <button class="grade-btn" data-g="6" onclick="selectGrade(6)">6年级</button>
+        <button class="grade-btn" data-g="7" onclick="selectGrade(7)">7年级</button>
+        <button class="grade-btn" data-g="8" onclick="selectGrade(8)">8年级</button>
+        <button class="grade-btn" data-g="9" onclick="selectGrade(9)">9年级</button>
+      </div>
+    </div>
+    <div class="mb-5">
+      <p class="text-sm font-semibold text-ocean-700 mb-2">科目</p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+        <button class="subj-btn" data-s="语文" onclick="selectSubject('语文')">语文</button>
+        <button class="subj-btn" data-s="数学" onclick="selectSubject('数学')">数学</button>
+        <button class="subj-btn" data-s="英语" onclick="selectSubject('英语')">英语</button>
+      </div>
+    </div>
+    <button onclick="confirmGradeSubject()" class="btn-primary w-full justify-center py-3 text-base" style="border-radius:14px">确认选择</button>
+  </div>
+</div>
+
+<style>
+.grade-btn,.subj-btn{padding:10px 8px;border:2px solid #dbeafe;border-radius:12px;background:#f8faff;font-size:14px;font-weight:600;color:#3385ff;cursor:pointer;transition:all .2s;font-family:inherit}
+.grade-btn:hover,.subj-btn:hover{border-color:#3385ff;background:#eef6ff}
+.grade-btn.active,.subj-btn.active{border-color:#3385ff;background:#3385ff;color:#fff}
+</style>
+
+<script>
+/* === FARM STATE === */
+const CROPS = [
+  {name:'小麦',emoji:'🌾',seedEmoji:'🌱',growEmoji:'🌿',cost:0,growTime:3,reward:5},
+  {name:'玉米',emoji:'🌽',seedEmoji:'🌱',growEmoji:'🌿',cost:8,growTime:4,reward:10},
+  {name:'草莓',emoji:'🍓',seedEmoji:'🌱',growEmoji:'🍃',cost:15,growTime:5,reward:18},
+  {name:'西瓜',emoji:'🍉',seedEmoji:'🌱',growEmoji:'🍃',cost:25,growTime:6,reward:30},
+  {name:'苹果树',emoji:'🍎',seedEmoji:'🌱',growEmoji:'🌳',cost:40,growTime:8,reward:50},
+];
+
+let water=3, seeds=2, coins=0, level=1, exp=0;
+let plots=[
+  {state:'empty',crop:null,growth:0,maxGrowth:0},
+  {state:'empty',crop:null,growth:0,maxGrowth:0},
+  {state:'empty',crop:null,growth:0,maxGrowth:0},
+  {state:'empty',crop:null,growth:0,maxGrowth:0},
+  {state:'empty',crop:null,growth:0,maxGrowth:0},
+  {state:'empty',crop:null,growth:0,maxGrowth:0},
+  {state:'empty',crop:null,growth:0,maxGrowth:0},
+  {state:'empty',crop:null,growth:0,maxGrowth:0},
+  {state:'empty',crop:null,growth:0,maxGrowth:0},
+];
+let selectedCrop=0;
+
+// Load state
+try{
+  const s=JSON.parse(localStorage.getItem('zhibanFarm')||'null');
+  if(s){water=s.water;seeds=s.seeds;coins=s.coins;level=s.level;exp=s.exp||0;plots=s.plots;}
+}catch(e){}
+
+function saveState(){
+  try{localStorage.setItem('zhibanFarm',JSON.stringify({water,seeds,coins,level,exp,plots}))}catch(e){}
+}
+
+function updateUI(){
+  document.getElementById('waterCount').textContent=water;
+  document.getElementById('seedCount').textContent=seeds;
+  document.getElementById('coinCount').textContent=coins;
+  try{document.getElementById('ptsDisplay').textContent=_getPoints();}catch(e){}
+  document.getElementById('levelNum').textContent=level;
+  renderFarm();
+  renderShop();
+  saveState();
+}
+
+function renderFarm(){
+  const grid=document.getElementById('farmGrid');
+  grid.innerHTML='';
+  plots.forEach((p,i)=>{
+    const div=document.createElement('div');
+    div.className=`plot ${p.state}`;
+    if(p.state==='empty'){
+      div.innerHTML=`<span class="plot-emoji" style="font-size:1.8rem;opacity:.5">+</span><span class="plot-label">空地</span>`;
+      div.onclick=()=>plantSeed(i);
+    }else if(p.state==='seeded'){
+      div.innerHTML=`<span class="plot-emoji">${p.crop.seedEmoji||'🌱'}</span><span class="plot-label">${p.crop.name}</span>
+        <div class="plot-progress"><div class="plot-progress-fill" style="width:${(p.growth/p.maxGrowth*100)}%"></div></div>`;
+      div.onclick=()=>waterPlot(i);
+    }else if(p.state==='growing'){
+      div.innerHTML=`<span class="plot-emoji">${p.crop.growEmoji||'🌿'}</span><span class="plot-label">${p.crop.name}</span>
+        <div class="plot-progress"><div class="plot-progress-fill" style="width:${(p.growth/p.maxGrowth*100)}%"></div></div>`;
+      div.onclick=()=>waterPlot(i);
+    }else if(p.state==='ready'){
+      div.innerHTML=`<span class="plot-emoji">${p.crop.emoji}</span><span class="plot-label">可收获!</span>`;
+      div.onclick=()=>harvest(i);
+    }
+    grid.appendChild(div);
+  });
+}
+
+function plantSeed(i){
+  if(seeds<=0){alert('种子不足！答题获取更多种子吧');return;}
+  const crop=CROPS[selectedCrop];
+  seeds--;
+  plots[i]={state:'seeded',crop,growth:0,maxGrowth:crop.growTime};
+  updateUI();
+}
+
+function waterPlot(i){
+  if(water<=0){alert('水滴不足！答题获取更多水滴吧');return;}
+  const p=plots[i];
+  water--;
+  p.growth++;
+  if(p.growth>=p.maxGrowth){
+    p.state='ready';
+  }else if(p.growth>=p.maxGrowth*0.5){
+    p.state='growing';
+  }
+  updateUI();
+}
+
+function harvest(i){
+  const p=plots[i];
+  const reward=p.crop.reward;
+  coins+=reward;
+  exp+=reward;
+  // Check level up
+  const needed=level*30;
+  if(exp>=needed){exp-=needed;level++;}
+  _addPoints(reward);
+  plots[i]={state:'empty',crop:null,growth:0,maxGrowth:0};
+  updateUI();
+}
+
+function renderShop(){
+  const grid=document.getElementById('shopGrid');
+  grid.innerHTML='';
+  CROPS.forEach((crop,i)=>{
+    const div=document.createElement('div');
+    const canBuy=coins>=crop.cost||crop.cost===0;
+    div.className=`shop-item ${!canBuy&&crop.cost>0?'disabled':''}`;
+    div.innerHTML=`<div class="text-2xl mb-1">${crop.emoji}</div><div class="text-xs font-semibold text-ocean-800">${crop.name}</div><div class="text-xs text-ocean-400">${crop.cost===0?'免费':crop.cost+' 金币'}</div>`;
+    div.onclick=()=>{
+      if(crop.cost>0&&coins<crop.cost)return;
+      if(crop.cost>0)coins-=crop.cost;
+      selectedCrop=i;
+      seeds++;
+      updateUI();
+      // Flash feedback
+      div.style.borderColor='#18b47d';
+      div.style.background='#edfcf5';
+      setTimeout(()=>{div.style.borderColor='';div.style.background=''},400);
+    };
+    grid.appendChild(div);
+  });
+}
+
+/* === GRADE & SUBJECT SELECTION === */
+let selectedGrade = 0;
+let selectedSubject = '';
+
+function showGradeSelect() {
+  document.getElementById('gradeModal').classList.add('active');
+}
+function selectGrade(g) {
+  selectedGrade = g;
+  document.querySelectorAll('.grade-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.grade-btn[data-g="${g}"]`).classList.add('active');
+}
+function selectSubject(s) {
+  selectedSubject = s;
+  document.querySelectorAll('.subj-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.subj-btn[data-s="${s}"]`).classList.add('active');
+}
+function confirmGradeSubject() {
+  if (!selectedGrade || !selectedSubject) { alert('请选择年级和科目'); return; }
+  localStorage.setItem('zhibanFarmGrade', selectedGrade);
+  localStorage.setItem('zhibanFarmSubject', selectedSubject);
+  document.getElementById('gradeModal').classList.remove('active');
+  document.getElementById('currentGradeLabel').textContent = selectedGrade + '年级 · ' + selectedSubject;
+}
+function changeGradeSubject() { showGradeSelect(); }
+
+// Init grade/subject
+(function(){
+  var g = localStorage.getItem('zhibanFarmGrade');
+  var s = localStorage.getItem('zhibanFarmSubject');
+  if (g && s) {
+    selectedGrade = parseInt(g);
+    selectedSubject = s;
+    document.getElementById('currentGradeLabel').textContent = g + '年级 · ' + s;
+  } else {
+    setTimeout(showGradeSelect, 500);
+  }
+})();
+
+/* === MASSIVE QUESTION BANK (1-9年级 × 语文/数学/英语) === */
+const QB = {
+  // ═══ 1年级 ═══
+  '1_语文': [
+    {q:'拼音"b"的读音是？',opts:['波','坡','摸','佛'],ans:0},
+    {q:'"日"字有几画？',opts:['3画','4画','5画','6画'],ans:1},
+    {q:'"大"的反义词是？',opts:['小','多','高','长'],ans:0},
+    {q:'下面哪个是声母？',opts:['a','o','b','e'],ans:2},
+    {q:'"口"加一笔变成什么字？',opts:['日','中','田','目'],ans:1},
+    {q:'"上"的反义词是？',opts:['下','左','右','前'],ans:0},
+    {q:'哪个字是左右结构？',opts:['天','人','好','大'],ans:2},
+    {q:'"一二三"的"三"是几画？',opts:['2画','3画','4画','5画'],ans:1},
+  ],
+  '1_数学': [
+    {q:'3 + 4 = ？',opts:['5','6','7','8'],ans:2},
+    {q:'9 - 5 = ？',opts:['3','4','5','6'],ans:1},
+    {q:'比8大1的数是？',opts:['7','8','9','10'],ans:2},
+    {q:'10 - 7 = ？',opts:['2','3','4','5'],ans:1},
+    {q:'5 + 5 = ？',opts:['8','9','10','11'],ans:2},
+    {q:'一共有6个苹果，吃了2个，还剩几个？',opts:['3','4','5','6'],ans:1},
+    {q:'哪个数最大？',opts:['5','8','3','6'],ans:1},
+    {q:'2 + 7 = ？',opts:['8','9','10','11'],ans:1},
+  ],
+  '1_英语': [
+    {q:'"cat"是什么动物？',opts:['狗','猫','鸟','鱼'],ans:1},
+    {q:'"red"是什么颜色？',opts:['蓝色','绿色','红色','黄色'],ans:2},
+    {q:'How many legs does a dog have?',opts:['2','3','4','5'],ans:2},
+    {q:'"apple"是什么水果？',opts:['香蕉','苹果','橙子','西瓜'],ans:1},
+    {q:'"one"代表数字几？',opts:['1','2','3','4'],ans:0},
+    {q:'"hello"的意思是？',opts:['再见','你好','谢谢','对不起'],ans:1},
+    {q:'"big"的意思是？',opts:['小的','大的','长的','高的'],ans:1},
+    {q:'What color is the sky?',opts:['red','green','blue','yellow'],ans:2},
+  ],
+  // ═══ 2年级 ═══
+  '2_语文': [
+    {q:'"春眠不觉晓"的下一句？',opts:['处处闻啼鸟','夜来风雨声','花落知多少','春风吹又生'],ans:0},
+    {q:'"人"加"人"是什么字？',opts:['大','从','众','入'],ans:1},
+    {q:'"草"是什么结构的字？',opts:['左右','上下','半包围','独体'],ans:1},
+    {q:'成语"守株待兔"告诉我们？',opts:['要勤劳','不劳而获不可取','要保护动物','兔子很可爱'],ans:1},
+    {q:'"鹅鹅鹅"出自哪首诗？',opts:['咏鹅','春晓','静夜思','悯农'],ans:0},
+    {q:'"明"字由哪两个字组成？',opts:['日和月','日和目','月和目','日和日'],ans:0},
+    {q:'"锄禾日当午"出自？',opts:['春晓','悯农','咏鹅','静夜思'],ans:1},
+    {q:'下面哪个是形声字？',opts:['日','山','清','人'],ans:2},
+  ],
+  '2_数学': [
+    {q:'15 + 8 = ？',opts:['21','22','23','24'],ans:2},
+    {q:'3 × 4 = ？',opts:['7','10','12','14'],ans:2},
+    {q:'一个星期有几天？',opts:['5天','6天','7天','8天'],ans:2},
+    {q:'36 - 19 = ？',opts:['15','16','17','18'],ans:2},
+    {q:'5 × 6 = ？',opts:['25','28','30','35'],ans:2},
+    {q:'角的单位是？',opts:['厘米','度','千克','米'],ans:1},
+    {q:'42 ÷ 6 = ？',opts:['6','7','8','9'],ans:1},
+    {q:'1米等于多少厘米？',opts:['10','50','100','1000'],ans:2},
+  ],
+  '2_英语': [
+    {q:'"Monday"是星期几？',opts:['星期日','星期一','星期二','星期五'],ans:1},
+    {q:'"book"的意思是？',opts:['笔','书','桌子','椅子'],ans:1},
+    {q:'How do you say "谢谢"?',opts:['Hello','Sorry','Thank you','Goodbye'],ans:2},
+    {q:'"dog"的复数形式是？',opts:['dogs','doges','dogies','dog'],ans:0},
+    {q:'"happy"的意思是？',opts:['伤心','高兴','生气','害怕'],ans:1},
+    {q:'"mother"是什么意思？',opts:['爸爸','妈妈','哥哥','姐姐'],ans:1},
+    {q:'How old are you? 的意思？',opts:['你是谁','你多大了','你好吗','你在哪'],ans:1},
+    {q:'"fish"是什么？',opts:['鸡','鸭','鱼','猪'],ans:2},
+  ],
+  // ═══ 3年级 ═══
+  '3_语文': [
+    {q:'"千里之行"的下一句？',opts:['始于足下','终有尽头','路漫漫','始于一步'],ans:0},
+    {q:'"ABB"式词语是？',opts:['高高兴兴','绿油油','又大又圆','非常好'],ans:1},
+    {q:'修辞手法"像"属于？',opts:['比喻','拟人','夸张','排比'],ans:0},
+    {q:'"但愿人长久"下一句？',opts:['千里共婵娟','明月几时有','举杯邀明月','低头思故乡'],ans:0},
+    {q:'"画蛇添足"告诉我们？',opts:['要多练画画','做事要恰到好处','蛇很有趣','要勇敢'],ans:1},
+    {q:'下面哪个是量词？',opts:['一条鱼','大鱼','红鱼','鱼儿'],ans:0},
+    {q:'"望庐山瀑布"的作者？',opts:['杜甫','李白','白居易','王维'],ans:1},
+    {q:'反问句的作用是？',opts:['提出问题','加强语气','描写景色','叙述事件'],ans:1},
+  ],
+  '3_数学': [
+    {q:'8 × 7 = ？',opts:['48','54','56','63'],ans:2},
+    {q:'一个三角形有几条边？',opts:['2','3','4','5'],ans:1},
+    {q:'100 ÷ 4 = ？',opts:['20','24','25','30'],ans:2},
+    {q:'1千克等于多少克？',opts:['10','100','1000','10000'],ans:2},
+    {q:'长方形面积公式？',opts:['长+宽','长×宽','长×2','(长+宽)×2'],ans:1},
+    {q:'一天有多少小时？',opts:['12','20','24','48'],ans:2},
+    {q:'356四舍五入到百位？',opts:['300','350','360','400'],ans:3},
+    {q:'周长是什么？',opts:['面的大小','图形一周的长度','线段长度','角的大小'],ans:1},
+  ],
+  '3_英语': [
+    {q:'"I am a student"的意思？',opts:['我是老师','我是学生','我是医生','我是工人'],ans:1},
+    {q:'"banana"是什么？',opts:['苹果','香蕉','橙子','葡萄'],ans:1},
+    {q:'What is this? 的回答？',opts:['I am fine','It is a pen','Thank you','Yes, I do'],ans:1},
+    {q:'"twelve"是数字几？',opts:['10','11','12','13'],ans:2},
+    {q:'"rainy"是什么天气？',opts:['晴天','雨天','雪天','多云'],ans:1},
+    {q:'"breakfast"是哪一餐？',opts:['早餐','午餐','晚餐','下午茶'],ans:0},
+    {q:'I ___ a boy. 填什么？',opts:['is','am','are','be'],ans:1},
+    {q:'"spring"是什么季节？',opts:['春天','夏天','秋天','冬天'],ans:0},
+  ],
+  // ═══ 4年级 ═══
+  '4_语文': [
+    {q:'"不识庐山真面目"下一句？',opts:['只缘身在此山中','远近高低各不同','疑是银河落九天','飞流直下三千尺'],ans:0},
+    {q:'哪个是关联词？',opts:['因为...所以','很...很','一...就','又...又'],ans:0},
+    {q:'"诲人不倦"的意思？',opts:['很厌倦','教导人不厌倦','学习疲惫','不想学'],ans:1},
+    {q:'缩句的目的是？',opts:['扩展句子','保留主干','增加修饰','变成问句'],ans:1},
+    {q:'"精卫填海"是什么故事？',opts:['童话','神话','寓言','笑话'],ans:1},
+    {q:'段落大意是指？',opts:['第一句话','最后一句','主要内容','所有细节'],ans:2},
+    {q:'"桂林山水甲天下"的"甲"？',opts:['第一','盔甲','指甲','甲虫'],ans:0},
+    {q:'修改病句需要改什么？',opts:['标点','字体','语法错误','段落顺序'],ans:2},
+  ],
+  '4_数学': [
+    {q:'一个正方形有几条对称轴？',opts:['2','3','4','8'],ans:2},
+    {q:'3.5 + 2.8 = ？',opts:['5.3','6.3','6.5','7.3'],ans:1},
+    {q:'平行四边形面积公式？',opts:['底×高','长×宽','底+高','(底+高)÷2'],ans:0},
+    {q:'1.2 × 3 = ？',opts:['3.2','3.6','4.2','4.6'],ans:1},
+    {q:'直线有几个端点？',opts:['0','1','2','无数'],ans:0},
+    {q:'45678中5在什么位上？',opts:['个位','十位','百位','千位'],ans:3},
+    {q:'三角形面积公式？',opts:['底×高','底×高÷2','底+高','底×高×2'],ans:1},
+    {q:'0.25化成分数？',opts:['1/2','1/3','1/4','1/5'],ans:2},
+  ],
+  '4_英语': [
+    {q:'There ___ a cat. 填什么？',opts:['is','are','am','be'],ans:0},
+    {q:'"dictionary"是什么？',opts:['日记','字典','小说','杂志'],ans:1},
+    {q:'What time is it? 问的是？',opts:['天气','日期','时间','地点'],ans:2},
+    {q:'"twenty"是多少？',opts:['12','15','20','25'],ans:2},
+    {q:'"classroom"的意思？',opts:['操场','教室','图书馆','食堂'],ans:1},
+    {q:'She ___ tall. 填什么？',opts:['is','are','am','do'],ans:0},
+    {q:'"homework"的意思？',opts:['作业','课本','考试','上课'],ans:0},
+    {q:'复数形式 child→？',opts:['childs','childes','children','childen'],ans:2},
+  ],
+  // ═══ 5年级 ═══
+  '5_语文': [
+    {q:'"草船借箭"出自哪部名著？',opts:['西游记','三国演义','水浒传','红楼梦'],ans:1},
+    {q:'"千里送鹅毛"下半句？',opts:['礼轻情意重','鹅毛大雪','物以稀为贵','千里之行'],ans:0},
+    {q:'说明方法"如...一般"是？',opts:['列数字','打比方','举例子','作比较'],ans:1},
+    {q:'"四面楚歌"与谁有关？',opts:['刘备','项羽','曹操','孙权'],ans:1},
+    {q:'记叙文六要素不包括？',opts:['时间','地点','论点','经过'],ans:2},
+    {q:'"孙悟空"的绰号是？',opts:['美猴王','弼马温','齐天大圣','斗战胜佛'],ans:2},
+    {q:'议论文三要素？',opts:['论点论据论证','开头经过结尾','人物地点事件','起因经过结果'],ans:0},
+    {q:'"入木三分"形容什么？',opts:['雕刻好','书法有力','木头硬','锯子快'],ans:1},
+  ],
+  '5_数学': [
+    {q:'圆的周长公式？',opts:['πr²','2πr','πd²','r²'],ans:1},
+    {q:'3/4 + 1/4 = ？',opts:['4/8','1/2','1','4/4'],ans:2},
+    {q:'一个梯形有几条平行边？',opts:['0','1','2','4'],ans:1},
+    {q:'2.5 × 0.4 = ？',opts:['0.1','1.0','10','0.01'],ans:1},
+    {q:'最小的质数是？',opts:['0','1','2','3'],ans:2},
+    {q:'1/3化为小数(保留两位)？',opts:['0.30','0.33','0.34','0.35'],ans:1},
+    {q:'正方体有几个面？',opts:['4','5','6','8'],ans:2},
+    {q:'5的立方等于？',opts:['15','25','75','125'],ans:3},
+  ],
+  '5_英语': [
+    {q:'过去式 go→？',opts:['goed','went','goes','going'],ans:1},
+    {q:'"November"是几月？',opts:['九月','十月','十一月','十二月'],ans:2},
+    {q:'I ___ to school yesterday.',opts:['go','went','going','goes'],ans:1},
+    {q:'"delicious"的意思？',opts:['危险的','美味的','困难的','有趣的'],ans:1},
+    {q:'Which is bigger, cat or elephant?',opts:['cat','elephant','same','fish'],ans:1},
+    {q:'"library"是什么地方？',opts:['医院','图书馆','超市','公园'],ans:1},
+    {q:'比较级 good→？',opts:['gooder','more good','better','best'],ans:2},
+    {q:'"century"表示多少年？',opts:['10','50','100','1000'],ans:2},
+  ],
+  // ═══ 6年级 ═══
+  '6_语文': [
+    {q:'"学而不思则罔"出自？',opts:['论语','孟子','大学','中庸'],ans:0},
+    {q:'鲁迅原名是？',opts:['周树人','周作人','周恩来','周杰'],ans:0},
+    {q:'"破釜沉舟"的主人公？',opts:['刘邦','项羽','韩信','张良'],ans:1},
+    {q:'比喻句的标志词？',opts:['因为','虽然','像/仿佛','并且'],ans:2},
+    {q:'"水浒传"作者是？',opts:['罗贯中','施耐庵','吴承恩','曹雪芹'],ans:1},
+    {q:'"温故而知新"的意思？',opts:['复习旧知识获新体会','温暖的故事','学新不学旧','全部重学'],ans:0},
+    {q:'下列哪个是拟人句？',opts:['他像小鸟','花儿笑了','跑得很快','非常漂亮'],ans:1},
+    {q:'《西游记》取经路上第一难？',opts:['火焰山','女儿国','白骨精','五行山'],ans:3},
+  ],
+  '6_数学': [
+    {q:'圆的面积公式？',opts:['2πr','πr²','πd','2πr²'],ans:1},
+    {q:'比例 2:3 = 4:?',opts:['5','6','7','8'],ans:1},
+    {q:'一个圆柱体有几个面？',opts:['2','3','4','5'],ans:1},
+    {q:'20%等于分数？',opts:['1/4','1/5','1/3','2/5'],ans:1},
+    {q:'负数与正数相加一定？',opts:['是正数','是负数','不确定','是零'],ans:2},
+    {q:'扇形统计图表示什么？',opts:['变化趋势','各部分占总体百分比','具体数量','增长速度'],ans:1},
+    {q:'8的75%是多少？',opts:['4','5','6','7'],ans:2},
+    {q:'等腰三角形有几条对称轴？',opts:['0','1','2','3'],ans:1},
+  ],
+  '6_英语': [
+    {q:'过去式 swim→？',opts:['swimed','swimmed','swam','swum'],ans:2},
+    {q:'"environment"的意思？',opts:['娱乐','环境','设备','教育'],ans:1},
+    {q:'被动语态用什么结构？',opts:['do+v','be+done','have+done','will+v'],ans:1},
+    {q:'"although"的意思？',opts:['因为','虽然','但是','所以'],ans:1},
+    {q:'I have ___ been there.',opts:['ever','never','always','以上都可'],ans:3},
+    {q:'"technology"的意思？',opts:['技巧','科技','教学','传统'],ans:1},
+    {q:'最高级 beautiful→？',opts:['beautifulest','most beautiful','more beautiful','beautifuler'],ans:1},
+    {q:'"billion"是多少？',opts:['百万','千万','一亿','十亿'],ans:3},
+  ],
+  // ═══ 7年级 ═══
+  '7_语文': [
+    {q:'"己所不欲勿施于人"出自？',opts:['孟子','论语','庄子','道德经'],ans:1},
+    {q:'"朝花夕拾"的文体是？',opts:['小说','散文集','诗歌','戏剧'],ans:1},
+    {q:'说明文顺序不包括？',opts:['时间','空间','逻辑','倒叙'],ans:3},
+    {q:'"刘禹锡"是哪个朝代？',opts:['汉朝','唐朝','宋朝','明朝'],ans:1},
+    {q:'议论文论证方法？',opts:['描写','举例论证','修辞','叙述'],ans:1},
+    {q:'"骆驼祥子"作者？',opts:['老舍','巴金','茅盾','鲁迅'],ans:0},
+    {q:'古诗中"社"指什么？',opts:['社会','土地神','学社','报社'],ans:1},
+    {q:'通假字是什么？',opts:['错别字','古代的借用字','简体字','繁体字'],ans:1},
+  ],
+  '7_数学': [
+    {q:'(-3)×(-4)= ？',opts:['-12','-7','7','12'],ans:3},
+    {q:'一元一次方程的最高次数？',opts:['0','1','2','3'],ans:1},
+    {q:'绝对值|-5|= ？',opts:['-5','0','5','±5'],ans:2},
+    {q:'互为倒数的两个数之积？',opts:['0','1','2','不确定'],ans:1},
+    {q:'三角形内角和等于？',opts:['90°','180°','270°','360°'],ans:1},
+    {q:'y=2x+1是什么函数？',opts:['一次函数','二次函数','反比例函数','指数函数'],ans:0},
+    {q:'平行线有什么性质？',opts:['相交','永不相交','垂直','重合'],ans:1},
+    {q:'不等式3x>6的解？',opts:['x>2','x<2','x=2','x≥2'],ans:0},
+  ],
+  '7_英语': [
+    {q:'现在完成时结构？',opts:['be+doing','have/has+done','did+v','will+v'],ans:1},
+    {q:'"prepare"的意思？',opts:['预防','准备','保护','推迟'],ans:1},
+    {q:'定语从句引导词 who 指？',opts:['物','人','时间','地点'],ans:1},
+    {q:'"influence"的意思？',opts:['信息','影响','流行','通胀'],ans:1},
+    {q:'if引导的条件句主句用？',opts:['一般现在时','一般将来时','过去时','完成时'],ans:1},
+    {q:'"suggestion"的意思？',opts:['成功','建议','暗示','总结'],ans:1},
+    {q:'被动语态 make→？',opts:['is make','is made','is making','was make'],ans:1},
+    {q:'"advantage"的反义词？',opts:['disadvantage','advance','adventure','advertise'],ans:0},
+  ],
+  // ═══ 8年级 ═══
+  '8_语文': [
+    {q:'"出师表"的作者？',opts:['刘备','诸葛亮','关羽','张飞'],ans:1},
+    {q:'"记承天寺夜游"的作者？',opts:['苏轼','欧阳修','王安石','柳宗元'],ans:0},
+    {q:'新闻六要素中5W不含？',opts:['When','Where','Why','hoW'],ans:3},
+    {q:'"杜甫"被称为？',opts:['诗仙','诗圣','诗鬼','诗佛'],ans:1},
+    {q:'小说三要素？',opts:['论点论据论证','人物情节环境','时间地点人物','开头高潮结尾'],ans:1},
+    {q:'"醉翁亭记"的作者？',opts:['苏轼','范仲淹','欧阳修','韩愈'],ans:2},
+    {q:'托物言志属于什么手法？',opts:['修辞','写作手法','说明方法','论证方法'],ans:1},
+    {q:'"三顾茅庐"出自哪部名著？',opts:['西游记','三国演义','红楼梦','水浒传'],ans:1},
+  ],
+  '8_数学': [
+    {q:'勾股定理公式？',opts:['a+b=c','a²+b²=c²','a×b=c','a²-b²=c²'],ans:1},
+    {q:'二次根式√16 = ？',opts:['2','4','8','±4'],ans:1},
+    {q:'平行四边形对角线性质？',opts:['相等','互相平分','互相垂直','互相平分且相等'],ans:1},
+    {q:'一次函数图像是？',opts:['曲线','直线','抛物线','双曲线'],ans:1},
+    {q:'分式有意义的条件？',opts:['分子≠0','分母≠0','分子=分母','分子>分母'],ans:1},
+    {q:'菱形的对角线性质？',opts:['相等','互相垂直平分','只平分','只垂直'],ans:1},
+    {q:'全等三角形判定不包括？',opts:['SSS','SAS','AAS','SSA'],ans:3},
+    {q:'√2是什么数？',opts:['有理数','无理数','整数','自然数'],ans:1},
+  ],
+  '8_英语': [
+    {q:'宾语从句连接词 that 可省略吗？',opts:['永远不能','永远可以','做宾语时可以','做主语时可以'],ans:2},
+    {q:'"consequence"的意思？',opts:['后果','自信','方便','连续'],ans:0},
+    {q:'过去完成时结构？',opts:['had+done','have+done','was+doing','did+v'],ans:0},
+    {q:'"extraordinary"意思？',opts:['额外的','非凡的','极端的','外部的'],ans:1},
+    {q:'情态动词 must 表示？',opts:['可能','必须','应该','愿意'],ans:1},
+    {q:'"recognize"的意思？',opts:['推荐','认出','记录','恢复'],ans:1},
+    {q:'so...that结构表示？',opts:['如此...以至于','不但...而且','虽然...但是','因为...所以'],ans:0},
+    {q:'"volunteer"的意思？',opts:['暴力','志愿者','村庄','投票'],ans:1},
+  ],
+  // ═══ 9年级 ═══
+  '9_语文': [
+    {q:'"范进中举"选自？',opts:['红楼梦','儒林外史','聊斋志异','官场现形记'],ans:1},
+    {q:'"岳阳楼记"核心名句？',opts:['先天下之忧而忧','出淤泥而不染','醉翁之意不在酒','不以物喜不以己悲'],ans:0},
+    {q:'鲁迅小说集是？',opts:['朝花夕拾','呐喊','野草','热风'],ans:1},
+    {q:'"沁园春·雪"的作者？',opts:['毛泽东','周恩来','鲁迅','郭沫若'],ans:0},
+    {q:'文言文"之"的用法不含？',opts:['的','去/到','代词','因为'],ans:3},
+    {q:'"水调歌头"的词牌名下词？',opts:['明月几时有','大江东去','怒发冲冠','满江红'],ans:0},
+    {q:'中考作文常考体裁？',opts:['说明文','记叙文','议论文','应用文'],ans:1},
+    {q:'"简·爱"的作者？',opts:['简·奥斯汀','夏洛蒂·勃朗特','狄更斯','莎士比亚'],ans:1},
+  ],
+  '9_数学': [
+    {q:'二次函数y=ax²的图像？',opts:['直线','抛物线','双曲线','圆'],ans:1},
+    {q:'一元二次方程求根公式用？',opts:['因式分解','配方法','公式法','以上都可'],ans:3},
+    {q:'相似三角形对应边？',opts:['相等','成比例','互相垂直','互相平行'],ans:1},
+    {q:'sin30° = ？',opts:['1/3','1/2','√2/2','√3/2'],ans:1},
+    {q:'圆心角等于？',opts:['圆周角的一半','圆周角的2倍','圆周角','90°'],ans:1},
+    {q:'概率P(A)的范围？',opts:['0<P<1','0≤P≤1','-1≤P≤1','P>0'],ans:1},
+    {q:'反比例函数图像在？',opts:['一三象限或二四象限','所有象限','只在一象限','坐标轴上'],ans:0},
+    {q:'tan45° = ？',opts:['0','1/2','1','√3'],ans:2},
+  ],
+  '9_英语': [
+    {q:'虚拟语气 If I were you 用？',opts:['was','were','am','is'],ans:1},
+    {q:'"phenomenon"的意思？',opts:['哲学','现象','音素','凤凰'],ans:1},
+    {q:'定语从句 whose 表？',opts:['谁的','谁','哪个','在哪'],ans:0},
+    {q:'"sustainable"的意思？',opts:['可持续的','维持的','充足的','合适的'],ans:0},
+    {q:'强调句结构 It is...that？',opts:['表时间','强调句子成分','表条件','表让步'],ans:1},
+    {q:'"accomplish"的意思？',opts:['陪伴','完成','适应','控告'],ans:1},
+    {q:'非谓语 to do 做什么成分？',opts:['谓语','主/宾/定/状/补','只做主语','只做宾语'],ans:1},
+    {q:'"comprehension"的意思？',opts:['综合','理解','竞争','比较'],ans:1},
+  ],
+};
+
+/* === QUIZ SYSTEM === */
+let quizAnswered=false;
+
+function openQuiz(){
+  if(!selectedGrade || !selectedSubject) { showGradeSelect(); return; }
+  quizAnswered=false;
+  const key = selectedGrade + '_' + selectedSubject;
+  const pool = QB[key] || QB['3_语文'];
+  const q = pool[Math.floor(Math.random()*pool.length)];
+  window._currentQuiz = {subject: selectedSubject, question: q.q, options: q.opts, correctIdx: q.ans};
+  
+  document.getElementById('quizSubject').textContent = selectedGrade + '年级 · ' + selectedSubject;
+  document.getElementById('quizQuestion').textContent = q.q;
+  document.getElementById('quizResult').classList.add('hidden');
+
+  const optsDiv=document.getElementById('quizOptions');
+  optsDiv.innerHTML='';
+  q.opts.forEach((opt,i)=>{
+    const btn=document.createElement('button');
+    btn.className='quiz-opt';
+    btn.textContent=opt;
+    btn.onclick=()=>answerQuiz(btn,i,q.ans);
+    optsDiv.appendChild(btn);
+  });
+
+  document.getElementById('quizModal').classList.add('active');
+}
+
+function answerQuiz(btn,idx,ans){
+  if(quizAnswered)return;
+  quizAnswered=true;
+  document.querySelectorAll('.quiz-opt').forEach((b,i)=>{
+    b.disabled=true;
+    if(i===ans)b.classList.add('correct');
+  });
+
+  const resDiv=document.getElementById('quizResult');
+  const resText=document.getElementById('quizResultText');
+
+  if(idx===ans){
+    btn.classList.add('correct');
+    // Reward
+    const wReward=Math.floor(Math.random()*2)+1;
+    const sReward=Math.random()>.5?1:0;
+    water+=wReward;
+    seeds+=sReward;
+    const bonusPts=5;_addPoints(bonusPts);
+    resText.textContent=`✅ 回答正确！获得 ${wReward}水滴${sReward?` + ${sReward}种子`:''} + ${bonusPts}积分`;
+    resText.style.color='#0e7453';
+  }else{
+    btn.classList.add('wrong');
+    // Save to error book
+    if(window._currentQuiz){
+      var eb=[];try{eb=JSON.parse(localStorage.getItem('zhibanErrorBook')||'[]')}catch(e){}
+      var cq=window._currentQuiz;
+      if(window._lastSavedQ!==cq.question && !eb.find(function(x){return x.question===cq.question})){
+        window._lastSavedQ=cq.question;
+        eb.unshift({id:'err_'+Date.now(),subject:cq.subject,question:cq.question,options:cq.options,correctIdx:cq.correctIdx,userIdx:idx,source:'知识农场',date:new Date().toLocaleDateString(),mastered:false,reviewCount:0});
+        localStorage.setItem('zhibanErrorBook',JSON.stringify(eb));
+        if(window.sbErrorBook){var _l2=eb[0];if(_l2&&_l2.id)sbErrorBook.add(_l2).catch(function(){});}
+      }
+    }
+    resText.textContent='❌ 回答错误，再接再厉！';
+    resText.style.color='#dc2626';
+  }
+  resDiv.classList.remove('hidden');
+  updateUI();
+}
+
+function closeQuiz(){
+  document.getElementById('quizModal').classList.remove('active');
+}
+
+/* INIT */
+updateUI();
+
+
+/* ═══ UNIFIED USER SYNC (共享) ═══ */
+const _avatarColors=[{bg:'#dbeafe',face:'#3b82f6',hair:'#1e40af',acc:'#60a5fa'},{bg:'#d1fae5',face:'#10b981',hair:'#065f46',acc:'#6ee7b7'},{bg:'#fef3c7',face:'#f59e0b',hair:'#92400e',acc:'#fcd34d'},{bg:'#fce7f3',face:'#ec4899',hair:'#9d174d',acc:'#f9a8d4'},{bg:'#e0e7ff',face:'#6366f1',hair:'#3730a3',acc:'#a5b4fc'},{bg:'#ffedd5',face:'#f97316',hair:'#9a3412',acc:'#fdba74'}];
+function _genAvatar(idx,size){const c=_avatarColors[idx%6];const st=[`<circle cx="32" cy="34" r="18" fill="${c.face}"/><ellipse cx="32" cy="20" rx="16" ry="12" fill="${c.hair}"/><circle cx="26" cy="33" r="2" fill="#fff"/><circle cx="38" cy="33" r="2" fill="#fff"/><path d="M28 40 Q32 44 36 40" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>`,`<rect x="16" y="24" width="32" height="28" rx="10" fill="${c.face}"/><rect x="14" y="18" width="36" height="14" rx="7" fill="${c.hair}"/><rect x="18" y="14" width="28" height="8" rx="4" fill="${c.acc}"/><circle cx="26" cy="36" r="2" fill="#fff"/><circle cx="38" cy="36" r="2" fill="#fff"/>`,`<ellipse cx="32" cy="36" rx="16" ry="18" fill="${c.face}"/><ellipse cx="32" cy="22" rx="14" ry="10" fill="${c.hair}"/><circle cx="26" cy="35" r="5" stroke="#fff" stroke-width="1.5" fill="none"/><circle cx="38" cy="35" r="5" stroke="#fff" stroke-width="1.5" fill="none"/><circle cx="26" cy="35" r="1.5" fill="#fff"/><circle cx="38" cy="35" r="1.5" fill="#fff"/>`,`<circle cx="32" cy="36" r="16" fill="${c.face}"/><polygon points="18,24 14,10 26,20" fill="${c.hair}"/><polygon points="46,24 50,10 38,20" fill="${c.hair}"/><circle cx="26" cy="34" r="2" fill="#fff"/><circle cx="38" cy="34" r="2" fill="#fff"/>`,`<circle cx="32" cy="36" r="17" fill="${c.face}"/><ellipse cx="32" cy="22" rx="15" ry="10" fill="${c.hair}"/><polygon points="26,33 24,31 22,33 24,35" fill="#fff"/><polygon points="38,33 36,31 40,31 42,33 40,35 36,35" fill="#fff"/>`,`<rect x="16" y="22" width="32" height="30" rx="6" fill="${c.face}"/><rect x="20" y="16" width="24" height="10" rx="3" fill="${c.hair}"/><rect x="22" y="32" width="8" height="5" rx="2" fill="#fff"/><rect x="34" y="32" width="8" height="5" rx="2" fill="#fff"/>`];return`<svg viewBox="0 0 64 64" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" class="avatar-svg"><rect width="64" height="64" rx="32" fill="${c.bg}"/>${st[idx%6]}</svg>`}
+
+/* ═══ 10 PREMIUM AVATARS ═══ */
+const PREMIUM_AVATARS = [
+  {id:'p0',name:'星际探险家',price:100,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#0f172a"/><circle cx="32" cy="32" r="28" fill="#1e293b"/><circle cx="20" cy="18" r="2" fill="#fbbf24" opacity=".6"/><circle cx="50" cy="12" r="1.5" fill="#fbbf24" opacity=".4"/><circle cx="45" cy="45" r="1" fill="#fbbf24" opacity=".5"/><circle cx="12" cy="40" r="1.5" fill="#fbbf24" opacity=".3"/><circle cx="32" cy="35" r="14" fill="#3b82f6"/><rect x="20" y="20" width="24" height="12" rx="6" fill="#60a5fa"/><rect x="22" y="22" width="20" height="8" rx="4" fill="#0f172a" opacity=".6"/><circle cx="28" cy="26" r="2" fill="#22d3ee"/><circle cx="36" cy="26" r="2" fill="#22d3ee"/><path d="M27 40 Q32 44 37 40" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`}},
+  {id:'p1',name:'樱花少女',price:120,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#fce7f3"/><circle cx="32" cy="36" r="16" fill="#fda4af"/><ellipse cx="32" cy="22" rx="18" ry="13" fill="#831843"/><ellipse cx="20" cy="26" rx="4" ry="8" fill="#831843"/><ellipse cx="44" cy="26" rx="4" ry="8" fill="#831843"/><circle cx="27" cy="34" r="2.5" fill="#1e293b"/><circle cx="37" cy="34" r="2.5" fill="#1e293b"/><circle cx="27.5" cy="33" r="1" fill="#fff"/><circle cx="37.5" cy="33" r="1" fill="#fff"/><ellipse cx="22" cy="39" rx="4" ry="2.5" fill="#fb7185" opacity=".4"/><ellipse cx="42" cy="39" rx="4" ry="2.5" fill="#fb7185" opacity=".4"/><path d="M29 41 Q32 44 35 41" stroke="#e11d48" stroke-width="1.2" fill="none" stroke-linecap="round"/><circle cx="16" cy="10" r="3" fill="#fb7185" opacity=".5"/><circle cx="48" cy="8" r="2.5" fill="#fb7185" opacity=".4"/><circle cx="10" cy="50" r="2" fill="#fb7185" opacity=".3"/></svg>`}},
+  {id:'p2',name:'像素勇士',price:80,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#065f46"/><rect x="20" y="8" width="24" height="8" rx="0" fill="#6b7280"/><rect x="18" y="16" width="28" height="6" rx="0" fill="#6b7280"/><rect x="16" y="22" width="32" height="24" rx="0" fill="#fbbf24"/><rect x="22" y="28" width="6" height="6" fill="#1e293b"/><rect x="36" y="28" width="6" height="6" fill="#1e293b"/><rect x="24" y="30" width="2" height="2" fill="#fff"/><rect x="38" y="30" width="2" height="2" fill="#fff"/><rect x="28" y="38" width="8" height="4" rx="0" fill="#dc2626"/><rect x="14" y="46" width="10" height="12" rx="0" fill="#fbbf24"/><rect x="40" y="46" width="10" height="12" rx="0" fill="#fbbf24"/><rect x="10" y="30" width="6" height="4" rx="0" fill="#9ca3af"/><rect x="8" y="28" width="4" height="8" rx="0" fill="#9ca3af"/></svg>`}},
+  {id:'p3',name:'彩虹独角兽',price:150,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#ede9fe"/><circle cx="32" cy="38" r="18" fill="#fff"/><ellipse cx="32" cy="38" rx="16" ry="17" fill="#f0abfc"/><polygon points="32,2 28,18 36,18" fill="#fbbf24"/><circle cx="32" cy="6" r="2" fill="#f59e0b"/><ellipse cx="22" cy="20" rx="8" ry="4" fill="#c084fc"/><ellipse cx="42" cy="20" rx="8" ry="4" fill="#60a5fa"/><ellipse cx="32" cy="18" rx="6" ry="3" fill="#fb7185"/><circle cx="26" cy="35" r="3" fill="#1e293b"/><circle cx="38" cy="35" r="3" fill="#1e293b"/><circle cx="27" cy="34" r="1.2" fill="#fff"/><circle cx="39" cy="34" r="1.2" fill="#fff"/><path d="M28 44 Q32 48 36 44" stroke="#ec4899" stroke-width="1.5" fill="none" stroke-linecap="round"/><ellipse cx="21" cy="40" rx="4" ry="2.5" fill="#fda4af" opacity=".4"/><ellipse cx="43" cy="40" rx="4" ry="2.5" fill="#fda4af" opacity=".4"/></svg>`}},
+  {id:'p4',name:'忍者大师',price:100,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#1e1b4b"/><circle cx="32" cy="34" r="17" fill="#fde68a"/><rect x="12" y="28" width="40" height="10" rx="3" fill="#1e293b"/><rect x="12" y="30" width="40" height="6" rx="2" fill="#dc2626"/><circle cx="26" cy="33" r="3.5" fill="#fff"/><circle cx="38" cy="33" r="3.5" fill="#fff"/><circle cx="26" cy="33" r="2" fill="#1e293b"/><circle cx="38" cy="33" r="2" fill="#1e293b"/><rect x="48" y="30" width="12" height="3" rx="1" fill="#dc2626" transform="rotate(15 48 31)"/><rect x="48" y="33" width="10" height="3" rx="1" fill="#dc2626" transform="rotate(-10 48 34)"/><path d="M14 22 L20 18 L32 14 L44 18 L50 22" stroke="#1e293b" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`}},
+  {id:'p5',name:'海洋精灵',price:130,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#0c4a6e"/><circle cx="20" cy="50" r="6" fill="#22d3ee" opacity=".15"/><circle cx="48" cy="46" r="4" fill="#22d3ee" opacity=".1"/><circle cx="32" cy="36" r="16" fill="#67e8f9"/><ellipse cx="32" cy="22" rx="14" ry="10" fill="#06b6d4"/><circle cx="26" cy="34" r="3" fill="#0f172a"/><circle cx="38" cy="34" r="3" fill="#0f172a"/><circle cx="27" cy="33" r="1.2" fill="#fff"/><circle cx="39" cy="33" r="1.2" fill="#fff"/><path d="M28 42 Q32 46 36 42" stroke="#0e7490" stroke-width="1.5" fill="none" stroke-linecap="round"/><ellipse cx="15" cy="30" rx="6" ry="3" fill="#67e8f9" opacity=".6" transform="rotate(-30 15 30)"/><ellipse cx="49" cy="30" rx="6" ry="3" fill="#67e8f9" opacity=".6" transform="rotate(30 49 30)"/><circle cx="32" cy="12" r="3" fill="#fbbf24"/></svg>`}},
+  {id:'p6',name:'火焰凤凰',price:200,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#431407"/><path d="M32 4 Q40 16 36 24 Q44 14 42 26 Q48 18 44 28 L40 34 L24 34 L20 28 Q16 18 22 26 Q20 14 28 24 Q24 16 32 4Z" fill="#f97316"/><path d="M32 8 Q38 18 35 24 L34 30 L30 30 L29 24 Q26 18 32 8Z" fill="#fbbf24"/><circle cx="32" cy="40" r="14" fill="#f97316"/><circle cx="32" cy="40" r="11" fill="#fb923c"/><circle cx="27" cy="38" r="2.5" fill="#1e293b"/><circle cx="37" cy="38" r="2.5" fill="#1e293b"/><circle cx="27.8" cy="37.2" r="1" fill="#fef3c7"/><circle cx="37.8" cy="37.2" r="1" fill="#fef3c7"/><path d="M29 46 Q32 49 35 46" stroke="#7c2d12" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`}},
+  {id:'p7',name:'熊猫宝宝',price:90,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#bbf7d0"/><circle cx="20" cy="16" r="8" fill="#1e293b"/><circle cx="44" cy="16" r="8" fill="#1e293b"/><circle cx="32" cy="34" r="20" fill="#fff"/><ellipse cx="24" cy="30" rx="7" ry="6" fill="#1e293b"/><ellipse cx="40" cy="30" rx="7" ry="6" fill="#1e293b"/><circle cx="24" cy="30" r="3" fill="#fff"/><circle cx="40" cy="30" r="3" fill="#fff"/><circle cx="24.5" cy="29.5" r="1.5" fill="#1e293b"/><circle cx="40.5" cy="29.5" r="1.5" fill="#1e293b"/><ellipse cx="32" cy="38" rx="4" ry="3" fill="#1e293b"/><path d="M29 43 Q32 46 35 43" stroke="#1e293b" stroke-width="1.2" fill="none" stroke-linecap="round"/></svg>`}},
+  {id:'p8',name:'银河战神',price:180,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#1e1b4b"/><circle cx="12" cy="12" r="1" fill="#e2e8f0" opacity=".5"/><circle cx="52" cy="8" r="1.5" fill="#e2e8f0" opacity=".4"/><circle cx="8" cy="48" r="1" fill="#e2e8f0" opacity=".3"/><circle cx="56" cy="52" r="1" fill="#e2e8f0" opacity=".4"/><circle cx="32" cy="34" r="16" fill="#a78bfa"/><path d="M16 20 L22 24 L32 16 L42 24 L48 20 L46 30 L40 28 L32 22 L24 28 L18 30Z" fill="#7c3aed"/><rect x="20" y="28" width="24" height="6" rx="3" fill="#c4b5fd"/><circle cx="27" cy="36" r="2.5" fill="#1e293b"/><circle cx="37" cy="36" r="2.5" fill="#1e293b"/><circle cx="27.8" cy="35.2" r="1" fill="#e0e7ff"/><circle cx="37.8" cy="35.2" r="1" fill="#e0e7ff"/><path d="M29 44 Q32 47 35 44" stroke="#5b21b6" stroke-width="1.5" fill="none" stroke-linecap="round"/><rect x="24" y="48" width="16" height="4" rx="2" fill="#7c3aed" opacity=".5"/></svg>`}},
+  {id:'p9',name:'金色传说',price:250,svg:function(s){return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="32" fill="#451a03"/><circle cx="32" cy="34" r="18" fill="#fbbf24"/><circle cx="32" cy="34" r="15" fill="#fde68a"/><path d="M20 14 L26 22 L32 10 L38 22 L44 14" stroke="#f59e0b" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="32" cy="8" r="4" fill="#f59e0b"/><circle cx="32" cy="8" r="2.5" fill="#fbbf24"/><circle cx="26" cy="32" r="3" fill="#92400e"/><circle cx="38" cy="32" r="3" fill="#92400e"/><circle cx="26.8" cy="31.2" r="1.2" fill="#fef3c7"/><circle cx="38.8" cy="31.2" r="1.2" fill="#fef3c7"/><path d="M28 41 Q32 45 36 41" stroke="#92400e" stroke-width="1.5" fill="none" stroke-linecap="round"/><ellipse cx="22" cy="37" rx="3.5" ry="2" fill="#f59e0b" opacity=".3"/><ellipse cx="42" cy="37" rx="3.5" ry="2" fill="#f59e0b" opacity=".3"/></svg>`}},
+];
+function _renderPremiumAvatar(id,size){const a=PREMIUM_AVATARS.find(x=>x.id===id);return a?a.svg(size):''}
+
+/* ═══ POINTS SYSTEM HELPERS ═══ */
+function _getUser(){try{return JSON.parse(localStorage.getItem('zhibanUser')||'{}')}catch(e){return{}}}
+function _saveUser(u){try{localStorage.setItem('zhibanUser',JSON.stringify(u))}catch(e){}}
+function _addPoints(pts){const u=_getUser();u.points=(u.points||0)+pts;_saveUser(u);return u.points}
+function _getPoints(){return _getUser().points||0}
+
+function _syncNavUser(){try{const u=JSON.parse(localStorage.getItem('zhibanUser')||'{}');const av=document.getElementById('navAvatar'),nm=document.getElementById('navUserName');if(!av)return;if(u.isLoggedIn){if(u.premiumAvatar){av.innerHTML=_renderPremiumAvatar(u.premiumAvatar,36);}else{av.innerHTML=_genAvatar(u.avatarIndex||0,36);}nm.textContent=u.userName||'';}else{av.innerHTML='<svg class="w-5 h-5 text-ocean-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a8.25 8.25 0 0115 0"/></svg>';nm.textContent='登录';}}catch(e){}}
+_syncNavUser();
+window.addEventListener('focus',_syncNavUser);
+window.addEventListener('storage',e=>{if(e.key==='zhibanUser')_syncNavUser()});
+
+
+</script>
+<script>
+/* ── Navbar 头像同步 ── */
+(function _syncNav(){
+  try {
+    var u = JSON.parse(localStorage.getItem('zhibanUser') || '{}');
+    var av = document.getElementById('navAvatar');
+    var nm = document.getElementById('navUserName');
+    if (!av) return;
+    if (u.customAvatar) {
+      av.innerHTML = '<img src="' + u.customAvatar + '" style="width:36px;height:36px;object-fit:cover;border-radius:50%">';
+    } else {
+      var colors = ['#fff7ed','#fce7f3','#fef3c7','#e0e7ff','#ecfdf5','#dbeafe'];
+      var animals = [
+        '<circle cx="32" cy="36" r="20" fill="#fb923c"/><circle cx="32" cy="38" r="14" fill="#fff"/><polygon points="16,22 12,6 24,18" fill="#fb923c"/><polygon points="48,22 52,6 40,18" fill="#fb923c"/><circle cx="25" cy="34" r="2.8" fill="#1e293b"/><circle cx="39" cy="34" r="2.8" fill="#1e293b"/><ellipse cx="32" cy="39" rx="2.5" ry="2" fill="#1e293b"/>',
+        '<circle cx="32" cy="40" r="18" fill="#fef9c3"/><ellipse cx="25" cy="14" rx="5" ry="14" fill="#fef9c3" stroke="#fde047" stroke-width=".5"/><ellipse cx="39" cy="14" rx="5" ry="14" fill="#fef9c3" stroke="#fde047" stroke-width=".5"/><circle cx="26" cy="37" r="2.5" fill="#1e293b"/><circle cx="38" cy="37" r="2.5" fill="#1e293b"/><ellipse cx="32" cy="42" rx="2" ry="1.5" fill="#fda4af"/>',
+        '<circle cx="32" cy="36" r="20" fill="#d4a574"/><circle cx="20" cy="20" r="7" fill="#d4a574"/><circle cx="44" cy="20" r="7" fill="#d4a574"/><circle cx="20" cy="20" r="4" fill="#f5deb3"/><circle cx="44" cy="20" r="4" fill="#f5deb3"/><circle cx="32" cy="40" r="10" fill="#f5deb3"/><circle cx="26" cy="34" r="2.8" fill="#1e293b"/><circle cx="38" cy="34" r="2.8" fill="#1e293b"/>',
+        '<ellipse cx="32" cy="36" rx="18" ry="22" fill="#334155"/><ellipse cx="32" cy="40" rx="12" ry="14" fill="#fff"/><circle cx="25" cy="30" r="3.5" fill="#fff"/><circle cx="39" cy="30" r="3.5" fill="#fff"/><circle cx="25" cy="30" r="1.8" fill="#1e293b"/><circle cx="39" cy="30" r="1.8" fill="#1e293b"/><polygon points="32,35 28,39 36,39" fill="#fbbf24"/>',
+        '<circle cx="32" cy="38" r="19" fill="#86efac"/><circle cx="22" cy="22" r="9" fill="#86efac"/><circle cx="42" cy="22" r="9" fill="#86efac"/><circle cx="22" cy="22" r="5" fill="#fff"/><circle cx="42" cy="22" r="5" fill="#fff"/><circle cx="22" cy="22" r="2.5" fill="#1e293b"/><circle cx="42" cy="22" r="2.5" fill="#1e293b"/>',
+        '<circle cx="32" cy="38" r="19" fill="#94a3b8"/><circle cx="32" cy="40" r="13" fill="#e2e8f0"/><polygon points="16,24 12,6 24,22" fill="#94a3b8"/><polygon points="48,24 52,6 40,22" fill="#94a3b8"/><circle cx="25" cy="35" r="2.5" fill="#1e293b"/><circle cx="39" cy="35" r="2.5" fill="#1e293b"/><ellipse cx="32" cy="40" rx="2" ry="1.5" fill="#fda4af"/>'
+      ];
+      var idx = u.avatarIndex || 0;
+      var bg = colors[idx % colors.length];
+      var body = animals[idx % animals.length];
+      av.innerHTML = '<svg viewBox="0 0 64 64" width="36" height="36" xmlns="http://www.w3.org/2000/svg" style="border-radius:50%"><rect width="64" height="64" rx="32" fill="' + bg + '"/>' + body + '</svg>';
+    }
+    if (nm && u.userName) nm.textContent = u.userName;
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>

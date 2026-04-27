@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- 防缓存:确保用户总是拿到最新版本 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI错题本 — 灵犀伴学</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{ocean:{50:'#eef6ff',100:'#d9ecff',200:'#bcdeff',300:'#8ec9ff',400:'#59a9ff',500:'#3385ff',600:'#1a65f5',700:'#1450e1',800:'#1741b6',900:'#19398f',950:'#142557'},mint:{50:'#edfcf5',100:'#d3f8e6',200:'#aaf0d1',400:'#3acd95',500:'#18b47d'},warm:{50:'#fff8ed',200:'#ffdda8',400:'#ff9f38',500:'#ff8211',600:'#f06807',700:'#c74e08'}},fontFamily:{display:['"Noto Serif SC"','serif'],body:['"Noto Sans SC"','sans-serif']}}}};
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--nav-h:64px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans SC',system-ui,sans-serif;background:#f8faff;min-height:100vh;color:#1e293b}
+#navbar{background:rgba(255,255,255,.82);backdrop-filter:blur(16px) saturate(1.4);box-shadow:0 1px 24px rgba(20,37,87,.07)}
+.card{background:#fff;border-radius:18px;box-shadow:0 4px 24px rgba(20,37,87,.06);border:1px solid rgba(51,133,255,.06)}
+.error-card{background:#fff;border-radius:16px;padding:20px;border:1px solid #fecaca;transition:all .25s;cursor:pointer}
+.error-card:hover{box-shadow:0 6px 20px rgba(239,68,68,.12);transform:translateY(-2px)}
+.error-card.mastered{border-color:#86efac;opacity:.6}
+.error-card.mastered:hover{opacity:1}
+.tag{display:inline-flex;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.btn-primary{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:linear-gradient(135deg,#3385ff,#1a65f5);color:#fff;border:none;border-radius:12px;font-weight:600;cursor:pointer;font-size:14px;transition:all .2s;font-family:inherit}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(51,133,255,.3)}
+.stat-num{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700}
+.modal{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(20,37,87,.3);backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .3s}
+.modal.active{opacity:1;pointer-events:auto}
+.modal-box{background:#fff;border-radius:20px;padding:28px;max-width:500px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 24px 64px rgba(20,37,87,.18)}
+</style>
+<script src="supabase-sync.js"></script>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav id="navbar" class="fixed top-0 left-0 w-full z-50" style="height:var(--nav-h)">
+  <div class="max-w-7xl mx-auto flex items-center justify-between px-5 md:px-8 h-full">
+    <a href="home.html" class="flex items-center gap-2 text-ocean-700 font-bold text-lg select-none">
+      <svg class="w-8 h-8" viewBox="0 0 40 40" fill="none"><defs><linearGradient id="lxG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3385ff"/><stop offset="100%" stop-color="#18b47d"/></linearGradient></defs><circle cx="20" cy="20" r="19" fill="url(#lxG)" opacity=".12"/><circle cx="20" cy="20" r="19" stroke="url(#lxG)" stroke-width="1.5"/><path d="M12 26c0-4 2-7 5-9l1-3c0-1 1-1.5 2-1.5s1.5.8 1.5 1.5l-.5 2c2-1 4-1 5.5 0l1.5-1c.5-.5 1.2-.3 1.5.2s.1 1.2-.4 1.5L27 18c1 1.5 1.5 3.5 1 5.5-.5 2-2 3-4 3.5H16c-2-.5-3.5-2-4-4z" fill="url(#lxG)" opacity=".85"/><circle cx="23" cy="19" r="1.3" fill="white"/></svg>
+      <span class="hidden sm:inline" style="font-family:'Noto Serif SC',serif">灵犀伴学</span>
+    </a>
+    <ul class="hidden md:flex items-center gap-1 text-sm font-medium">
+      <li><a href="home.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">首页</a></li>
+      <li><a href="ai-module.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">AI伴学</a></li>
+      <li><a href="user.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">用户中心</a></li>
+    
+      <li><a href="profile.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习画像</a></li>
+      <li><a href="goals.html" class="px-4 py-2 rounded-lg text-ocean-800 hover:bg-ocean-50 transition">学习目标</a></li>
+    </ul>
+    <div class="flex items-center gap-3">
+      <a href="user.html" class="flex items-center gap-2"><div id="navAvatar" class="w-9 h-9 rounded-full bg-ocean-100"></div><span id="navUserName" class="hidden sm:inline text-sm font-medium text-ocean-700"></span></a>
+    </div>
+  </div>
+</nav>
+
+<main class="pt-24 pb-16 px-4 max-w-3xl mx-auto">
+  <div class="text-center mb-8">
+    <h1 class="text-2xl md:text-3xl font-bold font-display text-ocean-900 mb-2">📝 AI 错题本</h1>
+    <p class="text-ocean-500 text-sm">自动收集答错题目，AI分析错因，精准提升薄弱环节</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-4 gap-3 mb-6">
+    <div class="card p-4 text-center"><div class="stat-num text-red-500" id="statTotal">0</div><div class="text-xs text-ocean-400 mt-1">总错题</div></div>
+    <div class="card p-4 text-center"><div class="stat-num text-warm-500" id="statPending">0</div><div class="text-xs text-ocean-400 mt-1">待复习</div></div>
+    <div class="card p-4 text-center"><div class="stat-num text-mint-500" id="statMastered">0</div><div class="text-xs text-ocean-400 mt-1">已掌握</div></div>
+    <div class="card p-4 text-center"><div class="stat-num text-ocean-500" id="statRate">0%</div><div class="text-xs text-ocean-400 mt-1">掌握率</div></div>
+  </div>
+
+  <!-- Actions -->
+  <div class="flex flex-wrap gap-3 mb-6">
+    <button class="btn-primary" onclick="startReview()">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"/></svg>
+      开始复习
+    </button>
+    <button class="btn-primary" style="background:linear-gradient(135deg,#18b47d,#0e9465)" onclick="aiAnalyze()">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+      AI分析错因
+    </button>
+    <button class="btn-primary" style="background:#64748b" onclick="clearMastered()">清除已掌握</button>
+    <button class="btn-primary" style="background:#ef4444" onclick="clearAll()">清空全部</button>
+  </div>
+
+  <!-- Filter -->
+  <div class="flex gap-2 mb-4 flex-wrap">
+    <button class="tag" style="background:#eef6ff;color:#3385ff" onclick="filterErrors('all')" id="fAll">全部</button>
+    <button class="tag" style="background:#fff8ed;color:#c74e08" onclick="filterErrors('语文')">语文</button>
+    <button class="tag" style="background:#edf6ff;color:#1450e1" onclick="filterErrors('数学')">数学</button>
+    <button class="tag" style="background:#edfcf5;color:#0e7453" onclick="filterErrors('英语')">英语</button>
+  </div>
+
+  <!-- Error list -->
+  <div id="errorList"></div>
+  <div id="emptyState" class="text-center py-16 hidden">
+    <div class="text-4xl mb-4">🎉</div>
+    <h3 class="text-lg font-bold text-ocean-700 mb-2">暂无错题</h3>
+    <p class="text-ocean-400 text-sm">去知识农场或数学速算答题后，答错的题会自动收集到这里</p>
+  </div>
+</main>
+
+<!-- Review Modal -->
+<div class="modal" id="reviewModal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg text-ocean-900 mb-1" id="reviewTitle">错题复习</h3>
+    <p class="text-ocean-400 text-xs mb-4" id="reviewSubject"></p>
+    <p class="text-ocean-800 font-medium mb-4" id="reviewQuestion"></p>
+    <div id="reviewOptions"></div>
+    <div id="reviewResult" class="hidden mt-4">
+      <p id="reviewResultText" class="font-semibold text-sm mb-2"></p>
+      <p id="reviewExplanation" class="text-sm text-ocean-600 bg-ocean-50 p-3 rounded-xl mb-3"></p>
+      <div class="flex gap-2">
+        <button onclick="nextReview()" class="btn-primary text-sm">下一题</button>
+        <button onclick="closeReview()" class="btn-primary text-sm" style="background:#64748b">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AI Analysis Modal -->
+<div class="modal" id="analysisModal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg text-ocean-900 mb-4">AI 错因分析报告</h3>
+    <div id="analysisContent"></div>
+    <button onclick="document.getElementById('analysisModal').classList.remove('active')" class="btn-primary w-full mt-4" style="justify-content:center">关闭</button>
+  </div>
+</div>
+
+<footer class="bg-ocean-950 text-white/60 py-6 text-center text-xs mt-auto">© 2026 灵犀伴学 · 灵犀 Lab · 燕京理工学院</footer>
+
+<script>
+/* === ERROR BOOK DATA === */
+function getErrors() {
+  try { return JSON.parse(localStorage.getItem('zhibanErrorBook') || '[]'); } catch(e) { return []; }
+}
+function saveErrors(list) {
+  localStorage.setItem('zhibanErrorBook', JSON.stringify(list));
+}
+
+// Public API: other pages call this to add wrong answers
+window.addWrongAnswer = function(data) {
+  // data: {subject, question, options, correctIdx, userIdx, source}
+  var list = getErrors();
+  // 严格去重：同一题目+学科+用户答案才算重复
+  var dupKey = (data.question||'') + '|' + (data.subject||'') + '|' + (data.correctIdx);
+  if (list.find(function(e){ return ((e.question||'')+'|'+(e.subject||'')+'|'+e.correctIdx) === dupKey; })) return;
+  var newErr = {
+    id: 'err_' + Date.now() + '_' + Math.floor(Math.random()*9999),
+    subject: data.subject || '未知',
+    question: data.question,
+    options: data.options,
+    correctIdx: data.correctIdx,
+    userIdx: data.userIdx,
+    source: data.source || '知识农场',
+    date: new Date().toLocaleDateString(),
+    mastered: false,
+    reviewCount: 0,
+  };
+  list.unshift(newErr);
+  saveErrors(list);
+  // 仅同步到Supabase一次
+  if (window.sbErrorBook && newErr.id) {
+    sbErrorBook.add(newErr).catch(function(){});
+  }
+};
+
+/* === RENDER === */
+let currentFilter = 'all';
+
+function filterErrors(f) {
+  currentFilter = f;
+  renderErrors();
+}
+
+function renderErrors() {
+  var list = getErrors();
+  var filtered = currentFilter === 'all' ? list : list.filter(e => e.subject === currentFilter);
+  
+  // Stats
+  var total = list.length;
+  var mastered = list.filter(e => e.mastered).length;
+  var pending = total - mastered;
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statPending').textContent = pending;
+  document.getElementById('statMastered').textContent = mastered;
+  document.getElementById('statRate').textContent = total ? Math.round(mastered / total * 100) + '%' : '0%';
+
+  var container = document.getElementById('errorList');
+  var empty = document.getElementById('emptyState');
+  
+  if (filtered.length === 0) {
+    container.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  var subjColors = { '语文': '#c74e08', '数学': '#1450e1', '英语': '#0e7453' };
+  var subjBg = { '语文': '#fff8ed', '数学': '#eef6ff', '英语': '#edfcf5' };
+
+  container.innerHTML = filtered.map(function(e, i) {
+    return '<div class="error-card ' + (e.mastered ? 'mastered' : '') + ' mb-3">' +
+      '<div class="flex items-start justify-between mb-2" onclick="showDetail(\'' + e.id + '\')" style="cursor:pointer">' +
+        '<span class="tag" style="background:' + (subjBg[e.subject]||'#f1f5f9') + ';color:' + (subjColors[e.subject]||'#64748b') + '">' + e.subject + '</span>' +
+        '<span class="text-xs text-ocean-300">' + e.date + ' · ' + e.source + '</span>' +
+      '</div>' +
+      '<p class="text-sm font-medium text-ocean-800 mb-2 cursor-pointer" onclick="showDetail(\'' + e.id + '\')">' + e.question + '</p>' +
+      '<div class="flex items-center justify-between">' +
+        '<span class="text-xs text-ocean-400">复习 ' + e.reviewCount + ' 次</span>' +
+        '<div class="flex items-center gap-2">' +
+          (e.mastered ? '<span class="text-xs text-mint-500 font-semibold">✅ 已掌握</span>' : '<span class="text-xs text-red-400">待复习</span>') +
+          '<button onclick="event.stopPropagation();aiAnalyze(\'' + e.id + '\')" style="font-size:11px;padding:3px 8px;border-radius:8px;border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;cursor:pointer;font-family:inherit">🔍 AI分析</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+/* === DETAIL VIEW === */
+function showDetail(id) {
+  var list = getErrors();
+  var e = list.find(x => x.id === id);
+  if (!e) return;
+  
+  document.getElementById('reviewSubject').textContent = e.subject;
+  document.getElementById('reviewQuestion').textContent = e.question;
+  document.getElementById('reviewResult').classList.add('hidden');
+  
+  var optsDiv = document.getElementById('reviewOptions');
+  optsDiv.innerHTML = '';
+  
+  e.options.forEach(function(opt, i) {
+    var btn = document.createElement('button');
+    btn.style.cssText = 'width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:12px;background:#fff;text-align:left;font-size:14px;cursor:pointer;transition:all .2s;margin-bottom:8px;font-family:inherit';
+    btn.textContent = opt;
+    btn.onmouseover = function() { btn.style.borderColor = '#3385ff'; btn.style.background = '#eef6ff'; };
+    btn.onmouseout = function() { if (!btn.dataset.answered) { btn.style.borderColor = '#e2e8f0'; btn.style.background = '#fff'; } };
+    btn.onclick = function() { handleReviewAnswer(id, i, e.correctIdx, btn); };
+    optsDiv.appendChild(btn);
+  });
+  
+  document.getElementById('reviewModal').classList.add('active');
+}
+
+function handleReviewAnswer(id, userIdx, correctIdx, btn) {
+  var buttons = document.querySelectorAll('#reviewOptions button');
+  buttons.forEach(function(b, i) {
+    b.dataset.answered = 'true';
+    b.style.cursor = 'default';
+    b.onclick = null;
+    if (i === correctIdx) { b.style.borderColor = '#18b47d'; b.style.background = '#edfcf5'; b.style.color = '#0e7453'; }
+  });
+
+  var list = getErrors();
+  var e = list.find(x => x.id === id);
+  var resDiv = document.getElementById('reviewResult');
+  var resText = document.getElementById('reviewResultText');
+  var resExpl = document.getElementById('reviewExplanation');
+
+  if (userIdx === correctIdx) {
+    resText.textContent = '✅ 回答正确！';
+    resText.style.color = '#0e7453';
+    if (e) {
+      e.reviewCount++; e.mastered = true; saveErrors(list);
+      if (window.sbErrorBook) sbErrorBook.update(e.id, {mastered:true, reviewCount:e.reviewCount}).catch(function(){});
+    }
+    resExpl.textContent = '太棒了！这道题你已经掌握了，继续保持！';
+  } else {
+    btn.style.borderColor = '#ef4444'; btn.style.background = '#fef2f2'; btn.style.color = '#dc2626';
+    resText.textContent = '❌ 还需要再练练';
+    resText.style.color = '#dc2626';
+    if (e) {
+      e.reviewCount++; saveErrors(list);
+      if (window.sbErrorBook) sbErrorBook.update(e.id, {reviewCount:e.reviewCount}).catch(function(){});
+    }
+    resExpl.textContent = '正确答案是「' + e.options[correctIdx] + '」。多复习几次就能记住啦！';
+  }
+  resDiv.classList.remove('hidden');
+  renderErrors();
+}
+
+function closeReview() { document.getElementById('reviewModal').classList.remove('active'); }
+
+/* === REVIEW MODE === */
+let reviewQueue = [];
+let reviewIdx = 0;
+
+function startReview() {
+  var list = getErrors().filter(e => !e.mastered);
+  if (list.length === 0) { if(confirm('没有待复习的错题，太棒了！🎉\n\n去学习画像查看你的成长记录？')){window.location.href='profile.html'} return; }
+  reviewQueue = list.sort(() => Math.random() - 0.5);
+  reviewIdx = 0;
+  showDetail(reviewQueue[0].id);
+}
+
+function nextReview() {
+  reviewIdx++;
+  if (reviewIdx >= reviewQueue.length) {
+    closeReview();
+    if(confirm('本轮复习完成！继续加油~\n\n去查看学习画像，看看你的进步？')){window.location.href='profile.html'}
+    return;
+  }
+  showDetail(reviewQueue[reviewIdx].id);
+}
+
+/* === AI ANALYSIS === */
+var _analyzeSelectedId = null;
+
+function aiAnalyze(errorId) {
+  var list = getErrors();
+  if (list.length === 0) { alert('暂无错题数据'); return; }
+
+  // 如果传入了具体errorId，直接分析该题
+  if (errorId) {
+    _analyzeSelectedId = errorId;
+    var err = list.find(function(e){ return e.id === errorId; });
+    if (err) { renderSingleAnalysis(err); return; }
+  }
+
+  // 否则显示整体分析
+  _analyzeSelectedId = null;
+  renderOverallAnalysis(list);
+}
+
+function renderSingleAnalysis(err) {
+  var optLabels = ['A','B','C','D','E'];
+  var correctAns = err.options ? (optLabels[err.correctIdx] + '. ' + err.options[err.correctIdx]) : '未知';
+  var userAns    = err.options ? (optLabels[err.userIdx]    + '. ' + err.options[err.userIdx])    : '未知';
+  var allOpts    = err.options ? err.options.map(function(o,i){ return optLabels[i]+'. '+o; }).join('  ') : '';
+
+  var html = '<div class="space-y-4">';
+  html += '<div class="bg-ocean-50 p-4 rounded-xl">';
+  html += '<p class="text-sm font-semibold text-ocean-700 mb-2">📌 题目信息</p>';
+  html += '<p class="text-sm text-ocean-800 font-medium mb-2">' + (err.question || '题目内容') + '</p>';
+  if (allOpts) html += '<p class="text-xs text-ocean-500 mb-2">' + allOpts + '</p>';
+  html += '<p class="text-sm text-green-600">✓ 正确答案：' + correctAns + '</p>';
+  html += '<p class="text-sm text-red-500">✗ 你的答案：' + userAns + '</p>';
+  html += '</div>';
+  html += '<div id="aiAnalysisResult" class="bg-gradient-to-br from-blue-50 to-mint-50 p-4 rounded-xl">';
+  html += '<p class="text-sm font-semibold text-ocean-700 mb-3">🤖 AI逐题解析</p>';
+  html += '<div id="aiAnalysisText" class="text-sm text-ocean-700 leading-relaxed">';
+  html += '<div class="flex items-center gap-2 text-ocean-400"><span class="animate-pulse">●</span><span>AI正在分析这道题，请稍候...</span></div>';
+  html += '</div></div>';
+  html += '<button onclick="aiAnalyze()" class="w-full py-2 rounded-xl bg-ocean-100 text-ocean-600 text-sm font-semibold hover:bg-ocean-200 transition">← 查看全部错题整体分析</button>';
+  html += '</div>';
+
+  document.getElementById('analysisContent').innerHTML = html;
+  document.getElementById('analysisModal').classList.add('active');
+
+  var prompt = '你是一位专业的中小学辅导老师，请对以下错题进行详细解析：\n\n'
+    + '【学科】' + err.subject + '\n'
+    + '【题目】' + (err.question || '') + '\n'
+    + (allOpts ? '【选项】' + allOpts + '\n' : '')
+    + '【学生选择】' + userAns + '\n'
+    + '【正确答案】' + correctAns + '\n\n'
+    + '请按以下结构回答：\n'
+    + '1. 【知识点】这道题考查的核心知识点是什么\n'
+    + '2. 【错误原因】学生为什么会选错，分析具体原因\n'
+    + '3. 【详细解析】一步一步解析正确答案的推导过程\n'
+    + '4. 【记忆口诀】给一个帮助记忆该知识点的小口诀或技巧\n'
+    + '5. 【类似练习】出一道同类型的练习题让学生巩固\n\n'
+    + '语气要亲切鼓励，适合中小学生阅读，不要使用markdown格式。';
+
+  callCozeForAnalysis(prompt);
+}
+
+function callCozeForAnalysis(prompt) {
+  var PAT    = 'pat_8LaYsLi87yoXz54xFMPR8pFGlkH8xjl4WTSKRpeI3hJ0GrS4ZeDylHVAqKZLf80R';
+  var BOT_ID = '7632315366266011648';
+  var resultEl = document.getElementById('aiAnalysisText');
+  if (!resultEl) return;
+
+  var fullText = '';
+  var currentEvent = '';
+
+  fetch('https://api.coze.cn/v3/chat', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + PAT,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      bot_id: BOT_ID,
+      user_id: 'eb_' + (localStorage.getItem('zhibanUserId') || Date.now()),
+      stream: true,
+      auto_save_history: false,
+      additional_messages: [{ role: 'user', content: prompt, content_type: 'text' }]
+    })
+  }).then(function(resp) {
+    if (!resp.ok) {
+      resultEl.innerHTML = '<p style="color:red">请求失败(' + resp.status + ')，请重试。</p>';
+      return;
+    }
+    var reader = resp.body.getReader();
+    var decoder = new TextDecoder();
+    var buf = '';
+
+    function read() {
+      reader.read().then(function(result) {
+        if (result.done) {
+          if (!fullText) resultEl.innerHTML = '<p style="color:red">未收到回复，请重试。</p>';
+          return;
+        }
+        buf += decoder.decode(result.value, { stream: true });
+        var lines = buf.split('\n');
+        buf = lines.pop();
+        lines.forEach(function(line) {
+          if (line.startsWith('event:')) {
+            currentEvent = line.slice(6).trim();
+          } else if (line.startsWith('data:')) {
+            var raw = line.slice(5).trim();
+            if (!raw || raw === '[DONE]') return;
+            try {
+              var data = JSON.parse(raw);
+              if (currentEvent === 'conversation.message.delta' &&
+                  data.role === 'assistant' && data.type === 'answer' && data.content) {
+                fullText += data.content;
+                resultEl.innerHTML = fullText
+                  .replace(/\n/g, '<br>')
+                  .replace(/【([^】]+)】/g, '<strong style="color:#1e40af">【$1】</strong>');
+              }
+            } catch(e) {}
+          }
+        });
+        read();
+      }).catch(function(e) {
+        resultEl.innerHTML = '<p style="color:red">读取中断，请重试。</p>';
+      });
+    }
+    read();
+  }).catch(function(e) {
+    resultEl.innerHTML = '<p style="color:red">网络错误：' + e.message + '，请重试。</p>';
+  });
+}
+
+
+function renderOverallAnalysis(list) {
+  var subjCount = {};
+  list.forEach(function(e) { subjCount[e.subject] = (subjCount[e.subject] || 0) + 1; });
+  var weakest = Object.entries(subjCount).sort(function(a,b){ return b[1]-a[1]; });
+  var masteredCount = list.filter(function(e){ return e.mastered; }).length;
+  var rate = Math.round(masteredCount / list.length * 100);
+
+  var html = '<div class="space-y-4">';
+  html += '<div class="bg-ocean-50 p-4 rounded-xl"><p class="text-sm font-semibold text-ocean-700 mb-2">📊 错题概览</p>';
+  html += '<p class="text-sm text-ocean-600">共收集 <strong>' + list.length + '</strong> 道错题，已掌握 <strong>' + masteredCount + '</strong> 道，掌握率 <strong>' + rate + '%</strong></p></div>';
+
+  html += '<div class="bg-red-50 p-4 rounded-xl"><p class="text-sm font-semibold text-red-600 mb-2">⚠️ 薄弱学科分析</p>';
+  weakest.forEach(function(w) {
+    var subjectMastered = list.filter(function(e){ return e.subject===w[0]&&e.mastered; }).length;
+    html += '<div class="flex justify-between items-center text-sm text-red-700 mb-1"><span>' + w[0] + '：' + w[1] + '道错题</span><span class="text-xs text-red-400">已掌握' + subjectMastered + '道</span></div>';
+    html += '<div class="w-full bg-red-100 rounded-full h-2 mb-2"><div class="bg-red-400 h-2 rounded-full" style="width:' + (w[1]>0?Math.round(subjectMastered/w[1]*100):0) + '%"></div></div>';
+  });
+  html += '</div>';
+
+  // 各题选择分析按钮
+  html += '<div class="bg-blue-50 p-4 rounded-xl"><p class="text-sm font-semibold text-blue-600 mb-2">🔎 选择单道题针对分析</p>';
+  html += '<div class="space-y-2 max-h-40 overflow-y-auto">';
+  list.slice(0,10).forEach(function(e){
+    html += '<button onclick="aiAnalyze(\'' + e.id + '\')" class="w-full text-left px-3 py-2 rounded-lg bg-white border border-blue-100 hover:border-blue-300 text-xs text-ocean-700 transition">' +
+      '<span class="font-semibold text-blue-500">[' + e.subject + ']</span> ' + (e.question||'').slice(0,35) + (e.question&&e.question.length>35?'…':'') + '</button>';
+  });
+  if(list.length>10) html += '<p class="text-xs text-ocean-400 text-center mt-1">仅显示最近10道，更多请在错题列表中点击</p>';
+  html += '</div></div>';
+
+  html += '<div class="bg-mint-50 p-4 rounded-xl"><p class="text-sm font-semibold text-mint-500 mb-2">💡 AI建议</p><ul class="text-sm text-ocean-600 space-y-1">';
+  if(weakest.length>0) html += '<li>• 重点复习「' + weakest[0][0] + '」学科，错题最多</li>';
+  if(rate<50) html += '<li>• 掌握率较低，建议每天复习5-10道错题</li>';
+  if(rate>=50&&rate<80) html += '<li>• 掌握率不错，再加把劲突破80%</li>';
+  if(rate>=80) html += '<li>• 掌握率很高，继续保持！可以挑战新知识</li>';
+  html += '<li>• 建议在AI伴学中针对薄弱知识点提问</li>';
+  html += '</ul></div></div>';
+
+  document.getElementById('analysisContent').innerHTML = html;
+  document.getElementById('analysisModal').classList.add('active');
+}
+
+function clearAll() {
+  if (!confirm('确定清空所有错题吗？此操作不可恢复！')) return;
+  localStorage.setItem('zhibanErrorBook', '[]');
+  if (window.sbErrorBook) {
+    var all = JSON.parse(localStorage.getItem('zhibanErrorBook') || '[]');
+    // 从Supabase批量删除
+    var uid = null;
+    sbAuth.getUserId().then(function(id) {
+      if (!id) return;
+      fetch('https://ixwvbwwielgtytjriofy.supabase.co/rest/v1/error_book?user_id=eq.' + id, {
+        method: 'DELETE',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4d3Zid3dpZWxndHl0anJpb2Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyODgzMzIsImV4cCI6MjA5MDg2NDMzMn0.uAYEeLwEql9h9xlP82JDTus2YhZpRbgLiz-R4x5nBxQ',
+          'Authorization': 'Bearer ' + (JSON.parse(localStorage.getItem('sb_session') || '{}').access_token || ''),
+        }
+      }).catch(function(){});
+    }).catch(function(){});
+  }
+  renderErrors();
+  alert('已清空所有错题');
+}
+
+function clearMastered() {
+  if (!confirm('确定清除已掌握的错题吗？')) return;
+  var all = getErrors();
+  var toDelete = all.filter(function(e){ return e.mastered; });
+  var keep = all.filter(function(e){ return !e.mastered; });
+  saveErrors(keep);
+  if (window.sbErrorBook) {
+    toDelete.forEach(function(e){ sbErrorBook.delete(e.id).catch(function(){}); });
+  }
+  renderErrors();
+}
+
+renderErrors();
+</script>
+<script>
+if (window.sbErrorBook) { sbErrorBook.getAll().catch(function(){}); }
+</script>
+<script>
+<script>
+/* ── Navbar 头像同步（通用版，支持全部三种头像类型） ── */
+(function syncNav(){
+  try {
+    var u = JSON.parse(localStorage.getItem('zhibanUser') || '{}');
+    var av = document.getElementById('navAvatar');
+    var nm = document.getElementById('navUserName');
+    if (!av) return;
+    if (u.customAvatar) {
+      av.innerHTML = '<img src="' + u.customAvatar + '" style="width:36px;height:36px;object-fit:cover;border-radius:50%">';
+    } else if (u.premiumAvatar && window.PREMIUM_AVATARS) {
+      var pa = window.PREMIUM_AVATARS.find(function(a){return a.id===u.premiumAvatar;});
+      if (pa) av.innerHTML = pa.svg(36);
+    } else {
+      var colors = ['#fff7ed','#fce7f3','#fef3c7','#e0e7ff','#ecfdf5','#dbeafe'];
+      var animalPaths = [
+        '<circle cx="32" cy="36" r="20" fill="#fb923c"/><circle cx="32" cy="38" r="14" fill="#fff"/><polygon points="16,22 12,6 24,18" fill="#fb923c"/><polygon points="48,22 52,6 40,18" fill="#fb923c"/><circle cx="25" cy="34" r="2.8" fill="#1e293b"/><circle cx="39" cy="34" r="2.8" fill="#1e293b"/><ellipse cx="32" cy="39" rx="2.5" ry="2" fill="#1e293b"/>',
+        '<circle cx="32" cy="40" r="18" fill="#fef9c3"/><ellipse cx="25" cy="14" rx="5" ry="14" fill="#fef9c3"/><ellipse cx="39" cy="14" rx="5" ry="14" fill="#fef9c3"/><circle cx="26" cy="37" r="2.5" fill="#1e293b"/><circle cx="38" cy="37" r="2.5" fill="#1e293b"/><ellipse cx="32" cy="42" rx="2" ry="1.5" fill="#fda4af"/>',
+        '<circle cx="32" cy="36" r="20" fill="#d4a574"/><circle cx="20" cy="20" r="7" fill="#d4a574"/><circle cx="44" cy="20" r="7" fill="#d4a574"/><circle cx="20" cy="20" r="4" fill="#f5deb3"/><circle cx="44" cy="20" r="4" fill="#f5deb3"/><circle cx="26" cy="34" r="2.8" fill="#1e293b"/><circle cx="38" cy="34" r="2.8" fill="#1e293b"/>',
+        '<ellipse cx="32" cy="36" rx="18" ry="22" fill="#334155"/><ellipse cx="32" cy="40" rx="12" ry="14" fill="#fff"/><circle cx="25" cy="30" r="1.8" fill="#1e293b"/><circle cx="39" cy="30" r="1.8" fill="#1e293b"/><polygon points="32,35 28,39 36,39" fill="#fbbf24"/>',
+        '<circle cx="32" cy="38" r="19" fill="#86efac"/><circle cx="22" cy="22" r="9" fill="#86efac"/><circle cx="42" cy="22" r="9" fill="#86efac"/><circle cx="22" cy="22" r="5" fill="#fff"/><circle cx="42" cy="22" r="5" fill="#fff"/><circle cx="22" cy="22" r="2.5" fill="#1e293b"/><circle cx="42" cy="22" r="2.5" fill="#1e293b"/>',
+        '<circle cx="32" cy="38" r="19" fill="#94a3b8"/><circle cx="32" cy="40" r="13" fill="#e2e8f0"/><polygon points="16,24 12,6 24,22" fill="#94a3b8"/><polygon points="48,24 52,6 40,22" fill="#94a3b8"/><circle cx="25" cy="35" r="2.5" fill="#1e293b"/><circle cx="39" cy="35" r="2.5" fill="#1e293b"/>'
+      ];
+      var idx = (u.avatarIndex || 0) % colors.length;
+      av.innerHTML = '<svg viewBox="0 0 64 64" width="36" height="36" xmlns="http://www.w3.org/2000/svg" style="border-radius:50%"><rect width="64" height="64" rx="32" fill="' + colors[idx] + '"/>' + animalPaths[idx] + '</svg>';
+    }
+    if (nm && u.userName) nm.textContent = u.userName;
+  } catch(e) {}
+})();
+// 监听页面切换和storage变化，实时同步
+window.addEventListener('focus', function(){ try{ document.querySelector('[data-nav-sync]') && document.querySelector('[data-nav-sync]').dispatchEvent(new Event('sync')); } catch(e){} });
+window.addEventListener('pageshow', function(){
+  try {
+    var u = JSON.parse(localStorage.getItem('zhibanUser') || '{}');
+    var av = document.getElementById('navAvatar');
+    if (!av || !u.customAvatar) return;
+    av.innerHTML = '<img src="' + u.customAvatar + '" style="width:36px;height:36px;object-fit:cover;border-radius:50%">';
+  } catch(e) {}
+});
+window.addEventListener('storage', function(e){
+  if (e.key === 'zhibanUser') {
+    try {
+      var u = JSON.parse(e.newValue || '{}');
+      var av = document.getElementById('navAvatar');
+      var nm = document.getElementById('navUserName');
+      if (!av) return;
+      if (u.customAvatar) {
+        av.innerHTML = '<img src="' + u.customAvatar + '" style="width:36px;height:36px;object-fit:cover;border-radius:50%">';
+      }
+      if (nm && u.userName) nm.textContent = u.userName;
+    } catch(e) {}
+  }
+});
+</script>
+<script src="ai-character.js"></script>
+</body>
+</html>
